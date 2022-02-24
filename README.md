@@ -13,6 +13,8 @@
 
 This plugin allows you to easily synchronize your Sales Layer catalogue information with your [Magento Enterprise]("https://business.adobe.com/products/magento/magento-commerce.html"). And you can find more detailed documentation at our [website](https://support.saleslayer.com/category/magento).
 
+## Download [latest plugin version](https://github.com/saleslayer/magento-enterprise-plugin/releases/latest/download/magento-enterprise-plugin.zip)
+
 ## Important Notes
 
 Please check the [important notes](https://support.saleslayer.com/magento/important-notes-about-magento-connector) for the installation. (In some cases, a Sales Layer account might be needed to access the documentation).
