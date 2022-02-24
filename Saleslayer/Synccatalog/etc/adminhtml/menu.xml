@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Backend:etc/menu.xsd">
+    <menu>
+        <add id="Saleslayer_Synccatalog::synccatalog" title="Sales Layer" module="Saleslayer_Synccatalog" sortOrder="30" resource="Saleslayer_Synccatalog::synccatalog"/>
+        <add id="Saleslayer_Synccatalog::synccatalog_manage" title="Import" module="Saleslayer_Synccatalog" sortOrder="40" parent="Saleslayer_Synccatalog::synccatalog" action="synccatalog/index/" resource="Saleslayer_Synccatalog::manage"/>
+        <add id="Saleslayer_Synccatalog::synccatalog_tools" title="Tools" module="Saleslayer_Synccatalog" sortOrder="50" parent="Saleslayer_Synccatalog::synccatalog" action="synccatalog/index/tools/" resource="Saleslayer_Synccatalog::tools"/>
+        <add id="Saleslayer_Synccatalog::synccatalog_showdebbug" title="View SL Logs" module="Saleslayer_Synccatalog" sortOrder="60" parent="Saleslayer_Synccatalog::synccatalog" action="synccatalog/index/showdebbug/" resource="Saleslayer_Synccatalog::showdebbug"/>
+        <add id="Saleslayer_Synccatalog::synccatalog_configuration_parameters" title="Configuration Parameters" module="Saleslayer_Synccatalog" sortOrder="70" parent="Saleslayer_Synccatalog::synccatalog" action="adminhtml/system_config/edit/section/synccatalog" resource="Magento_Backend::store"/>
+    </menu>
+</config>

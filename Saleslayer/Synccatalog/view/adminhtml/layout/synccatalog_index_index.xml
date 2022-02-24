@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" layout="admin-1column"  xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+	<head>
+	    <!-- <link src="Saleslayer_Synccatalog::js/processcounter.js"/> -->
+	</head>
+    <body>
+        <referenceContainer name="content">
+            <block class="Saleslayer\Synccatalog\Block\Adminhtml\Synccatalog" name="admin.synccatalog.grid"/>
+        </referenceContainer>
+    </body>
+</page>

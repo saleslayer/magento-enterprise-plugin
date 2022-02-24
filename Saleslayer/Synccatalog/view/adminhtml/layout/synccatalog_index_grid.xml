@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <update handle="formkey"/>
+    <container name="root" label="Root">
+        <block class="Saleslayer\Synccatalog\Block\Adminhtml\Synccatalog\Grid" name="admin.synccatalog.grid" />
+        <!-- template="summary.phtml" -->
+        <!-- <block class="Magento\Framework\View\Element\Template" name="static_block" template="summary.phtml" cacheable="false" /> -->
+        <!--template="grid.phtml"-->
+    </container>
+</page>

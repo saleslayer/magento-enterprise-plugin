@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" layout="admin-2columns-left" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <head>
+        <css src="jquery/fileUploader/css/jquery.fileupload-ui.css"/>
+        <!-- <link src="jquery/fileUploader/bootstrap.js"/> -->
+        <!-- <link src="..\..\synchronize.js"/> -->
+        <link src="Saleslayer_Synccatalog::js/synchronize.js"/>
+    </head>
+    <update handle="editor"/>
+    <body>
+        <referenceContainer name="content">
+            <block class="Saleslayer\Synccatalog\Block\Adminhtml\Synccatalog\Edit" name="synccatalog_edit"/>
+        </referenceContainer>
+        <referenceContainer name="left">
+            <block class="Saleslayer\Synccatalog\Block\Adminhtml\Synccatalog\Edit\Tabs" name="synccatalog_edit_tabs">
+                <block class="Saleslayer\Synccatalog\Block\Adminhtml\Synccatalog\Edit\Tab\Main" name="synccatalog_edit_tab_main"/>
+                    <action method="addTab">
+                        <argument name="name" xsi:type="string">main_section</argument>
+                        <argument name="block" xsi:type="string">synccatalog_edit_tab_main</argument>
+                    </action>
+                <block class="Saleslayer\Synccatalog\Block\Adminhtml\Synccatalog\Edit\Tab\Parameters" name="synccatalog_edit_tab_parameters"/>
+                    <action method="addTab">
+                        <argument name="name" xsi:type="string">parameters_section</argument>
+                        <argument name="block" xsi:type="string">synccatalog_edit_tab_parameters</argument>
+                    </action>
+                <block class="Saleslayer\Synccatalog\Block\Adminhtml\Synccatalog\Edit\Tab\Categories" name="synccatalog_edit_tab_categories"/>
+                     <action method="addTab">
+                         <argument name="name" xsi:type="string">categories_section</argument>
+                         <argument name="block" xsi:type="string">synccatalog_edit_tab_categories</argument>
+                     </action>
+                 <block class="Saleslayer\Synccatalog\Block\Adminhtml\Synccatalog\Edit\Tab\Products" name="synccatalog_edit_tab_products"/>
+                     <action method="addTab">
+                         <argument name="name" xsi:type="string">products_section</argument>
+                         <argument name="block" xsi:type="string">synccatalog_edit_tab_products</argument>
+                     </action>
+            </block>
+        </referenceContainer>
+    </body>
+</page>

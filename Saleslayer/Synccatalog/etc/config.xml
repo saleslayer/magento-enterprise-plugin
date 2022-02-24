@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Store:etc/config.xsd">
+    <default>
+        <synccatalog>
+            <general>
+                <enabled>1</enabled>
+                <activate_debug_logs>0</activate_debug_logs>
+                <manage_indexers>1</manage_indexers>
+                <sql_to_insert_limit>1</sql_to_insert_limit>
+                <avoid_images_updates>0</avoid_images_updates>
+                <sync_data_hour_from>0</sync_data_hour_from>
+                <sync_data_hour_until>0</sync_data_hour_until>
+                <format_type_creation>simple</format_type_creation>
+                <delete_sl_logs_since_days>0</delete_sl_logs_since_days>
+            </general>
+        </synccatalog>
+    </default>
+</config>

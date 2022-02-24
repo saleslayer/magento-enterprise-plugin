@@ -1,0 +1,222 @@
+<head>
+<!--<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">-->
+<!--<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.2.0/css/all.css" integrity="sha384-hWVjflwFxL6sNzntih27bfxkr27PmbbK/iSvJ+a4+0owXq79v+lsFkW54bOGbiDQ" crossorigin="anonymous">-->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <style>
+        /*! CSS Used fontfaces */
+        @font-face{font-family:"Font Awesome 5 Free";font-style:normal;font-weight:400;src:url(https://use.fontawesome.com/releases/v5.2.0/webfonts/fa-regular-400.eot);src:url(https://use.fontawesome.com/releases/v5.2.0/webfonts/fa-regular-400.eot#iefix) format("embedded-opentype"),url(https://use.fontawesome.com/releases/v5.2.0/webfonts/fa-regular-400.woff2) format("woff2"),url(https://use.fontawesome.com/releases/v5.2.0/webfonts/fa-regular-400.woff) format("woff"),url(https://use.fontawesome.com/releases/v5.2.0/webfonts/fa-regular-400.ttf) format("truetype"),url(https://use.fontawesome.com/releases/v5.2.0/webfonts/fa-regular-400.svg#fontawesome) format("svg");}
+        @font-face{font-family:"Font Awesome 5 Free";font-style:normal;font-weight:900;src:url(https://use.fontawesome.com/releases/v5.2.0/webfonts/fa-solid-900.eot);src:url(https://use.fontawesome.com/releases/v5.2.0/webfonts/fa-solid-900.eot#iefix) format("embedded-opentype"),url(https://use.fontawesome.com/releases/v5.2.0/webfonts/fa-solid-900.woff2) format("woff2"),url(https://use.fontawesome.com/releases/v5.2.0/webfonts/fa-solid-900.woff) format("woff"),url(https://use.fontawesome.com/releases/v5.2.0/webfonts/fa-solid-900.ttf) format("truetype"),url(https://use.fontawesome.com/releases/v5.2.0/webfonts/fa-solid-900.svg#fontawesome) format("svg");}
+        /*! CSS Used from: https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css */
+        img{border:0;}
+        button{margin:0;font:inherit;color:inherit;}
+        button{overflow:visible;}
+        button{text-transform:none;}
+        button{-webkit-appearance:button;cursor:pointer;}
+        button::-moz-focus-inner{padding:0;border:0;}
+        @media print{
+            *,:after,:before{color:#000!important;text-shadow:none!important;background:0 0!important;-webkit-box-shadow:none!important;box-shadow:none!important;}
+            img{page-break-inside:avoid;}
+            img{max-width:100%!important;}
+        }
+        *{-webkit-box-sizing:border-box;-moz-box-sizing:border-box;box-sizing:border-box;}
+        :after,:before{-webkit-box-sizing:border-box;-moz-box-sizing:border-box;box-sizing:border-box;}
+        button{font-family:inherit;font-size:inherit;line-height:inherit;}
+        img{vertical-align:middle;}
+        h4{font-family:inherit;font-weight:500;line-height:1.1;color:inherit;}
+        h4{margin-top:10px;margin-bottom:10px;}
+        h4{font-size:18px;}
+        .text-center{text-align:center;}
+        .container-fluid{padding-right:15px;padding-left:15px;margin-right:auto;margin-left:auto;}
+        .row{margin-right:-15px;margin-left:-15px;}
+        .col-lg-3,.col-md-6,.col-sm-12,.col-xs-12{position:relative;min-height:1px;padding-right:15px;padding-left:15px;}
+        .col-xs-12{float:left;}
+        .col-xs-12{width:100%;}
+        @media (min-width:768px){
+            .col-sm-12{float:left;}
+            .col-sm-12{width:100%;}
+        }
+        @media (min-width:992px){
+            .col-md-6{float:left;}
+            .col-md-6{width:50%;}
+        }
+        @media (min-width:1200px){
+            .col-lg-3{float:left;}
+            .col-lg-3{width:25%;}
+        }
+        .btn{display:inline-block;padding:6px 12px;margin-bottom:0;font-size:14px;font-weight:400;line-height:1.42857143;text-align:center;white-space:nowrap;vertical-align:middle;-ms-touch-action:manipulation;touch-action:manipulation;cursor:pointer;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none;background-image:none;border:1px solid transparent;border-radius:4px;}
+        .btn:active:focus,.btn:focus{outline:5px auto -webkit-focus-ring-color;outline-offset:-2px;}
+        .btn:focus,.btn:hover{color:#333;text-decoration:none;}
+        .btn:active{background-image:none;outline:0;-webkit-box-shadow:inset 0 3px 5px rgba(0,0,0,.125);box-shadow:inset 0 3px 5px rgba(0,0,0,.125);}
+        .btn-success{color:#fff;background-color:#5cb85c;border-color:#4cae4c;}
+        .btn-success:focus{color:#fff;background-color:#449d44;border-color:#255625;}
+        .btn-success:hover{color:#fff;background-color:#449d44;border-color:#398439;}
+        .btn-success:active{color:#fff;background-color:#449d44;border-color:#398439;}
+        .btn-success:active:focus,.btn-success:active:hover{color:#fff;background-color:#398439;border-color:#255625;}
+        .btn-success:active{background-image:none;}
+        .btn-lg{padding:10px 16px;font-size:18px;line-height:1.3333333;border-radius:6px;}
+        .btn-block{display:block;width:100%;}
+        .container-fluid:after,.container-fluid:before,.row:after,.row:before{display:table;content:" ";}
+        .container-fluid:after,.row:after{clear:both;}
+        /*! CSS Used from: https://use.fontawesome.com/releases/v5.2.0/css/all.css */
+        .fas{-moz-osx-font-smoothing:grayscale;-webkit-font-smoothing:antialiased;display:inline-block;font-style:normal;font-variant:normal;text-rendering:auto;line-height:1;}
+        .fa-check:before{content:"\f00c";}
+        .fa-file-archive:before{content:"\f1c6";}
+        .fa-trash-alt:before{content:"\f2ed";}
+        .fa-unlink:before{content:"\f127";}
+        .fas{font-family:"Font Awesome 5 Free";}
+        .fas{font-weight:900;}
+        /*Custom css*/
+        .container-fluid{max-width:100%;}
+        .mar-btt-30{margin-bottom:30px;}
+        .mar-top-btt-80{margin-bottom:80px;margin-top:80px;}
+        .mar-10{margin:10px;}
+        .pad-10{padding:10px;}
+        .pad-40{padding:40px;}
+        .pad-80{padding:80px;}
+        .min-hei-75{min-height:75px;}
+        .min-hei-100{min-height:100px;}    
+        .btn{border-radius: 0px !important;font-size:17px;}
+        .btn-success{background:#4CB58E;}
+        .btn-success:hover{background:rgb(83,199,156);}
+        @media only screen and (max-width: 600px) {
+            .btn{font-size:14px !important;}
+            .min-hei-75{min-height:50px;}
+            .min-hei-100{min-height:50px;}
+            .pad-40{padding:20px;}
+            .pad-80{padding:0;}
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid pad-80">
+        <div class="row mar-top-btt-80">
+            <div class="col-xs-12 pad-40 min-hei-100">
+                <img alt="logo sales layer" src="<?php echo $this->getViewFileUrl('Saleslayer_Synccatalog::images/logo.svg'); ?>"/>
+            </div>
+        </div>
+        <div class="row mar-top-btt-80">
+            <!--<div class="col-lg-3 col-md-6 col-sm-12 pad-40">
+                <div class="w-100 min-hei-100 text-center">
+                <h4 class="mar-btt-30">Unlink elements that are not in the current stored connectors of your SL credentials and disable them.</h4>
+                </div>
+                <div class="w-100 min-hei-100">
+                <button type="button" class="btn btn-success btn-block btn-lg mar-10 pad-10 buttonscommandexecuter" title="Unlink elements" name="unlinkelements"><i class="fas fa-unlink mar-10"></i> Unlink elements</button>
+                </div>
+            </div>-->
+            <div class="col-lg-3 col-md-6 col-sm-12 pad-40">
+                <div class="w-100 min-hei-100 text-center">
+                    <h4 class="mar-btt-30">Load all the information of the currently configured connectors and update the SL multi-connector table with this information.</h4>
+                </div>
+                <div class="w-100 min-hei-100">
+                    <button type="button" class="btn btn-success btn-block btn-lg mar-10 pad-10 buttonscommandexecuter" title="Information preload" name="infopreload"><i class="fas fa-check mar-10"></i> Information preload</button>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6 col-sm-12 pad-40">
+                <div class="w-100 min-hei-100 text-center">
+                <h4 class="mar-btt-30">Download the Sales Layer logs in a zip file.</h4>
+                </div>
+                <div class="w-100 min-hei-100">
+                <button type="button" class="btn btn-success btn-block btn-lg mar-10 pad-10 buttonscommandexecuter" title="Download Sales layer logs file" name="downloadlogs"><i class="fas fa-file-archive mar-10"></i> Download SL logs</button>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6 col-sm-12 pad-40">
+                <div class="w-100 min-hei-100 text-center">
+                <h4 class="mar-btt-30">Remove the Sales Layer logs.</h4>
+                </div>
+                <div class="w-100 min-hei-100">
+                <button type="button" class="btn btn-success btn-block btn-lg mar-10 pad-10 buttonscommandexecuter" title="Remove the Sales Layer logs" name="removelogs"><i class="fas fa-trash-alt mar-10"></i> Remove SL logs</button>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6 col-sm-12 pad-40">
+                <div class="w-100 min-hei-100 text-center">
+                <h4 class="mar-btt-30">Remove Sales Layer credentials indexes in attributes tables.</h4>
+                </div>
+                <div class="w-100 min-hei-100">
+                <button type="button" class="btn btn-success btn-block btn-lg mar-10 pad-10 buttonscommandexecuter" title="Remove Sales Layer indexes" name="removeindexes"><i class="fas fa-trash-alt mar-10"></i> Remove Sales Layer indexes</button>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6 col-sm-12 pad-40">
+                <div class="w-100 min-hei-100 text-center">
+                <h4 class="mar-btt-30">Delete Sales Layer items pending to process.</h4>
+                </div>
+                <div class="w-100 min-hei-100">
+                <button type="button" class="btn btn-success btn-block btn-lg mar-10 pad-10 buttonscommandexecuter" title="Delete Sales Layer items pending" name="deleteregs"><i class="fas fa-trash-alt mar-10"></i> Delete SL items pending to process</button>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6 col-sm-12 pad-40">
+                <div class="w-100 min-hei-100 text-center">
+                <h4 class="mar-btt-30">Delete Unused Images.</h4>
+                </div>
+                <div class="w-100 min-hei-100">
+                <button type="button" class="btn btn-success btn-block btn-lg mar-10 pad-10 buttonscommandexecuter" title="Delete unused images" name="deleteunusedimages"><i class="fas fa-trash-alt mar-10"></i> Delete unused images</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        require(['jquery'],function($){
+            $(document).ready(function() {
+                    function sync_ajax_command(command) {
+                        $('body').trigger('processStart');
+                        if(command == 'downloadlogs'){                       
+                            window.location.replace("<?php echo $block->getUrl('synccatalog/index/downlogs'); ?>");
+                            $('body').trigger('processStop');
+                        }else{
+                            $.ajax({
+                                method: "POST",
+                                url: "<?php echo $block->getUrl('synccatalog/ajax/syncajaxcommands'); ?>",
+                                data: {'command':command},
+                                dataType: "json"
+                            }).done(function (data_return) {
+                                showMessage(data_return['message_type'], data_return['message']);
+                                clear_message_status();
+                            }).fail(function (data_return) {
+                                console.log('Auto save connection error');
+                            }).always(function (){
+                                $('body').trigger('processStop');
+                            });
+                        }
+                    }
+                    function showMessage(type = 'success', message) {
+                        if (document.contains(document.getElementById("messages"))) {
+                            document.getElementById("messages").remove();
+                        }
+                        var elm = document.createElement('div');
+                        elm.setAttribute('id', 'messages');
+                        var subdiv = document.createElement('div');
+                        subdiv.setAttribute('class', 'messages');
+
+                        var submessage = document.createElement('div');
+                        submessage.setAttribute('class', 'message message-' + type + ' ' + type);
+
+                        var subdivmessage = document.createElement('div');
+                        subdivmessage.setAttribute('data-ui-id', 'messages-message-' + type);
+                        
+                        var node = document.createTextNode(message);
+
+                        subdivmessage.appendChild(node);
+                        submessage.appendChild(subdivmessage);
+                        subdiv.appendChild(submessage);
+                        elm.appendChild(subdiv);
+
+                        var parent = document.getElementById('anchor-content');
+                        parent.insertBefore(elm, parent.lastChild);
+
+                    }
+                    function clear_message_status() {
+                        var timeout = setTimeout(function () {
+                            if (document.contains(document.getElementById("messages"))) {
+                                document.getElementById("messages").remove();
+                            }
+                            clearTimeout(timeout);
+                        }, 7000);
+                    }
+                 $(".buttonscommandexecuter").on("click",function(){
+                     var command = this.name;
+                     sync_ajax_command(command);
+                 });
+            });
+
+            })
+    </script>
+</body>

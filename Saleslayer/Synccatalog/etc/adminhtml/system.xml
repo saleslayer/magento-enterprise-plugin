@@ -1,0 +1,61 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Config:etc/system_file.xsd">
+    <system>
+        <tab id="synccatalog" translate="label" sortOrder="700">
+            <label>Sales Layer</label>
+        </tab>
+        <section id="synccatalog" translate="label" sortOrder="500" showInDefault="1" showInWebsite="1" showInStore="1">
+            <class>separator-top</class>
+            <label>General parameters</label>
+            <tab>synccatalog</tab>
+            <resource>Saleslayer_Synccatalog::config_synccatalog</resource>
+            <group id="general" translate="label" type="text" sortOrder="1" showInDefault="1" showInWebsite="1" showInStore="1">
+                <label>Connectors Synchronization Settings</label>
+                <field id="activate_debug_logs" translate="label comment" type="select" sortOrder="1" showInDefault="1" showInWebsite="1" showInStore="0">
+                    <label>Activate debug logs</label>
+                    <comment>Sales Layer logs are stored at /var/logs/</comment>
+                    <source_model>Saleslayer\Synccatalog\Model\Config\ActivateDebugLogs\DebugerLevels</source_model>
+                </field>
+                <!--<field id="manage_indexers" translate="label comment" type="select" sortOrder="2" showInDefault="1" showInWebsite="1" showInStore="0">
+                    <label>Manage indexers</label>
+                    <comment>Indexers will be stopped when a connector stores data to synchronize, and after all data has been synchronized, they'll recover their previous state and get reindexed.</comment>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                </field>-->
+                <field id="sql_to_insert_limit" translate="label comment" sortOrder="3" showInDefault="1" showInWebsite="1" showInStore="0">
+                    <label>SQL limit rows to insert</label>
+                    <comment>When storing the information, number of rows per batch that will be inserted into database. Please enter a value between at least 1 and 20.</comment>
+                    <backend_model>Saleslayer\Synccatalog\Model\Config\SqlInsertLimit\BackendModel</backend_model>
+                    <validate>validate-digits</validate>
+                </field>
+                <field id="avoid_images_updates" translate="label comment" type="select" sortOrder="4" showInDefault="1" showInWebsite="1" showInStore="0">
+                    <label>Avoid images updates</label>
+                    <comment>Images will not be updated. This will speed up the process and allow only to synchronize the rest of catalogue information. Enable it only when you want to synchronize a big catalogue.</comment>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                </field>
+                <field id="sync_data_hour_from" translate="label comment" sortOrder="5" showInDefault="1" showInWebsite="1" showInStore="0">
+                    <label>Synchronize data from this hour</label>
+                    <comment>For this hour to work you need to fill in the hour UNTIL. Please enter a value between at least 0 and 23. Empty or set both to 0 to cancel this option.</comment>
+                    <backend_model>Saleslayer\Synccatalog\Model\Config\SyncdataHour\BackendModel</backend_model>
+                    <validate>validate-digits</validate>
+                </field>
+                <field id="sync_data_hour_until" translate="label comment" sortOrder="6" showInDefault="1" showInWebsite="1" showInStore="0">
+                    <label>Until this hour</label>
+                    <comment>For this hour to work you need to fill in the hour FROM. Please enter a value between at least 0 and 23. Empty or set both to 0 to cancel this option.</comment>
+                    <backend_model>Saleslayer\Synccatalog\Model\Config\SyncdataHour\BackendModel</backend_model>
+                    <validate>validate-digits</validate>
+                </field>
+                <field id="format_type_creation" translate="label comment" type="select" sortOrder="7" showInDefault="1" showInWebsite="1" showInStore="0">
+                    <label>Product format Type on creation</label>
+                    <comment>Products formats will be created with this type</comment>
+                    <source_model>Saleslayer\Synccatalog\Model\Config\FormatTypeCreation\TypeCreation</source_model>
+                </field>
+                <field id="delete_sl_logs_since_days" translate="label comment" sortOrder="8" showInDefault="1" showInWebsite="1" showInStore="0">
+                    <label>Delete SL logs from more than X days ago</label>
+                    <comment>Please enter a value between at least 0 and 31. Empty or 0 will not delete SL logs.</comment>
+                    <backend_model>Saleslayer\Synccatalog\Model\Config\DeleteSLLogsSinceDays\BackendModel</backend_model>
+                    <validate>validate-digits</validate>
+                </field>
+            </group>
+        </section>
+    </system>
+</config>
