@@ -56,7 +56,7 @@ php bin/magento cache:clean
 
 ### 2. Create a Sales Layer Magento connector and map the fields
 
-#### The plugin needs the connector ID code and the private key, you will find them in the connector details of Sales Layer.
+#### 2.1 The plugin needs the connector ID code and the private key, you will find them in the connector details of Sales Layer.
 
 ### 3. Add the connector credencials in Magento
 
