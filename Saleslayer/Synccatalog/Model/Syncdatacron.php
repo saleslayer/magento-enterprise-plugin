@@ -12,6 +12,7 @@ use Magento\Catalog\Api\ProductAttributeManagementInterface as productAttributeM
 use Magento\Catalog\Model\Category as categoryModel;
 use Magento\Catalog\Model\Product as productModel;
 use Magento\Catalog\Model\Product\Attribute\Source\Countryofmanufacture as countryOfManufacture;
+use \Magento\Catalog\Model\Category\Attribute\Source\Layout as layoutSource;
 use Magento\CatalogInventory\Model\Configuration as catalogInventoryConfiguration;
 use Magento\CatalogUrlRewrite\Model\CategoryUrlPathGenerator as categoryUrlPathGenerator;
 use Magento\CatalogUrlRewrite\Model\ProductUrlPathGenerator as productUrlPathGenerator;
@@ -90,6 +91,7 @@ class Syncdatacron extends Synccatalog{
                 typeListInterface $typeListInterface,
                 productMetadata $productMetadata,
                 countryOfManufacture $countryOfManufacture,
+                layoutSource $layoutSource,
                 resource $resource = null,
                 resourceCollection $resourceCollection = null,
                 array $data = []) {
@@ -117,6 +119,7 @@ class Syncdatacron extends Synccatalog{
                             $typeListInterface,
                             $productMetadata,
                             $countryOfManufacture,
+                            $layoutSource,
                             $resource,
                             $resourceCollection,
                             $data);
@@ -154,7 +157,7 @@ class Syncdatacron extends Synccatalog{
 
             }
             
-            $this->category_fields = array('category_field_name', 'category_field_url_key', 'category_field_description', 'category_field_image', 'category_field_meta_title', 'category_field_meta_keywords', 'category_field_meta_description', 'category_field_active', 'category_images_sizes');
+            $this->category_fields = array('category_field_name', 'category_field_url_key', 'category_field_description', 'category_field_image', 'category_field_meta_title', 'category_field_meta_keywords', 'category_field_meta_description', 'category_field_active', 'category_images_sizes', 'category_field_page_layout');
             $this->product_fields = array('product_field_name', 'product_field_description', 'product_field_description_short', 'product_field_price', 'product_field_image', 'product_field_sku', 'product_field_qty', 'product_field_inventory_backorders', 'product_field_inventory_min_sale_qty', 'product_field_inventory_max_sale_qty', 'product_field_meta_title', 'product_field_meta_keywords', 'product_field_meta_description', 'product_field_length', 'product_field_width', 'product_field_height', 'product_field_weight', 'product_field_status', 'product_field_visibility', 'product_field_related_references', 'product_field_crosssell_references', 'product_field_upsell_references', 'product_field_attribute_set_id', 'product_images_sizes','main_image_extension', 'product_field_tax_class_id', 'product_field_country_of_manufacture', 'product_field_special_price', 'product_field_special_from_date', 'product_field_special_to_date', 'grouping_ref_field_linked');
             $this->product_format_fields = array('format_images_sizes', 'main_image_extension', 'format_field_sku', 'format_name', 'format_price', 'format_quantity', 'format_field_inventory_backorders', 'format_field_inventory_min_sale_qty', 'format_field_inventory_max_sale_qty', 'format_image', 'format_field_tax_class_id', 'format_field_country_of_manufacture', 'format_field_visibility', 'format_field_special_price', 'format_field_special_from_date', 'format_field_special_to_date');
 

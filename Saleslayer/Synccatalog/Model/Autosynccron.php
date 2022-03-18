@@ -34,6 +34,7 @@ use \Magento\Eav\Model\Config as eavConfig;
 use \Magento\Framework\App\Cache\TypeListInterface as typeListInterface;
 use \Magento\Framework\App\ProductMetadataInterface as productMetadata;
 use \Magento\Catalog\Model\Product\Attribute\Source\Countryofmanufacture as countryOfManufacture;
+use \Magento\Catalog\Model\Category\Attribute\Source\Layout as layoutSource;
 
 /**
  * Class Saleslayer_Synccatalog_Model_Autosynccron
@@ -73,6 +74,7 @@ class Autosynccron extends Synccatalog{
                 typeListInterface $typeListInterface,
                 productMetadata $productMetadata,
                 countryOfManufacture $countryOfManufacture,
+                layoutSource $layoutSource,
                 resource $resource = null,
                 resourceCollection $resourceCollection = null,
                 array $data = []) {
@@ -100,6 +102,7 @@ class Autosynccron extends Synccatalog{
                             $typeListInterface,
                             $productMetadata,
                             $countryOfManufacture,
+                            $layoutSource,
                             $resource,
                             $resourceCollection,
                             $data);

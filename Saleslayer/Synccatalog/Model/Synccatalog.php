@@ -36,6 +36,7 @@ use Magento\Catalog\Model\Product\Attribute\Backend\Media\ImageEntryConverter;
 use Magento\CatalogUrlRewrite\Model\ProductUrlRewriteGenerator;
 use Magento\Framework\Config\ConfigOptionsListConstants;
 use \Magento\Catalog\Model\Product\Attribute\Source\Countryofmanufacture as countryOfManufacture;
+use \Magento\Catalog\Model\Category\Attribute\Source\Layout as layoutSource;
 
 class Synccatalog extends \Magento\Framework\Model\AbstractModel{
     
@@ -59,6 +60,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
     protected $typeListInterface;
     protected $productMetadata;
     protected $countryOfManufacture;
+    protected $layoutSource;
     protected $salesLayerConn;
     protected $connection;
     protected $directoryListFilesystem;
@@ -106,10 +108,12 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
     protected $category_field_meta_keywords         = 'section_meta_keywords';
     protected $category_field_meta_description      = 'section_meta_description';
     protected $category_field_active                = 'section_active';
+    protected $category_field_page_layout           = 'section_page_layout';
     protected $category_path_base                   = BP.'/pub/media/catalog/category/';
     protected $category_images_sizes                = array();
     protected $category_is_anchor                   = 0;
     protected $category_page_layout                 = '1column';
+    protected $layout_options                       = array();
 
     protected $categories_collection                = array();
     protected $saleslayer_root_category_id          = '';
@@ -315,6 +319,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
      * @param typeListInterface                   $typeListInterface                   \Magento\Framework\App\Cache\TypeListInterface
      * @param productMetadata                     $productMetadata                     \Magento\Framework\App\ProductMetadataInterface
      * @param countryOfManufacture                $countryOfManufacture                \Magento\Catalog\Model\Product\Attribute\Source\Countryofmanufacture
+     * @param layoutSource                        $layoutSource                        \Magento\Catalog\Model\Category\Attribute\Source\Layout
      * @param resource|null                       $resource                            \Magento\Framework\Model\ResourceModel\AbstractResource
      * @param resourceCollection|null             $resourceCollection                  \Magento\Framework\Data\Collection\AbstractDb
      * @param array                               $data                                
@@ -344,6 +349,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
         typeListInterface $typeListInterface,
         productMetadata $productMetadata,
         countryOfManufacture $countryOfManufacture,
+        layoutSource $layoutSource,
         resource $resource = null,
         resourceCollection $resourceCollection = null,
         array $data = []
@@ -371,6 +377,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
         $this->typeListInterface                        = $typeListInterface;
         $this->productMetadata                          = $productMetadata;
         $this->countryOfManufacture                     = $countryOfManufacture;
+        $this->layoutSource                             = $layoutSource;
         $this->connection                               = $this->resourceConnection->getConnection();
         $this->saleslayer_multiconn_table               = $this->resourceConnection->getTableName($this->saleslayer_multiconn_table);
         $this->saleslayer_syncdata_table                = $this->resourceConnection->getTableName($this->saleslayer_syncdata_table);
@@ -1301,7 +1308,8 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
                         'category_field_image',
                         'category_field_meta_title',
                         'category_field_meta_keywords',
-                        'category_field_meta_description'
+                        'category_field_meta_description',
+                        'category_field_page_layout'
                     ];
 
         $channel_fields = array();
@@ -1753,7 +1761,8 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
             $this->category_field_meta_description => 'meta_description',
             $this->category_field_active => 'is_active',
             $this->category_field_description => 'description',
-            $this->category_field_image => 'image'
+            $this->category_field_image => 'image',
+            $this->category_field_page_layout => 'page_layout'
         ];
 
         $sl_category_data_to_sync = [
@@ -1795,6 +1804,10 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
                 }else if ($mg_category_field == 'image'){
 
                     $sl_category_image_data_to_sync[$mg_category_field] = $category['data'][$sl_category_field];
+
+                }else if ($mg_category_field == 'page_layout'){
+
+                    $sl_category_data_to_sync[$mg_category_field] = $this->SLValidateLayoutValue($category['data'][$sl_category_field]);
 
                 }else{
 
@@ -7677,6 +7690,128 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
     }
 
     /**
+     * Function to validate Layout value and return MG option value.
+     * @param string $sl_layout_value               value to check
+     * @return string                               MG option value
+     */
+    private function SLValidateLayoutValue($sl_layout_value){
+
+        if (is_array($sl_layout_value)) $sl_layout_value = reset($sl_layout_value);
+        $sl_layout_value = trim(strtolower($sl_layout_value));
+       
+        if (empty($this->layout_options)){
+
+            $layout_options = $this->layoutSource->getAllOptions();
+            
+            $indexes = array('label', 'value');
+
+            foreach ($layout_options as $keyLO => $layout_option) {
+
+                $new_layout_option = array();
+
+                foreach ($indexes as $index) {
+
+                    if (is_object($layout_option[$index])){
+
+                        $new_layout_option[$index] = trim(strtolower(json_decode(json_encode($layout_option[$index]), true)));
+
+                    }else{
+
+                        $new_layout_option[$index] = trim(strtolower($layout_option[$index]));
+
+                    }
+
+                }
+
+                $this->layout_options[] = $new_layout_option;
+
+            }
+
+        }
+
+        if (!empty($this->layout_options)){
+
+            $word_layout_value = false;
+
+            if (preg_match('~(no|layout|updates)~', $sl_layout_value)){
+           
+                $word_layout_value = '';
+           
+            }else if (preg_match('~(empty)~', $sl_layout_value)){
+               
+                $word_layout_value = 'empty';
+           
+            }else if (preg_match('~(cms|page)~', $sl_layout_value)){
+                                      
+                $word_layout_value = 'cms-full-width';
+
+            }else if (preg_match('~(category)~', $sl_layout_value)){
+                           
+                $word_layout_value = 'category-full-width';
+
+            }else if (preg_match('~(product)~', $sl_layout_value)){
+                           
+                $word_layout_value = 'product-full-width';
+
+            }else{
+
+                $preg_1 = preg_match('~(1)~', $sl_layout_value);
+                $preg_2 = preg_match('~(2)~', $sl_layout_value);
+                $preg_3 = preg_match('~(3)~', $sl_layout_value);
+                $preg_left = preg_match('~(left)~', $sl_layout_value);
+                $preg_right = preg_match('~(right)~', $sl_layout_value);
+
+                if ($preg_1){
+
+                    $word_layout_value = '1column';
+
+                }else if ($preg_2 && $preg_right){
+
+                    $word_layout_value = '2columns-right';
+
+                }else if ($preg_2 || $preg_left){
+
+                    $word_layout_value = '2columns-left';
+
+                }else if ($preg_3){
+
+                    $word_layout_value = '3columns';
+
+                }
+
+            }
+
+            foreach ($this->layout_options as $layout_option) {
+
+                if ($sl_layout_value == $layout_option['value'] || $sl_layout_value == $layout_option['label']){
+
+                    return $layout_option['value'];
+
+                }
+
+            }
+
+            if ($word_layout_value !== false){
+
+                foreach ($this->layout_options as $layout_option) {
+
+                    if ($word_layout_value == $layout_option['value']){
+
+                        return $word_layout_value;
+
+                    } 
+
+                }
+
+            }
+
+       }
+       
+       return $this->category_page_layout;
+
+    }
+
+    /**
      * Function to execute all Sales Layer functions that pre-load class variables.
      * @return void
      */
@@ -11308,7 +11443,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
         }
 
         if (!isset($data_schema['product_formats'])){
-            $this->debbug('## Error. The schema does not has the variants structure.');
+            $this->debbug('## Warning. The schema does not has the variants structure.');
             return;
         }
 
@@ -11376,7 +11511,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
             }
 
             //We check extra fields
-            $fixed_fields = array_merge(array('ID', 'ID_products'), $field_relations);
+            $fixed_fields = array_merge(array($this->format_field_id, $this->format_field_products_id), $field_relations);
             
             foreach ($data_schema['product_formats']['fields'] as $field_name => $field_data) {
 
@@ -11388,10 +11523,10 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
             }
 
-            $product_field_ID = $data_schema['products']['fields']['ID'];
-            $product_field_ID_catalogue = $data_schema['products']['fields']['ID_catalogue'];
+            $product_field_ID = $data_schema['products']['fields'][$this->product_field_id];
+            $product_field_ID_catalogue = $data_schema['products']['fields'][$this->product_field_catalogue_id];
 
-            $data_schema['products']['fields'] = array('ID' => $product_field_ID, 'ID_catalogue' => $product_field_ID_catalogue);
+            $data_schema['products']['fields'] = array($this->product_field_id => $product_field_ID, $this->product_field_catalogue_id => $product_field_ID_catalogue);
 
             foreach ($field_relations as $product_field => $format_field){
                 
