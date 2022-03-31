@@ -109,6 +109,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
     protected $category_field_meta_description      = 'section_meta_description';
     protected $category_field_active                = 'section_active';
     protected $category_field_page_layout           = 'section_page_layout';
+    protected $category_field_is_anchor             = 'section_is_anchor';
     protected $category_path_base                   = BP.'/pub/media/catalog/category/';
     protected $category_images_sizes                = array();
     protected $category_is_anchor                   = 0;
@@ -1309,7 +1310,8 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
                         'category_field_meta_title',
                         'category_field_meta_keywords',
                         'category_field_meta_description',
-                        'category_field_page_layout'
+                        'category_field_page_layout',
+                        'category_field_is_anchor'
                     ];
 
         $channel_fields = array();
@@ -1762,7 +1764,8 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
             $this->category_field_active => 'is_active',
             $this->category_field_description => 'description',
             $this->category_field_image => 'image',
-            $this->category_field_page_layout => 'page_layout'
+            $this->category_field_page_layout => 'page_layout', 
+            $this->category_field_is_anchor => 'is_anchor'
         ];
 
         $sl_category_data_to_sync = [
@@ -1785,19 +1788,18 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
                     $sl_category_data_to_sync[$mg_category_field] = $this->sl_check_html_text($category['data'][$sl_category_field]);
                     if ($this->sl_DEBBUG > 2) $this->debbug('# time_check_html_text: ', 'timer', (microtime(1) - $time_ini_check_html_text));
 
-                }else if ($mg_category_field == 'is_active'){
+                }else if ($mg_category_field == 'is_active' || $mg_category_field == 'is_anchor'){
 
-                    $time_ini_validate_status_value = microtime(1);
-                    $sl_category_active_bool = $this->SLValidateStatusValue($category['data'][$this->category_field_active]);
-                    if ($this->sl_DEBBUG > 2) $this->debbug('# time_validate_status_value: ', 'timer', (microtime(1) - $time_ini_validate_status_value));
+                    if ($mg_category_field == 'is_anchor' && $category['data'][$sl_category_field] == '') $category['data'][$sl_category_field] = $this->category_is_anchor;
+                    $sl_category_field_bool = $this->SLValidateStatusValue($category['data'][$sl_category_field]);
                     
-                    if (!$sl_category_active_bool){
+                    if (!$sl_category_field_bool){
             
-                        $sl_category_data_to_sync['is_active'] = 0;
+                        $sl_category_data_to_sync[$mg_category_field] = 0;
 
                     }else{
 
-                        $sl_category_data_to_sync['is_active'] = 1;
+                        $sl_category_data_to_sync[$mg_category_field] = 1;
 
                     }
 

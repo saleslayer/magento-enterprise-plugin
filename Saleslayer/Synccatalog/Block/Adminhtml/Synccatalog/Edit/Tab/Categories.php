@@ -100,10 +100,6 @@ class Categories extends \Magento\Backend\Block\Widget\Form\Generic implements \
             $modelData['category_page_layout'] = '1column';
         }
         
-        file_put_contents(BP.'/var/log/sl_logs/_debbug_log_saleslayer_test.dat', '');
-
-        // $this->testFunct();
-
         $root_categories = $this->getRootCategories();
 
         $fieldset->addField(
