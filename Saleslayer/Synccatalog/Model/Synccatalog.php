@@ -2759,7 +2759,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
         $product_table = $this->getTable('catalog_product_entity');
         $time_ini_read_table_status_create_product = microtime(1);
-        $table_status = $this->connection->query('SHOW TABLE STATUS LIKE "' . $product_table . '"')->fetch();
+        $table_status = $this->connection->showTableStatus($product_table);
         if ($this->sl_DEBBUG > 2) $this->debbug('# time_read_table_status_create_product: ', 'timer', (microtime(1) - $time_ini_read_table_status_create_product));
         
         if ($this->mg_edition == 'enterprise'){
@@ -2767,7 +2767,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
             $row_id = $table_status['Auto_increment'];
 
             $sequence_product_table = $this->getTable('sequence_product');
-            $table_sequence_status = $this->connection->query('SHOW TABLE STATUS LIKE "' . $sequence_product_table . '"')->fetch();
+            $table_sequence_status = $this->connection->showTableStatus($sequence_product_table);
 
             $entity_id = $table_sequence_status['Auto_increment'];
 
@@ -4538,7 +4538,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
         
         if (!$position) $position = 1;
 
-        $table_status = $this->connection->query('SHOW TABLE STATUS LIKE "' . $galleryValueTable . '"')->fetch();
+        $table_status = $this->connection->showTableStatus($galleryValueTable);
         $record_id = $table_status['Auto_increment'];
 
         $gallery_value_table_data = [
@@ -5114,7 +5114,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
     private function create_format_db($product_id, $format_id, $sl_sku = null) {
 
         $product_table = $this->getTable('catalog_product_entity');
-        $table_status = $this->connection->query('SHOW TABLE STATUS LIKE "' . $product_table . '"')->fetch();
+        $table_status = $this->connection->showTableStatus($product_table);
         
 
         if (!in_array($this->format_type_creation, array($this->product_type_simple, $this->product_type_virtual))){
@@ -5128,7 +5128,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
             $row_id = $table_status['Auto_increment'];
 
             $sequence_product_table = $this->getTable('sequence_product');
-            $table_sequence_status = $this->connection->query('SHOW TABLE STATUS LIKE "' . $sequence_product_table . '"')->fetch();
+            $table_sequence_status = $this->connection->showTableStatus($sequence_product_table);
 
             $entity_id = $table_sequence_status['Auto_increment'];
 
@@ -9385,14 +9385,14 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
     private function create_category_db($saleslayer_id) {
 
         $category_table = $this->getTable('catalog_category_entity');
-        $table_status = $this->connection->query('SHOW TABLE STATUS LIKE "' . $category_table . '"')->fetch();
+        $table_status = $this->connection->showTableStatus($category_table);
         
         if ($this->mg_edition == 'enterprise'){
 
             $row_id = $table_status['Auto_increment'];
 
             $sequence_category_table = $this->getTable('sequence_catalog_category');
-            $table_sequence_status = $this->connection->query('SHOW TABLE STATUS LIKE "' . $sequence_category_table . '"')->fetch();
+            $table_sequence_status = $this->connection->showTableStatus($sequence_category_table);
         
             $entity_id = $table_sequence_status['Auto_increment'];
 
@@ -13352,7 +13352,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
         
         $time_ini_generate_link = microtime(1);
 
-        $table_status = $this->connection->query('SHOW TABLE STATUS LIKE "' . $product_link_table . '"')->fetch();
+        $table_status = $this->connection->showTableStatus($product_link_table);
             
         $link_id = $table_status['Auto_increment'];
 
