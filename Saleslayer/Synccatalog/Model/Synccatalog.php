@@ -1208,12 +1208,6 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
         $get_response_table_data  = $slconn->get_response_table_data();
         $get_response_time        = $slconn->get_response_time('timestamp');
 
-        // $get_response_table_data['catalogue']['modified'] = array($get_response_table_data['catalogue']['modified'][2]);
-        // $get_response_table_data['catalogue']['modified'] = array();
-        // $get_response_table_data['products']['modified'] = array();
-        // $get_response_table_data['products']['modified'] = array($get_response_table_data['products']['modified'][0]);
-        // $get_response_table_data['product_formats']['modified'] = array();
-
         $this->getResponseLanguages($slconn);
         
         $get_data_schema = $this->get_data_schema($slconn);
@@ -9306,17 +9300,17 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
                 ->joinRight(
                     ['c4' => $category_table], 
                     'c1.'.$this->tables_identifiers[$category_urlkey_table].' = c4.'.$this->tables_identifiers[$category_table],
-                    ['path', 'entity_id']
+                    ['path', 'entity_id', 'parent_id']
                 )
                 ->group('c1.'.$this->tables_identifiers[$category_urlkey_table])
         );
-
+        
         if (!empty($categories_data)){
 
-            $category_id_found = 0;
+            $category_id_found = $category_id_found_temp = 0;
             
             foreach ($categories_data as $category_data) {
-
+        
                 if ((isset($category_data['saleslayer_id']) && !in_array($category_data['saleslayer_id'], array(0, '', null))) && (isset($category_data['saleslayer_comp_id']) && !in_array($category_data['saleslayer_comp_id'], array(0, '', null)))){
                 
                     continue;
@@ -9340,8 +9334,16 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
                     if (!empty($path_data) && $path_data['parent_id'] == 1){
 
-                        $category_id_found = $category_data['entity_id'];
-                        break;
+                       if (!is_null($this->mg_parent_category_id) && $category_data['parent_id'] == $this->mg_parent_category_id){
+
+                            $category_id_found = $category_data['entity_id'];
+                            break;
+
+                        }else if ($category_id_found_temp == 0){
+
+                            $category_id_found_temp = $category_data['entity_id'];
+                    
+                        }
 
                     }
 
@@ -9349,18 +9351,20 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
             }
 
+            if ($category_id_found == 0 && $category_id_found_temp !== 0) $category_id_found = $category_id_found_temp;
+            
             if ($category_id_found !== 0){
 
                 if ($this->mg_edition == 'enterprise'){
-
+                    
                     $this->mg_category_row_ids = $this->getEntityRowIds($category_id_found, 'category');
                     $this->mg_category_current_row_id = $this->getEntityCurrentRowId($category_id_found, 'category');
-
+                    
                 }
-
+                
                 $sl_credentials = array('is_active' => 1, 'saleslayer_id' => $saleslayer_id, 'saleslayer_comp_id' => $this->comp_id);
                 $this->mg_category_id = $category_id_found;
-
+                
                 foreach ($this->mg_category_row_ids as $mg_category_row_id) {
                     
                     $this->setValues($mg_category_row_id, 'catalog_category_entity', $sl_credentials, $this->category_entity_type_id, 0, false, false, $this->mg_category_row_ids);
@@ -11413,7 +11417,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
         foreach ($get_response_table_data as $nombre_tabla => $data_tabla) {
 
-            if (count($data_tabla['deleted']) > 0) {
+            if (isset($data_tabla['deleted']) && count($data_tabla['deleted']) > 0) {
                 $arrayReturn = $this->processDeleted($data_tabla['deleted'], $sync_params, $arrayReturn, $nombre_tabla);
                 unset($get_response_table_data[$nombre_tabla]['deleted']);
             }
