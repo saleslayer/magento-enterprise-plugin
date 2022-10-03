@@ -408,7 +408,6 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
     public function loadConfigParameters(){
 
         $this->sl_DEBBUG = $this->synccatalogConfigHelper->getDebugerLevel();
-        // $this->sl_DEBBUG = 3;
         $this->sql_to_insert_limit = $this->synccatalogConfigHelper->getSqlToInsertLimit();
         // $this->manage_indexers = $this->synccatalogConfigHelper->getManageIndexers();
         $this->avoid_images_updates = $this->synccatalogConfigHelper->getAvoidImagesUpdates();
@@ -1363,7 +1362,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
     */
     private function prepare_product_data_to_store($arrayProducts){
 
-        $fixed_product_fields = array('ID', 'ID_catalogue', $this->product_field_name, $this->product_field_description, $this->product_field_description_short, $this->product_field_price, $this->product_field_image, 'image_sizes', $this->product_field_sku, $this->product_field_qty, $this->product_field_attribute_set_id, $this->product_field_meta_title, $this->product_field_meta_keywords, $this->product_field_meta_description, $this->product_field_length, $this->product_field_width, $this->product_field_height, $this->product_field_weight, $this->product_field_related_references, $this->product_field_crosssell_references, $this->product_field_upsell_references, $this->product_field_inventory_backorders, $this->product_field_inventory_min_sale_qty, $this->product_field_inventory_max_sale_qty, $this->product_field_status, $this->product_field_visibility, $this->product_field_tax_class_id, $this->product_field_country_of_manufacture, $this->product_field_special_price, $this->product_field_special_from_date, $this->product_field_special_to_date);
+        $fixed_product_fields = array('ID', 'ID_catalogue', 'ID_products', $this->product_field_name, $this->product_field_description, $this->product_field_description_short, $this->product_field_price, $this->product_field_image, 'image_sizes', $this->product_field_sku, $this->product_field_qty, $this->product_field_attribute_set_id, $this->product_field_meta_title, $this->product_field_meta_keywords, $this->product_field_meta_description, $this->product_field_length, $this->product_field_width, $this->product_field_height, $this->product_field_weight, $this->product_field_related_references, $this->product_field_crosssell_references, $this->product_field_upsell_references, $this->product_field_inventory_backorders, $this->product_field_inventory_min_sale_qty, $this->product_field_inventory_max_sale_qty, $this->product_field_status, $this->product_field_visibility, $this->product_field_tax_class_id, $this->product_field_country_of_manufacture, $this->product_field_special_price, $this->product_field_special_from_date, $this->product_field_special_to_date);
 
         $product_data_to_store = array();
 
@@ -2679,7 +2678,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
         }
 
-        $this->sl_product_mg_category_ids = $this->find_product_category_ids_db($product['catalogue_id']);
+        $this->sl_product_mg_category_ids = $this->find_product_category_ids_db($product[$this->product_field_catalogue_id]);
         
         if (empty($this->sl_product_mg_category_ids)){
             $this->debbug('## Error. Product '.$product['data'][$this->product_field_name].' with SL ID '.$product['id'].' has no valid categories.');
@@ -11529,10 +11528,27 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
             }
 
-            $product_field_ID = $data_schema['products']['fields'][$this->product_field_id];
-            $product_field_ID_catalogue = $data_schema['products']['fields'][$this->product_field_catalogue_id];
-
-            $data_schema['products']['fields'] = array($this->product_field_id => $product_field_ID, $this->product_field_catalogue_id => $product_field_ID_catalogue);
+            $product_field_ID_key = $product_field_ID_catalogue_key = ''; 
+            $product_field_ID_cont = $product_field_ID_catalogue_cont = array();
+            foreach ($data_schema['products']['fields'] as $key => $key_data){
+                if ($product_field_ID_key !== '' && $product_field_ID_catalogue_key !== '') break;
+                if ($product_field_ID_key == '' and $this->product_field_id == strtolower($key)){
+                    $product_field_ID_key = $key;
+                    $product_field_ID_cont = $key_data;
+                    continue;
+                }
+                if ($product_field_ID_catalogue_key == '' and 
+                        ($this->product_field_catalogue_id == strtolower($key) or 
+                        'id_catalogue' == strtolower($key)
+                        )
+                    ){
+                    $product_field_ID_catalogue_key = $key;
+                    $product_field_ID_catalogue_cont = $key_data;
+                    continue;
+                }
+            }
+            
+            $data_schema['products']['fields'] = array($product_field_ID_key => $product_field_ID_cont, $product_field_ID_catalogue_key => $product_field_ID_catalogue_cont);
 
             foreach ($field_relations as $product_field => $format_field){
                 
