@@ -155,6 +155,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
     protected $product_field_attribute_set_id       = 'attribute_set_id';
     protected $product_field_tax_class_id           = 'product_tax_class_id';
     protected $product_field_country_of_manufacture = 'product_country_of_manufacture';
+    protected $product_field_website                = 'product_website';
     protected $product_path_base                    = BP.'/pub/media/catalog/product/';
     protected $product_images_sizes                 = array();
     protected $products_previous_categories;
@@ -183,6 +184,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
     protected $format_field_tax_class_id            = 'format_tax_class_id';
     protected $format_field_country_of_manufacture  = 'format_country_of_manufacture';
     protected $format_field_visibility              = 'format_visibility';
+    protected $format_field_website                 = 'format_website';
 
     protected $all_store_view_ids                   = array();
     protected $store_view_ids                       = array();
@@ -283,6 +285,9 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
     protected $tax_class_collection_loaded          = false;
     protected $tax_class_collection                 = array();
+
+    protected $websites_collection_loaded           = false;
+    protected $websites_collection                  = array();
 
     protected $mg_version                           = '';
     protected $mg_edition                           = '';
@@ -856,6 +861,45 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
     }
 
     /**
+     * Function to load websites collection into a class variable.
+     * @return void
+     */
+    private function loadWebsitesCollection(){
+
+        if (!$this->websites_collection_loaded){
+            
+            $store_website_table = $this->getTable('store_website');
+    
+            if (!is_null($store_website_table)){
+                
+                $all_websites_data = $this->connection->fetchAll(
+                    $this->connection->select()
+                    ->from(
+                        [$store_website_table],
+                        ['website_id', 'code', 'name']
+                        )
+                    ->where('website_id <> ?', 0)
+                    );
+                    
+                if (!empty($all_websites_data)){
+    
+                    foreach ($all_websites_data as $website_data) {
+                        
+                        $this->websites_collection[$website_data['website_id']] = $website_data;
+    
+                    }
+    
+                }
+            
+            }
+    
+            $this->websites_collection_loaded = true;
+        
+        }
+        
+    }
+
+    /**
      * Function to get the connector's format configurable attributes.
      * @param string $connector_id             Sales Layer connector id
      * @return void
@@ -1362,7 +1406,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
     */
     private function prepare_product_data_to_store($arrayProducts){
 
-        $fixed_product_fields = array('ID', 'ID_catalogue', 'ID_products', $this->product_field_name, $this->product_field_description, $this->product_field_description_short, $this->product_field_price, $this->product_field_image, 'image_sizes', $this->product_field_sku, $this->product_field_qty, $this->product_field_attribute_set_id, $this->product_field_meta_title, $this->product_field_meta_keywords, $this->product_field_meta_description, $this->product_field_length, $this->product_field_width, $this->product_field_height, $this->product_field_weight, $this->product_field_related_references, $this->product_field_crosssell_references, $this->product_field_upsell_references, $this->product_field_inventory_backorders, $this->product_field_inventory_min_sale_qty, $this->product_field_inventory_max_sale_qty, $this->product_field_status, $this->product_field_visibility, $this->product_field_tax_class_id, $this->product_field_country_of_manufacture, $this->product_field_special_price, $this->product_field_special_from_date, $this->product_field_special_to_date);
+        $fixed_product_fields = array('ID', 'ID_catalogue', 'ID_products', $this->product_field_name, $this->product_field_description, $this->product_field_description_short, $this->product_field_price, $this->product_field_image, 'image_sizes', $this->product_field_sku, $this->product_field_qty, $this->product_field_attribute_set_id, $this->product_field_meta_title, $this->product_field_meta_keywords, $this->product_field_meta_description, $this->product_field_length, $this->product_field_width, $this->product_field_height, $this->product_field_weight, $this->product_field_related_references, $this->product_field_crosssell_references, $this->product_field_upsell_references, $this->product_field_inventory_backorders, $this->product_field_inventory_min_sale_qty, $this->product_field_inventory_max_sale_qty, $this->product_field_status, $this->product_field_visibility, $this->product_field_tax_class_id, $this->product_field_country_of_manufacture, $this->product_field_special_price, $this->product_field_special_from_date, $this->product_field_special_to_date, $this->product_field_website);
 
         $product_data_to_store = array();
 
@@ -1433,7 +1477,8 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
                         'product_field_country_of_manufacture',
                         'product_field_special_price',
                         'product_field_special_from_date',
-                        'product_field_special_to_date'
+                        'product_field_special_to_date',
+                        'product_field_website'
                     ];
     
         if (!empty($schema['fields'][$this->product_field_qty])) {
@@ -1549,7 +1594,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
     */
     private function prepare_product_format_data_to_store($arrayFormats){
 
-        $fixed_format_fields = array('ID', 'ID_products', $this->format_field_sku, $this->format_field_name, $this->format_field_price, $this->format_field_quantity, $this->format_field_image, 'image_sizes', $this->format_field_tax_class_id, $this->format_field_country_of_manufacture, $this->format_field_special_price, $this->format_field_special_from_date, $this->format_field_special_to_date, $this->format_field_visibility, $this->format_field_inventory_backorders, $this->format_field_inventory_min_sale_qty, $this->format_field_inventory_max_sale_qty);
+        $fixed_format_fields = array('ID', 'ID_products', $this->format_field_sku, $this->format_field_name, $this->format_field_price, $this->format_field_quantity, $this->format_field_image, 'image_sizes', $this->format_field_tax_class_id, $this->format_field_country_of_manufacture, $this->format_field_special_price, $this->format_field_special_from_date, $this->format_field_special_to_date, $this->format_field_visibility, $this->format_field_inventory_backorders, $this->format_field_inventory_min_sale_qty, $this->format_field_inventory_max_sale_qty, $this->format_field_website);
 
         $product_format_data_to_store = array();
 
@@ -1595,6 +1640,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
         $product_format_data_to_store['product_format_fields']['format_field_special_from_date'] = $this->format_field_special_from_date;
         $product_format_data_to_store['product_format_fields']['format_field_special_to_date'] = $this->format_field_special_to_date;
         $product_format_data_to_store['product_format_fields']['format_field_visibility'] = $this->format_field_visibility;
+        $product_format_data_to_store['product_format_fields']['format_field_website'] = $this->format_field_website;
 
         $this->format_images_sizes = $this->getImgSizes($schema['fields'], $this->format_field_image, 'Product format');
 
@@ -2905,7 +2951,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
         $this->updateProductDB($sl_data);
 
-        $this->updateProductWebsite();
+        $this->updateItemWebsite($this->mg_product_id, $sl_data, $this->product_field_website);
 
         $this->updateProductCategory();
 
@@ -5279,51 +5325,8 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
                 }
 
             }
-
-            $catalog_product_website_table = $this->getTable('catalog_product_website');
-
-            $sl_website_ids = array(1);
-            if (!empty($this->website_ids)){ $sl_website_ids = $this->website_ids; }
             
-            $mg_format_website_ids = $this->connection->fetchAll(
-                $this->connection->select()
-                    ->from(
-                        $catalog_product_website_table,
-                        ['website_id']
-                    )
-                    ->where('product_id = ?', $this->mg_format_id)
-            );
-
-            if (!empty($mg_format_website_ids)){
-
-                foreach ($mg_format_website_ids as $mg_format_website_id) {
-                    
-                    if (in_array($mg_format_website_id['website_id'], $sl_website_ids)){
-
-                        unset($sl_website_ids[array_search($mg_format_website_id['website_id'], $sl_website_ids)]);
-                        continue;
-
-                    }else{
-                        
-                        $query_delete = " DELETE FROM ".$catalog_product_website_table." WHERE product_id = ".$this->mg_format_id." AND website_id = ".$mg_format_website_id['website_id'];
-                        $this->sl_connection_query($query_delete);
-
-                    }
-
-                }
-
-            }
-
-            if (!empty($sl_website_ids)){
-                        
-                foreach ($sl_website_ids as $sl_website_id) {
-                    
-                    $query_insert = " INSERT INTO ".$catalog_product_website_table."(`product_id`,`website_id`) values (?,?);";
-                    $this->sl_connection_query($query_insert,array($this->mg_format_id, $sl_website_id));
-
-                }
-
-            }
+            $this->updateItemWebsite($this->mg_format_id, $sl_data, $this->format_field_website);
 
             if ($this->format_created === true || $this->avoid_stock_update == '0'){
 
@@ -12061,23 +12064,99 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
     }
 
     /**
-     * Function to update product websites
+     * Function to update item websites
+     * @param  integer $mg_item_id          item id to update
+     * @param  array $item_data             item data
+     * @param  string $website_field        website field
      * @return void
      */
-    private function updateProductWebsite(){
+    private function updateItemWebsite($mg_item_id, $item_data, $website_field){
 
         $catalog_product_website_table = $this->getTable('catalog_product_website');
-
-        $sl_website_ids = array(1);
-        if (!empty($this->website_ids)){ $sl_website_ids = $this->website_ids; }
         
+        $sl_website_ids = array(1);
+
+        if (isset($item_data[$website_field])){
+
+            $sl_product_website_values = $item_data[$website_field];
+        
+            if (!is_array($sl_product_website_values)) $sl_product_website_values = array($sl_product_website_values);
+					
+            $all_sl_product_website_values = [];
+					
+            foreach ($sl_product_website_values as $sl_product_website_value) {
+
+                if (strpos($sl_product_website_value, ',') !== false){
+					    
+                    $all_sl_product_website_values = array_merge(explode(',', $sl_product_website_value), $all_sl_product_website_values);
+                    $merged_values = true;
+
+                }else{
+
+                    $all_sl_product_website_values[] = $sl_product_website_value;
+
+                }
+						
+
+			}
+				
+            if (!empty($all_sl_product_website_values)){
+                
+                $all_sl_product_website_values = array_unique($all_sl_product_website_values);
+                
+                $this->loadWebsitesCollection();
+
+                $sl_product_website_values_to_update = [];
+    
+                foreach ($all_sl_product_website_values as $sl_product_website_value){
+    
+                    if (is_numeric($sl_product_website_value)){
+                
+                        if (isset($this->websites_collection[$sl_product_website_value])){
+                            
+                            $sl_product_website_values_to_update[] = $sl_product_website_value;
+                        
+                        }
+                        
+                    }else{
+                        
+                        foreach ($this->websites_collection as $website_id => $website_data){
+
+                            if (strtolower($sl_product_website_value) == strtolower($website_data['code']) ||
+                                strtolower($sl_product_website_value) == strtolower($website_data['name'])){
+
+                                $sl_product_website_values_to_update[] = $website_id;
+                                break;
+
+                            }
+
+                        } 
+                        
+                    }
+    
+                }
+                
+                $sl_website_ids = array_unique($sl_product_website_values_to_update);
+                
+            }else{
+
+                $sl_website_ids = [];
+                
+            }
+				
+        }else{
+
+            if (!empty($this->website_ids)){ $sl_website_ids = $this->website_ids; }
+            
+        }
+
         $mg_product_website_ids = $this->connection->fetchAll(
             $this->connection->select()
                 ->from(
                     $catalog_product_website_table,
                     ['website_id']
                 )
-                ->where('product_id = ?', $this->mg_product_id)
+                ->where('product_id = ?', $mg_item_id)
         );
 
         if (!empty($mg_product_website_ids)){
@@ -12091,8 +12170,10 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
                 }else{
                     
-                    $query_delete = " DELETE FROM ".$catalog_product_website_table." WHERE product_id = ".$this->mg_product_id." AND website_id = ".$mg_product_website_id['website_id'];
-                    $this->sl_connection_query($query_delete);
+                    $this->connection->delete(
+                        $catalog_product_website_table,
+                        ['product_id = ?' => $mg_item_id, 'website_id = ?' => $mg_product_website_id['website_id']]
+                    );
 
                 }
 
@@ -12104,8 +12185,16 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
                     
             foreach ($sl_website_ids as $sl_website_id) {
                 
-                $query_insert = " INSERT INTO ".$catalog_product_website_table."(`product_id`,`website_id`) values (?,?);";
-                $this->sl_connection_query($query_insert,array($this->mg_product_id, $sl_website_id));
+                $values_to_insert = [
+                    'product_id' => $mg_item_id,
+                    'website_id' => $sl_website_id
+                ];
+
+                $this->connection->insertOnDuplicate(
+                    $catalog_product_website_table,
+                    $values_to_insert,
+                    array_keys($values_to_insert)
+                );
 
             }
 
