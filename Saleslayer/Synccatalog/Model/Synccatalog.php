@@ -5,38 +5,41 @@ namespace Saleslayer\Synccatalog\Model;
  * Synccatalog Model
  **/
 
-use \Magento\Framework\Model\Context as context;
-use \Magento\Framework\Registry as registry;
-use \Magento\Framework\Model\ResourceModel\AbstractResource as resource;
-use \Magento\Framework\Data\Collection\AbstractDb as resourceCollection;
-use Saleslayer\Synccatalog\Model\SalesLayerConn as SalesLayerConn;
-use Saleslayer\Synccatalog\Helper\Data as synccatalogDataHelper;
-use Saleslayer\Synccatalog\Helper\Config as synccatalogConfigHelper;
-use \Magento\Framework\Filesystem\DirectoryList  as directoryListFilesystem;
-use \Magento\Catalog\Model\Category as categoryModel;
-use \Magento\Catalog\Model\Product as productModel;
-use \Magento\Eav\Model\Entity\Attribute as attribute;
-use \Magento\Eav\Model\Entity\Attribute\Set as attribute_set;
-use \Magento\Catalog\Api\ProductAttributeManagementInterface as productAttributeManagementInterface;
-use \Magento\Indexer\Model\Indexer as indexer;
-use \Magento\Framework\App\ResourceConnection as resourceConnection;
-use \Magento\Eav\Model\ResourceModel\Entity\Attribute\Option\Collection as collectionOption;
-use \Magento\Cron\Model\Schedule as cronSchedule;
-use \Magento\Framework\App\Config\ScopeConfigInterface as scopeConfigInterface;
-use Zend_Db_Expr as Expr;
-use \Magento\CatalogUrlRewrite\Model\CategoryUrlPathGenerator as categoryUrlPathGenerator;
-use \Magento\CatalogUrlRewrite\Model\ProductUrlPathGenerator as productUrlPathGenerator;
-use \Magento\CatalogInventory\Model\Configuration as catalogInventoryConfiguration;
-use \Magento\Framework\App\DeploymentConfig as deploymentConfig;
-use \Magento\Eav\Model\Config as eavConfig;
-use \Magento\Framework\App\Cache\TypeListInterface as typeListInterface;
-use \Magento\Framework\App\ProductMetadataInterface as productMetadata;
+use Magento\Framework\Model\Context as context;
+use Magento\Framework\Registry as registry;
+use Magento\Framework\Model\ResourceModel\AbstractResource as resource;
+use Magento\Framework\Data\Collection\AbstractDb as resourceCollection;
+use Magento\Framework\Filesystem\DirectoryList  as directoryListFilesystem;
+use Magento\Catalog\Model\Category as categoryModel;
+use Magento\Catalog\Model\Product as productModel;
+use Magento\Catalog\Model\ProductRepository as productRepository;
+use Magento\Catalog\Api\Data\ProductLinkInterface as productLinkInterface;
+use Magento\Catalog\Api\Data\ProductInterfaceFactory as productInterfaceFactory;
+use Magento\Eav\Model\Entity\Attribute as attribute;
+use Magento\Eav\Model\Entity\Attribute\Set as attribute_set;
+use Magento\Catalog\Api\ProductAttributeManagementInterface as productAttributeManagementInterface;
+use Magento\Indexer\Model\Indexer as indexer;
+use Magento\Framework\App\ResourceConnection as resourceConnection;
+use Magento\Eav\Model\ResourceModel\Entity\Attribute\Option\Collection as collectionOption;
+use Magento\Cron\Model\Schedule as cronSchedule;
+use Magento\Framework\App\Config\ScopeConfigInterface as scopeConfigInterface;
+use Magento\CatalogUrlRewrite\Model\CategoryUrlPathGenerator as categoryUrlPathGenerator;
+use Magento\CatalogUrlRewrite\Model\ProductUrlPathGenerator as productUrlPathGenerator;
+use Magento\CatalogInventory\Model\Configuration as catalogInventoryConfiguration;
+use Magento\Framework\App\DeploymentConfig as deploymentConfig;
+use Magento\Eav\Model\Config as eavConfig;
+use Magento\Framework\App\Cache\TypeListInterface as typeListInterface;
+use Magento\Framework\App\ProductMetadataInterface as productMetadata;
 use Magento\CatalogUrlRewrite\Model\CategoryUrlRewriteGenerator;
 use Magento\Catalog\Model\Product\Attribute\Backend\Media\ImageEntryConverter;
 use Magento\CatalogUrlRewrite\Model\ProductUrlRewriteGenerator;
 use Magento\Framework\Config\ConfigOptionsListConstants;
-use \Magento\Catalog\Model\Product\Attribute\Source\Countryofmanufacture as countryOfManufacture;
-use \Magento\Catalog\Model\Category\Attribute\Source\Layout as layoutSource;
+use Magento\Catalog\Model\Product\Attribute\Source\Countryofmanufacture as countryOfManufacture;
+use Magento\Catalog\Model\Category\Attribute\Source\Layout as layoutSource;
+use Saleslayer\Synccatalog\Model\SalesLayerConn as SalesLayerConn;
+use Saleslayer\Synccatalog\Helper\Data as synccatalogDataHelper;
+use Saleslayer\Synccatalog\Helper\Config as synccatalogConfigHelper;
+use \Zend_Db_Expr as Expr;
 
 class Synccatalog extends \Magento\Framework\Model\AbstractModel{
     
@@ -64,6 +67,9 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
     protected $salesLayerConn;
     protected $connection;
     protected $directoryListFilesystem;
+    protected $_productRepository;
+    protected $_productLinkInterface;
+    protected $_productInterfaceFactory;
     
     const sl_API_version    = '1.17';
     const sl_connector_type = 'CN_MAGNT';
@@ -111,20 +117,20 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
     protected $category_field_page_layout           = 'section_page_layout';
     protected $category_field_is_anchor             = 'section_is_anchor';
     protected $category_path_base                   = BP.'/pub/media/catalog/category/';
-    protected $category_images_sizes                = array();
+    protected $category_images_sizes                = [];
     protected $category_is_anchor                   = 0;
     protected $category_page_layout                 = '1column';
-    protected $layout_options                       = array();
+    protected $layout_options                       = [];
 
-    protected $categories_collection                = array();
+    protected $categories_collection                = [];
     protected $saleslayer_root_category_id          = '';
 
     protected $default_attribute_set_id;
     
-    protected $attributes_options_collection        = array();
-    protected $products_collection                  = array();
-    protected $products_collection_skus             = array();
-    protected $products_collection_names            = array();
+    protected $attributes_options_collection        = [];
+    protected $products_collection                  = [];
+    protected $products_collection_skus             = [];
+    protected $products_collection_names            = [];
     protected $product_field_id                     = 'id';
     protected $product_field_catalogue_id           = 'catalogue_id';
     protected $product_field_name                   = 'product_name';
@@ -140,6 +146,26 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
     protected $product_field_inventory_backorders   = 'product_inventory_backorders';
     protected $product_field_inventory_min_sale_qty = 'product_inventory_min_sale_qty';
     protected $product_field_inventory_max_sale_qty = 'product_inventory_max_sale_qty';
+    
+
+
+
+
+
+
+
+    /* protected $product_field_out_of_stock_qty       = 'out_of_stock_qty';
+    protected $product_field_inventory_use_config_min_qty     = 'product_inventory_use_config_min_qty';
+    protected $product_field_inventory_use_config_manage_stock= 'product_inventory_use_config_manage_stock';
+    protected $product_field_inventory_min_qty                = 'product_inventory_min_qty'; */
+
+
+
+
+
+
+
+
     protected $product_field_meta_title             = 'product_meta_title';
     protected $product_field_meta_keywords          = 'product_meta_keywords';
     protected $product_field_meta_description       = 'product_meta_description';
@@ -157,17 +183,17 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
     protected $product_field_country_of_manufacture = 'product_country_of_manufacture';
     protected $product_field_website                = 'product_website';
     protected $product_path_base                    = BP.'/pub/media/catalog/product/';
-    protected $product_images_sizes                 = array();
+    protected $product_images_sizes                 = [];
     protected $products_previous_categories;
 
     protected $main_image_extension                 = '';
-    protected $product_additional_fields            = array();
-    protected $product_additional_fields_images     = array();
+    protected $product_additional_fields            = [];
+    protected $product_additional_fields_images     = [];
     protected $grouping_ref_field_linked            = 0;
-    protected $existing_links_data                  = array();
+    protected $existing_links_data                  = [];
     protected $item_image_type                      = 'product';
 
-    protected $format_images_sizes                  = array();
+    protected $format_images_sizes                  = [];
     protected $format_field_id                      = 'id';
     protected $format_field_products_id             = 'products_id';
     protected $format_field_sku                     = 'format_sku';
@@ -180,16 +206,42 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
     protected $format_field_inventory_backorders    = 'format_inventory_backorders';
     protected $format_field_inventory_min_sale_qty  = 'format_inventory_min_sale_qty';
     protected $format_field_inventory_max_sale_qty  = 'format_inventory_max_sale_qty';
+
+
+
+
+
+
+
+
+
+
+
+    /* protected $format_field_out_of_stock_qty        = 'out_of_stock_qty';
+    protected $format_field_inventory_use_config_min_qty      = 'format_inventory_use_config_min_qty';
+    protected $format_field_inventory_use_config_manage_stock = 'format_inventory_use_config_manage_stock';
+    protected $format_field_inventory_min_qty                 = 'format_inventory_min_qty'; */
+
+
+
+
+
+
+
+
+
+
+
     protected $format_field_image                   = 'format_image';
     protected $format_field_tax_class_id            = 'format_tax_class_id';
     protected $format_field_country_of_manufacture  = 'format_country_of_manufacture';
     protected $format_field_visibility              = 'format_visibility';
     protected $format_field_website                 = 'format_website';
 
-    protected $all_store_view_ids                   = array();
-    protected $store_view_ids                       = array();
-    protected $website_ids                          = array();
-    protected $format_configurable_attributes       = array();
+    protected $all_store_view_ids                   = [];
+    protected $store_view_ids                       = [];
+    protected $website_ids                          = [];
+    protected $format_configurable_attributes       = [];
 
     protected $category_enabled_attribute_is_global = false;
     protected $product_enabled_attribute_is_global  = false;
@@ -225,12 +277,12 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
     protected $config_min_sale_qty                  = 1;
     protected $config_max_sale_qty                  = 10000;
 
-    protected $products_not_synced                  = array();
-    protected $deleted_stored_categories_ids        = array();
+    protected $products_not_synced                  = [];
+    protected $deleted_stored_categories_ids        = [];
 
-    protected $media_field_names                    = array();
+    protected $media_field_names                    = [];
 
-    protected $sql_to_insert                        = array();
+    protected $sql_to_insert                        = [];
     protected $sql_to_insert_limit                  = 1;
     protected $stop_storage_process                 = false;
 
@@ -257,46 +309,46 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
     protected $mg_category_id                       = null;
     protected $mg_category_current_row_id           = null;
-    protected $mg_category_row_ids                  = array();
+    protected $mg_category_row_ids                  = [];
     protected $mg_category_level;
     protected $mg_parent_category_id                = null;
     protected $mg_parent_category_current_row_id    = null;
-    protected $mg_parent_category_row_ids           = array();
-    protected $stored_url_files_sizes               = array();
+    protected $mg_parent_category_row_ids           = [];
+    protected $stored_url_files_sizes               = [];
 
     protected $category_created                     = false;
     protected $processed_global_attributes;
-    protected $inexistent_attributes                = array();
+    protected $inexistent_attributes                = [];
 
     protected $product_created                      = false;
     protected $mg_product_id                        = null;
     protected $mg_product_current_row_id            = null;
     protected $mg_product_row_ids                   = null;
     protected $mg_product_attribute_set_id          = null;
-    protected $sl_product_mg_category_ids           = array();
+    protected $sl_product_mg_category_ids           = [];
     protected $format_created                       = false;
     protected $mg_format_id                         = null;
     protected $mg_format_current_row_id             = null;
     protected $mg_format_row_ids                    = null;
-    protected $format_additional_fields             = array();
+    protected $format_additional_fields             = [];
 
     protected $sl_logs_path                         = BP.'/var/log/sl_logs/';
     protected $sl_logs_folder_checked               = false;
 
     protected $tax_class_collection_loaded          = false;
-    protected $tax_class_collection                 = array();
+    protected $tax_class_collection                 = [];
 
     protected $websites_collection_loaded           = false;
-    protected $websites_collection                  = array();
+    protected $websites_collection                  = [];
 
     protected $mg_version                           = '';
     protected $mg_edition                           = '';
-    protected $mg_tables_23                         = array();
+    protected $mg_tables_23                         = [];
 
     protected $test_sync_all                        = false;
     protected $clean_main_debug_file                = false;
 
-    protected $tables_identifiers                   = array();
+    protected $tables_identifiers                   = [];
 
     protected $moduleVersion = null;
 
@@ -329,6 +381,9 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
      * @param resource|null                       $resource                            \Magento\Framework\Model\ResourceModel\AbstractResource
      * @param resourceCollection|null             $resourceCollection                  \Magento\Framework\Data\Collection\AbstractDb
      * @param array                               $data                                
+     * @param productInterfaceFactory             $productInterfaceFactory
+     * @param productRepository                   $productRepository
+     * @param productLinkInterface                $productLinkInterface
      */
     public function __construct(
         context $context,
@@ -358,7 +413,10 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
         layoutSource $layoutSource,
         resource $resource = null,
         resourceCollection $resourceCollection = null,
-        array $data = []
+        array $data = []/* ,
+        productInterfaceFactory $productInterfaceFactory = null,
+        productRepository $productRepository = null,
+        productLinkInterface $productLinkInterface = null */
     ) {
         parent::__construct($context, $registry, $resource, $resourceCollection, $data);
         $this->salesLayerConn                           = $salesLayerConn;
@@ -368,6 +426,9 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
         $this->categoryModel                            = $categoryModel;
         $this->productModel                             = $productModel;
         $this->attribute                                = $attribute;
+        /* $this->_productInterfaceFactory			        = $productInterfaceFactory;	
+	    $this->_productRepository                       = $productRepository ;
+  	    $this->_productLinkInterface                    = $productLinkInterface; */
         $this->attribute_set                            = $attribute_set;
         $this->productAttributeManagementInterface      = $productAttributeManagementInterface;
         $this->indexer                                  = $indexer;
@@ -830,7 +891,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
      */
     private function getAllStores(){
 
-        $all_stores = array();
+        $all_stores = [];
 
         $store_table = $this->getTable('store');
 
@@ -1098,7 +1159,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
     private function get_data_schema ($slconn) {
 
         $info = $slconn->get_response_table_information();
-        $schema = array();
+        $schema = [];
 
         if (is_array($info) && !empty($info)){
 
@@ -1244,7 +1305,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
         $this->updateConn($connector_id, $slconn, $slconn->get_response_time());
         
-        $sync_params = array();
+        $sync_params = [];
         $sync_params['conn_params']['comp_id'] = $slconn->get_response_company_ID();
         $sync_params['conn_params']['connector_id'] = $connector_id;
         
@@ -1276,7 +1337,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
         }else{
 
-            $arrayReturn = array();
+            $arrayReturn = [];
 
         }
 
@@ -1314,7 +1375,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
             }
 
-            $this->sql_to_insert = array();
+            $this->sql_to_insert = [];
             
         }
 
@@ -1330,7 +1391,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
         $data_schema              = json_decode($this->sl_data_schema, 1);
         $schema                   = $data_schema['catalogue'];
 
-        $category_data_to_store = array();
+        $category_data_to_store = [];
 
         $category_data_to_store['default_category_id'] = $this->default_category_id;
         $category_data_to_store['category_is_anchor'] = $this->category_is_anchor;
@@ -1351,7 +1412,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
                         'category_field_is_anchor'
                     ];
 
-        $channel_fields = array();
+        $channel_fields = [];
 
         foreach ($field_names as $field_name){
 
@@ -1405,10 +1466,11 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
     * @return array $products_data_to_store     products data to store
     */
     private function prepare_product_data_to_store($arrayProducts){
+        /* $fixed_product_fields = array('ID', 'ID_catalogue',$this->product_field_inventory_use_config_min_qty,$this->product_field_inventory_use_config_manage_stock,$this->product_field_inventory_min_qty, $this->product_field_out_of_stock_qty,$this->product_field_name, $this->product_field_description, $this->product_field_description_short, $this->product_field_price, $this->product_field_image, 'image_sizes', $this->product_field_sku, $this->product_field_qty, $this->product_field_attribute_set_id, $this->product_field_meta_title, $this->product_field_meta_keywords, $this->product_field_meta_description, $this->product_field_length, $this->product_field_width, $this->product_field_height, $this->product_field_weight, $this->product_field_related_references, $this->product_field_crosssell_references, $this->product_field_upsell_references, $this->product_field_inventory_backorders, $this->product_field_inventory_min_sale_qty, $this->product_field_inventory_max_sale_qty, $this->product_field_status, $this->product_field_visibility, $this->product_field_tax_class_id, $this->product_field_country_of_manufacture, $this->product_field_special_price, $this->product_field_special_from_date, $this->product_field_special_to_date, $this->product_field_website); */
 
         $fixed_product_fields = array('ID', 'ID_catalogue', 'ID_products', $this->product_field_name, $this->product_field_description, $this->product_field_description_short, $this->product_field_price, $this->product_field_image, 'image_sizes', $this->product_field_sku, $this->product_field_qty, $this->product_field_attribute_set_id, $this->product_field_meta_title, $this->product_field_meta_keywords, $this->product_field_meta_description, $this->product_field_length, $this->product_field_width, $this->product_field_height, $this->product_field_weight, $this->product_field_related_references, $this->product_field_crosssell_references, $this->product_field_upsell_references, $this->product_field_inventory_backorders, $this->product_field_inventory_min_sale_qty, $this->product_field_inventory_max_sale_qty, $this->product_field_status, $this->product_field_visibility, $this->product_field_tax_class_id, $this->product_field_country_of_manufacture, $this->product_field_special_price, $this->product_field_special_from_date, $this->product_field_special_to_date, $this->product_field_website);
 
-        $product_data_to_store = array();
+        $product_data_to_store = [];
 
         $product_data_to_store['avoid_stock_update'] = $this->avoid_stock_update;
         $product_data_to_store['products_previous_categories'] = $this->products_previous_categories;
@@ -1471,6 +1533,10 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
                         'product_field_inventory_backorders',
                         'product_field_inventory_min_sale_qty',
                         'product_field_inventory_max_sale_qty',
+                        /* 'product_field_out_of_stock_qty',
+                        'product_field_inventory_use_config_min_qty',
+                        'product_field_inventory_use_config_manage_stock',
+                        'product_field_inventory_min_qty', */
                         'product_field_status',
                         'product_field_visibility',
                         'product_field_tax_class_id',
@@ -1487,7 +1553,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
         }
 
-        $channel_fields = array();
+        $channel_fields = [];
 
         foreach ($field_names as $field_name){
 
@@ -1582,9 +1648,8 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
             $product_data_to_store['product_data'] = $this->checkAttributes($arrayProducts, $product_data_to_store, $default_attribute_set_id);
 
         }
-        
-        return $product_data_to_store;
 
+        return $product_data_to_store;
     }
 
     /**
@@ -1594,9 +1659,11 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
     */
     private function prepare_product_format_data_to_store($arrayFormats){
 
+        /* $fixed_format_fields = array('ID', 'ID_products', $this->format_field_inventory_use_config_min_qty,$this->format_field_inventory_use_config_manage_stock,$this->format_field_inventory_min_qty,$this->format_field_sku, $this->format_field_name, $this->format_field_price, $this->format_field_quantity, $this->format_field_image, 'image_sizes', $this->format_field_tax_class_id, $this->format_field_country_of_manufacture, $this->format_field_special_price, $this->format_field_special_from_date, $this->format_field_special_to_date, $this->format_field_visibility, $this->format_field_inventory_backorders, $this->format_field_inventory_min_sale_qty, $this->format_field_inventory_max_sale_qty, $this->format_field_website); */
+
         $fixed_format_fields = array('ID', 'ID_products', $this->format_field_sku, $this->format_field_name, $this->format_field_price, $this->format_field_quantity, $this->format_field_image, 'image_sizes', $this->format_field_tax_class_id, $this->format_field_country_of_manufacture, $this->format_field_special_price, $this->format_field_special_from_date, $this->format_field_special_to_date, $this->format_field_visibility, $this->format_field_inventory_backorders, $this->format_field_inventory_min_sale_qty, $this->format_field_inventory_max_sale_qty, $this->format_field_website);
 
-        $product_format_data_to_store = array();
+        $product_format_data_to_store = [];
 
         $product_format_data_to_store['avoid_stock_update'] = $this->avoid_stock_update;
         $product_format_data_to_store['format_configurable_attributes'] = $this->format_configurable_attributes;
@@ -1626,7 +1693,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
             return false;
 
         }
-       
+
         $product_format_data_to_store['product_format_fields']['format_field_sku'] = $this->format_field_sku;
         $product_format_data_to_store['product_format_fields']['format_field_price'] = $this->format_field_price;
         $product_format_data_to_store['product_format_fields']['format_field_quantity'] = $this->format_field_quantity;
@@ -1647,7 +1714,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
         $product_format_data_to_store['product_format_fields']['format_images_sizes'] = $this->format_images_sizes;
         $product_format_data_to_store['product_format_fields']['main_image_extension'] = $this->format_images_sizes[0];   
 
-        $channel_fields = array();
+        $channel_fields = [];
 
         if (!empty($schema['fields'])){
            
@@ -1715,7 +1782,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
         $this->cleanMGVars();
 
-        if ($this->sl_DEBBUG > 2) $this->debbug('Synchronizing stored category: '.print_R($category,1));
+        if ($this->sl_DEBBUG > 2) $this->debbug('Synchronizing stored category: '.print_r($category,1));
 
         $time_ini_check_category = microtime(1);
         if ($this->check_category_db($category)){
@@ -1813,7 +1880,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
             'include_in_menu' => 1
         ];
         
-        $sl_category_image_data_to_sync = array();
+        $sl_category_image_data_to_sync = [];
 
         foreach ($mg_category_fields as $sl_category_field => $mg_category_field) {
             
@@ -2019,7 +2086,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
             if (!$urlPath) {
                 
-                $this->debbug("## Error. Couldn't generate category url path: ".print_R($category->getData(),1));
+                $this->debbug("## Error. Couldn't generate category url path: ".print_r($category->getData(),1));
                 continue;
 
             }else{
@@ -2057,7 +2124,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
             if ($exists) {
 
-                $category->setUrlKey($category_data['url_key'] . '-' . $category->getStoreId());
+                $category->setUrlKey($category->formatUrlKey($category_data['url_key'] . '-' . $category->getStoreId()));
                 $requestPath = $this->categoryUrlPathGenerator->getUrlPathWithSuffix(
                     $category,
                     $category->getStoreId()
@@ -2079,7 +2146,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
                     if ($exists){
 
-                        $category->setUrlKey($category_data['url_key'] . '-' . $category->getStoreId() . '-' . $increment);
+                        $category->setUrlKey($category->formatUrlKey($category_data['url_key'] . '-' . $category->getStoreId() . '-' . $increment));
                         $requestPath = $this->categoryUrlPathGenerator->getUrlPathWithSuffix(
                             $category,
                             $category->getStoreId()
@@ -2303,7 +2370,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
                                         }catch(\Exception $e){
 
-                                            $this->debbug('## Error. Correcting category children path: '.print_R($e->getMessage(),1));
+                                            $this->debbug('## Error. Correcting category children path: '.print_r($e->getMessage(),1));
 
                                         }
 
@@ -2348,7 +2415,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
                         }catch(\Exception $e){
 
-                            $this->debbug('## Error. Correcting parent category level: '.print_R($e->getMessage(),1));
+                            $this->debbug('## Error. Correcting parent category level: '.print_r($e->getMessage(),1));
 
                         }
 
@@ -2376,7 +2443,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
                         }catch(\Exception $e){
 
-                            $this->debbug('## Error. Correcting category level: '.print_R($e->getMessage(),1));
+                            $this->debbug('## Error. Correcting category level: '.print_r($e->getMessage(),1));
 
                         }
 
@@ -2397,7 +2464,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
                             }catch(\Exception $e){
 
-                                $this->debbug('## Error. Correcting category level: '.print_R($e->getMessage(),1));
+                                $this->debbug('## Error. Correcting category level: '.print_r($e->getMessage(),1));
 
                             }
 
@@ -2460,7 +2527,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
         if (!empty($incorrect_children_categories_path)){
             
-            $parent_categories_ids_to_check = array();
+            $parent_categories_ids_to_check = [];
             $first_iteration = true;
 
             foreach ($incorrect_children_categories_path as $incorrect_children_category_path) {
@@ -2501,7 +2568,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
                             }catch(\Exception $e){
 
-                                $this->debbug('## Error. Correcting category children path: '.print_R($e->getMessage(),1));
+                                $this->debbug('## Error. Correcting category children path: '.print_r($e->getMessage(),1));
 
                             }
 
@@ -2547,7 +2614,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
                 }catch(\Exception $e){
 
-                    $this->debbug('## Error. Correcting category children: '.print_R($e->getMessage(),1));
+                    $this->debbug('## Error. Correcting category children: '.print_r($e->getMessage(),1));
 
                 }
 
@@ -2571,7 +2638,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
                 }catch(\Exception $e){
 
-                    $this->debbug('## Error. Correcting category level: '.print_R($e->getMessage(),1));
+                    $this->debbug('## Error. Correcting category level: '.print_r($e->getMessage(),1));
 
                 }
 
@@ -2632,7 +2699,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
         $this->cleanMGVars();
 
-        if ($this->sl_DEBBUG > 2) $this->debbug('Synchronizing stored product: '.print_R($product,1));
+        if ($this->sl_DEBBUG > 2) $this->debbug('Synchronizing stored product: '.print_r($product,1));
 
         $time_ini_check_product = microtime(1);
         if ($this->check_product_db($product)){
@@ -2715,6 +2782,10 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
             $this->debbug('## Error. Product with SL ID: '.$sl_id.' has no name.');
             return false;
 
+        }
+
+        if (!$product['data'][$this->product_field_price]){
+            $this->debbug('## Warning. Product with SL ID: '.$sl_id.' has no valid price.');
         }
 
         if ($product['data'][$this->product_field_sku] == ''){
@@ -2880,7 +2951,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
                 
             }catch(\Exception $e){
 
-                $this->debbug('## Error. Creating product: '.print_R($e->getMessage(),1));
+                $this->debbug('## Error. Creating product: '.print_r($e->getMessage(),1));
 
             }
             if ($this->sl_DEBBUG > 2) $this->debbug('# time_insert_create_product: ', 'timer', (microtime(1) - $time_ini_insert_create_product));
@@ -2971,8 +3042,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
      * @param boolean $sl_qty               stock to update, if false will check and update stock tables
      * @return void
      */
-    private function update_item_stock($item_id, $sl_inventory_data = array()){
-
+    private function update_item_stock($item_id, $sl_inventory_data = []){
         $manage_stock = $this->config_manage_stock;
         $is_in_stock = 0;
         $use_config_manage_stock = $use_config_backorders = $use_config_min_sale_qty = $use_config_max_sale_qty = 1;
@@ -3073,7 +3143,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
         if (!empty($mg_existing_stock)){
     
-            $stock_data_to_update = array();
+            $stock_data_to_update = [];
 
             if (!$avoid_stock_update){
 
@@ -3177,7 +3247,6 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
         }
 
         if (!$avoid_stock_update){
-
             $cataloginventory_stock_status_table = $this->getTable('cataloginventory_stock_status');
 
             $mg_existing_stock_status = $this->connection->fetchRow(
@@ -3193,7 +3262,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
             if (!empty($mg_existing_stock_status)){
             
-                $stock_status_data_to_update = array();
+                $stock_status_data_to_update = [];
 
                 if ($sl_qty != $mg_existing_stock_status['qty']){
 
@@ -3236,7 +3305,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
                 if (!empty($mg_existing_inventory_source_item)){
                 
-                    $inventory_source_item_data_to_update = array();
+                    $inventory_source_item_data_to_update = [];
 
                     if ($sl_qty != $mg_existing_inventory_source_item['quantity']){
 
@@ -3322,7 +3391,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
             if (!$urlPath) {
                 
-                $this->debbug("## Error. Couldn't generate product url path: ".print_R($product->getData(),1));
+                $this->debbug("## Error. Couldn't generate product url path: ".print_r($product->getData(),1));
                 continue;
 
             }else{
@@ -3584,7 +3653,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
                 if (is_null($category)){
 
-                    $product->setUrlKey($product->getUrlKey() . '-' . $product->getStoreId() . '-' . $increment);
+                    $product->setUrlKey($product->formatUrlKey($product->getUrlKey() . '-' . $product->getStoreId() . '-' . $increment));
                     
                 }
                 
@@ -3716,7 +3785,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
      */
     private function prepare_product_images_to_store_db($mg_item_id, $item_data, $type = 'product'){
 
-        $sl_product_images = array();
+        $sl_product_images = [];
         if ($type == 'format'){
 
             $this->debbug(" > Storing product format images SL ID: ".$item_data[$this->format_field_id]);
@@ -3738,7 +3807,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
         }
 
         $time_ini_load_sl_images = microtime(1);
-        $main_image_to_process = $final_images = $existing_images_to_delete = array();
+        $main_image_to_process = $final_images = $existing_images_to_delete = [];
 
         if ($type == 'format'){
 
@@ -3760,7 +3829,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
                 
                     if (!empty($images[$img_format])){
 
-                        $media_attribute = array();
+                        $media_attribute = [];
 
                         $image_url = $images[$img_format];
                         
@@ -3969,16 +4038,16 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
     * @param array $final_images                            final images to process
     * @return array $return_data                            data checked to continue image process
     */
-    private function check_existing_items($mg_item_id, $existing_items, $main_image_to_process_image_name = '', $final_images){
+    private function check_existing_items($mg_item_id, $existing_items, $main_image_to_process_image_name = '', $final_images = []){
 
-        $return_data = array();
-        $existing_images_to_delete = array();
+        $return_data = [];
+        $existing_images_to_delete = [];
         $main_image_processed = false;
 
         foreach ($existing_items as $item_data) {
 
             $time_ini_item_check = microtime(1);
-            if (!is_array($item_data['types'])){ $item_data['types'] = array(); }
+            if (!is_array($item_data['types'])){ $item_data['types'] = []; }
             if (!empty($item_data['types'])){ asort($item_data['types']); }
             if ($this->sl_DEBBUG > 2) $this->debbug('# time_item_get_data: ', 'timer', (microtime(1) - $time_ini_item_check));
         
@@ -4080,7 +4149,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
         if ($mg_item_types != $sl_item_types && !empty($sl_item_types)){
 
             $time_ini_update_types = microtime(1);        
-            $images_data_to_update = array();
+            $images_data_to_update = [];
 
             foreach ($sl_item_types as $sl_item_type) {
                 
@@ -4230,7 +4299,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
                 $galleryTable = $this->getTable('catalog_product_entity_media_gallery');
                 // if (isset($image_to_delete['types'])){
 
-                //     $image_types = array();
+                //     $image_types = [];
                 //     if (!is_array($image_to_delete['types']) && $image_to_delete['types']){
 
                 //         $image_types = array($image_to_delete['types']);
@@ -4243,7 +4312,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
                 //     if (!empty($image_types)){
 
-                //         $image_data_to_remove = array();
+                //         $image_data_to_remove = [];
 
                 //         foreach ($image_types as $image_type) {
                             
@@ -4392,7 +4461,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
             }
 
-            $image_data_to_update = array();
+            $image_data_to_update = [];
 
             foreach ($media_attributes as $image_type => $image_id) {
                 
@@ -4530,7 +4599,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
         if ($this->sl_DEBBUG > 2) $this->debbug('# time_save_image_local: ', 'timer', (microtime(1) - $time_ini_save_image_total));
 
         $time_ini_update_types = microtime(1);
-        $image_data_to_update = array();
+        $image_data_to_update = [];
 
         foreach ($image_types as $image_type) {
             
@@ -4644,7 +4713,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
                 )
         );
 
-        $link_attributes_data = array();
+        $link_attributes_data = [];
 
         if (!empty($product_link_attributes_data)){
 
@@ -4726,7 +4795,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
      */
     private function find_product_category_ids_db($product_catalogue_ids){
         
-        $mg_category_ids = array();
+        $mg_category_ids = [];
         
         if (!is_array($product_catalogue_ids)){ $product_catalogue_ids = array($product_catalogue_ids); }
 
@@ -4865,7 +4934,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
                 if (!isset($this->attributes_options_collection[$attribute_set_id][$attribute_id]['options'][$store_view_id])){
 
-                    $this->attributes_options_collection[$attribute_set_id][$attribute_id]['options'][$store_view_id] = array();
+                    $this->attributes_options_collection[$attribute_set_id][$attribute_id]['options'][$store_view_id] = [];
 
                 }
 
@@ -4890,7 +4959,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
      */
     private function updateAttributeOption_db($attribute_set_id, $attribute_id, $attribute_option_id, $attribute_option_value){
 
-        $store_views_to_update = array();
+        $store_views_to_update = [];
 
         foreach ($this->all_store_view_ids as $all_stores_view_id) {
 
@@ -4946,7 +5015,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
                     if (!isset($this->attributes_options_collection[$attribute_set_id][$attribute_id]['options'][$store_view_to_update])){
 
-                        $this->attributes_options_collection[$attribute_set_id][$attribute_id]['options'][$store_view_to_update] = array();
+                        $this->attributes_options_collection[$attribute_set_id][$attribute_id]['options'][$store_view_to_update] = [];
 
                     }
 
@@ -4969,7 +5038,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
         $this->cleanMGVars();
 
-        if ($this->sl_DEBBUG > 2) $this->debbug('Synchronizing stored product format: '.print_R($format,1));
+        if ($this->sl_DEBBUG > 2) $this->debbug('Synchronizing stored product format: '.print_r($format,1));
 
         $time_ini_format_process = microtime(1);
 
@@ -5296,7 +5365,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
             $product_table = $this->getTable('catalog_product_entity');
             $mg_format_core_data = $this->get_product_core_data($this->mg_format_id);
             
-            $mg_format_data_to_update = array();
+            $mg_format_data_to_update = [];
 
             $sl_sku = $sl_data[$this->format_field_sku];
 
@@ -5330,7 +5399,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
             if ($this->format_created === true || $this->avoid_stock_update == '0'){
 
-                $sl_inventory_data = array();
+                $sl_inventory_data = [];
                 
                 $inventory_fields = array('sl_qty' => $this->format_field_quantity, 'backorders' => $this->format_field_inventory_backorders, 'min_sale_qty' => $this->format_field_inventory_min_sale_qty, 'max_sale_qty' => $this->format_field_inventory_max_sale_qty);
 
@@ -5738,7 +5807,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
      */
     private function assign_product_formats_db($format){
 
-        $format_parent_product_attribute_ids = array();
+        $format_parent_product_attribute_ids = [];
 
         $product_table = $this->getTable('catalog_product_entity');
         $catalog_product_relation_table = $this->getTable('catalog_product_relation');
@@ -6090,7 +6159,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
      */
     private function get_media_field_value($type, $field_name, $data){
         
-        $media = array();
+        $media = [];
 
         if (in_array($field_name, $this->media_field_names[$type])){
             foreach ($data as $hash) {
@@ -6392,7 +6461,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
      * @param int $store_view_id                store view id to search 
      * @return int $format_id                   Magento product format id
      */
-    private function find_saleslayer_format_id_db($saleslayer_id = null, $saleslayer_format_id, $store_view_id = 0) {
+    private function find_saleslayer_format_id_db($saleslayer_id = null, $saleslayer_format_id = 0, $store_view_id = 0) {
 
         $product_table = $this->getTable('catalog_product_entity');
         $product_saleslayer_id_table = $this->getTable('catalog_product_entity_' . $this->product_saleslayer_id_attribute_backend_type);
@@ -6763,7 +6832,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
                     $category_table = $this->getTable('catalog_category_entity');
                     $category_is_active_table = $this->getTable('catalog_category_entity_' . $is_active_attribute[\Magento\Eav\Api\Data\AttributeInterface::BACKEND_TYPE]);
 
-                    $categories_under_deleted_parent = array();
+                    $categories_under_deleted_parent = [];
                     
                     if (!is_null($category_is_active_table)){
 
@@ -6844,7 +6913,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
                                 }catch(\Exception $e){
 
-                                    $this->debbug('## Error. Correcting category children: '.print_R($e->getMessage(),1));
+                                    $this->debbug('## Error. Correcting category children: '.print_r($e->getMessage(),1));
 
                                 }
 
@@ -7227,7 +7296,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
         
         if ($has_ORG){
         
-            $array_img = array('ORG' => array()) + $array_img;
+            $array_img = array('ORG' => []) + $array_img;
         
         }
         
@@ -7375,13 +7444,13 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
      */
     private function reorganizeCategories($categories){
             
-        $new_categories = array();
+        $new_categories = [];
 
         if (count($categories) > 0){
 
             $counter = 0;
             $first_level = $first_clean = true;
-            $categories_loaded = array();
+            $categories_loaded = [];
             
             do{
 
@@ -7481,7 +7550,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
      */
     private function getLevelCategories($categories, $categories_loaded, $first = false){
 
-        $level_categories = array();
+        $level_categories = [];
 
         if ($first){
 
@@ -7705,7 +7774,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
             foreach ($layout_options as $keyLO => $layout_option) {
 
-                $new_layout_option = array();
+                $new_layout_option = [];
 
                 foreach ($indexes as $index) {
 
@@ -7837,10 +7906,10 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
         $this->mg_category_id                       = null;
         $this->mg_category_current_row_id           = null;
-        $this->mg_category_row_ids                  = array();
+        $this->mg_category_row_ids                  = [];
         $this->mg_parent_category_id                = null;
         $this->mg_parent_category_current_row_id    = null;
-        $this->mg_parent_category_row_ids           = array();
+        $this->mg_parent_category_row_ids           = [];
         $this->mg_category_level                    = null;
         $this->mg_product_id                        = null;
         $this->mg_product_current_row_id            = null;
@@ -7849,7 +7918,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
         $this->mg_format_id                         = null;
         $this->mg_format_current_row_id             = null;
         $this->mg_format_row_ids                    = null;
-        $this->processed_global_attributes          = array();
+        $this->processed_global_attributes          = [];
 
     } 
 
@@ -7861,7 +7930,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
         $all_connectors = $this->getCollection();
 
-        $connectors = array();
+        $connectors = [];
         
         if (count($all_connectors) > 0){
 
@@ -8022,7 +8091,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
         $this->loadConfigParameters();
         $this->load_magento_variables();
 
-        $files = array();
+        $files = [];
 
         $log_folder_files = scandir($this->sl_logs_path);
 
@@ -8151,7 +8220,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
     //     $connectors = $this->getConnectors();
 
-    //     $sl_connectors_data = array();
+    //     $sl_connectors_data = [];
     //     $this->load_models();
 
     //     if (!empty($connectors)){
@@ -8207,7 +8276,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
     //             if ($get_response_table_data) {
 
-    //                 if (!isset($sl_connectors_data[$comp_id])){ $sl_connectors_data[$comp_id] = array(); }
+    //                 if (!isset($sl_connectors_data[$comp_id])){ $sl_connectors_data[$comp_id] = []; }
 
     //                 foreach ($get_response_table_data as $nombre_tabla => $data_tabla) {
 
@@ -8224,7 +8293,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
     //                                     $sl_name = $category['data'][$this->category_field_name];
     //                                 }
                                     
-    //                                 $sl_connectors_data[$comp_id]['category'][$category[$this->category_field_id]] = array();
+    //                                 $sl_connectors_data[$comp_id]['category'][$category[$this->category_field_id]] = [];
 
     //                                 if ($sl_name !== ''){
     //                                     $sl_connectors_data[$comp_id]['category'][$category[$this->category_field_id]]['name'] = $sl_name;
@@ -8246,7 +8315,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
     //                                     $sl_sku = $product['data'][$this->product_field_sku];
     //                                 }
 
-    //                                 $sl_connectors_data[$comp_id]['product'][$product[$this->product_field_id]] = array();
+    //                                 $sl_connectors_data[$comp_id]['product'][$product[$this->product_field_id]] = [];
 
     //                                 if ($sl_name !== ''){
     //                                     $sl_connectors_data[$comp_id]['product'][$product[$this->product_field_id]]['name'] = $sl_name;
@@ -8275,7 +8344,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
     //                                     }
     //                                 }
 
-    //                                 $sl_connectors_data[$comp_id]['format'][$format[$this->format_field_id]] = array();
+    //                                 $sl_connectors_data[$comp_id]['format'][$format[$this->format_field_id]] = [];
     //                                 if ($sl_name !== ''){
     //                                     $sl_connectors_data[$comp_id]['format'][$format[$this->format_field_id]]['name'] = $sl_name;
     //                                 }
@@ -8299,7 +8368,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
     //         }
 
-    //         $unlinked_items = $duplicated_items = array();
+    //         $unlinked_items = $duplicated_items = [];
     //         if (!empty($sl_connectors_data)){
 
     //             $empty_value = array(null => 0, '' => 0, null => 0);
@@ -8481,7 +8550,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
     //                         try {
 
     //                             $this->debbug('@@@ product unlink id: '.$product['entity_id'].' sku: '.$product['sku'].' name: '.$product['name']);
-    //                             $this->debbug('@@@ product unlink product_saleslayerid: '.print_R($product_saleslayerid,1));
+    //                             $this->debbug('@@@ product unlink product_saleslayerid: '.print_r($product_saleslayerid,1));
     //                             $this->debbug('@@@ product unlink product_saleslayercompid: '.print_r($product_saleslayercompid,1));
     //                             $this->debbug('@@@ product unlink product_saleslayerformatid: '.print_r($product_saleslayerformatid,1));
 
@@ -8541,7 +8610,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
     //                             try{
 
     //                                 $this->debbug('@@@ duplicated product unlink id: '.$dup_product->getId().' sku: '.$dup_product->getSku().' name: '.$dup_product->getName());
-    //                                 $this->debbug('@@@ duplicated product unlink product_saleslayerid: '.print_R($dup_product->getSaleslayerId(),1));
+    //                                 $this->debbug('@@@ duplicated product unlink product_saleslayerid: '.print_r($dup_product->getSaleslayerId(),1));
     //                                 $this->debbug('@@@ duplicated product unlink product_saleslayercompid: '.print_r($dup_product->getSaleslayerCompId(),1));
     //                                 $this->debbug('@@@ duplicated product unlink product_saleslayerformatid: '.print_r($dup_product->getSaleslayerFormatId(),1));
 
@@ -8577,7 +8646,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
     public function loadMulticonnItems(){
 
         $connectors = $this->getConnectors();
-        $sl_data = array();
+        $sl_data = [];
 
         if (empty($connectors)){
             return;
@@ -8618,7 +8687,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
                 
                 }
 
-                if (!isset($this->sl_multiconn_table_data[$sl_multiconn_reg['item_type']])){ $this->sl_multiconn_table_data[$sl_multiconn_reg['item_type']] = array(); }
+                if (!isset($this->sl_multiconn_table_data[$sl_multiconn_reg['item_type']])){ $this->sl_multiconn_table_data[$sl_multiconn_reg['item_type']] = []; }
                 
                 $this->sl_multiconn_table_data[$sl_multiconn_reg['item_type']][$sl_multiconn_reg['sl_id']] = array('id' => $sl_multiconn_reg['id'], 'sl_connectors' => $sl_multiconn_reg['sl_connectors']);
 
@@ -8634,7 +8703,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
      * @param array $params                 parameters to attach to query
      * @return void
      */
-    public function sl_connection_query($query, $params = array()){
+    public function sl_connection_query($query, $params = []){
 
         $this->connection->beginTransaction();
         
@@ -8720,8 +8789,8 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
         $this->load_magento_variables();
 
         $logfile = html_entity_decode($logfile);
-        $response = array();
-        $response[1] = array();
+        $response = [];
+        $response[1] = [];
         $elements_array =  explode('/',$logfile);
         $logfile = end($elements_array);
         $exportlines = '';
@@ -8732,7 +8801,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
             $warnings = 0;
             $numerrors = 0;
             if(sizeof( $file)>=1){
-                $spacingarray = array();
+                $spacingarray = [];
                 foreach ( $file as  $line){
 
                     if(count($spacingarray)>=1 &&  stripos($line,")") !== false){
@@ -8802,10 +8871,10 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
        $this->loadConfigParameters();
        $this->load_magento_variables();
 
-       $files = array();
+       $files = [];
 
-       $response = array();
-       $response[1] = array();
+       $response = [];
+       $response[1] = [];
 
        $log_folder_files = scandir($this->sl_logs_path);
 
@@ -8819,7 +8888,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
            if(sizeof($files)>=1){
 
-               $table = array('file'=>array(),'lines'=>array(),'warnings'=>array(),'errors'=>array());
+               $table = array('file'=>[],'lines'=>[],'warnings'=>[],'errors'=>[]);
 
                foreach ($files as $file) {
                    $errors = 0;
@@ -8951,7 +9020,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
                         }catch(\Exception $e){
 
-                            $this->debbug('## Error. Updating SL attribute global value: '.print_R($e->getMessage(),1));
+                            $this->debbug('## Error. Updating SL attribute global value: '.print_r($e->getMessage(),1));
 
                         }
 
@@ -9016,7 +9085,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
         $entity_row_ids = $this->connection->fetchAll($entity_row_ids_sql);
 
-        $row_ids = array();
+        $row_ids = [];
 
         if (!empty($entity_row_ids)){
 
@@ -9525,7 +9594,9 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
             if (isset($category['data'][$this->category_field_name]) && $category['data'][$this->category_field_name] != ''){
                 
-                $url_key = $this->categoryModel->formatUrlKey($category['data'][$this->category_field_name]);
+                $transliterator = \Transliterator::createFromRules(':: Any-Latin; :: Latin-ASCII; :: NFD; :: [:Nonspacing Mark:] Remove; :: Lower(); :: NFC;', \Transliterator::FORWARD);
+                $normalized = $transliterator->transliterate($category['data'][$this->category_field_name]);
+                $url_key = $this->categoryModel->formatUrlKey($normalized);
                 $category_assigned = $this->assignSaleslayerCategoryByUrlKey($url_key, $saleslayer_category_id);
 
             }
@@ -9615,7 +9686,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
      */
     private function setValues($entityId, $entityTable, $values, $entityTypeId, $storeId, $store_global_attributes = false, $product_additional_fields = false, array $row_ids = []){ 
 
-        $tables_insert_values = array();
+        $tables_insert_values = [];
 
         $time_ini_set_value_all_attributes = microtime(1);
         
@@ -9627,7 +9698,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
                 if (!isset($tables_insert_values[$tables_insert_value['attribute_table']])){
 
-                    $tables_insert_values[$tables_insert_value['attribute_table']] = array();
+                    $tables_insert_values[$tables_insert_value['attribute_table']] = [];
 
                 }
 
@@ -9798,7 +9869,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
      */
     private function getAttributeAndValue($code, $entityId, $entityTypeId, $storeId, $value, $product_additional_fields = false){
 
-        $return_array = array();
+        $return_array = [];
 
         if ($product_additional_fields){
 
@@ -10038,7 +10109,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
      */
     private function getValues($entityId, $entityTable, $values, $entityTypeId, $storeId = 0){
         
-        $values_to_return  = array();
+        $values_to_return  = [];
         $values_codes = array_keys($values);
 
         foreach ($values_codes as $code) {
@@ -10112,7 +10183,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
      */
     private function setCategoryImage($entityId, $entityTable, $values, $entityTypeId, $storeId){
         
-        $tables_insert_values = array();
+        $tables_insert_values = [];
 
         foreach ($values as $code => $value) {
 
@@ -10297,7 +10368,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
         }
 
-        $tables_insert_values = array();
+        $tables_insert_values = [];
 
         foreach ($values as $code => $value) {
         
@@ -10352,7 +10423,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
                 }
 
-                if (!isset($tables_insert_values[$attribute_table])){ $tables_insert_values[$attribute_table] = array(); }
+                if (!isset($tables_insert_values[$attribute_table])){ $tables_insert_values[$attribute_table] = []; }
                 $values = array('attribute_id' => $attribute[\Magento\Eav\Api\Data\AttributeInterface::ATTRIBUTE_ID],
                                 'store_id' => 0,
                                 $identifier => $entityId,
@@ -10378,7 +10449,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
                         }catch(\Exception $e){
 
-                            $this->debbug('## Error. Updating value: '.print_R($e->getMessage(),1));
+                            $this->debbug('## Error. Updating value: '.print_r($e->getMessage(),1));
 
                         }
 
@@ -10453,7 +10524,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
      * @return boolean                              if attribute is set
      */
     private function checkAttributeInSetId($code, $entityTypeId, $attributeSetId){
-            
+        //return true;
         $attribute = $this->connection->fetchRow(
             $this->connection->select()
                 ->from(
@@ -10547,7 +10618,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
                 if (!isset($this->attributes_options_collection[$attributeSetId])){
 
-                    $this->attributes_options_collection[$attributeSetId] = array();
+                    $this->attributes_options_collection[$attributeSetId] = [];
 
                 }
 
@@ -10577,7 +10648,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
                             if (!empty($options->getData())){   
 
-                                $this->attributes_options_collection[$attributeSetId][$attribute['attribute_id']]['options'][$store_view_id] = array();
+                                $this->attributes_options_collection[$attributeSetId][$attribute['attribute_id']]['options'][$store_view_id] = [];
 
                                 foreach ($options->getData() as $option) {
 
@@ -10733,7 +10804,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
      */
     private function getAttributeSetCollection(){
 
-        $attribute_set_collection = array();
+        $attribute_set_collection = [];
 
         $mg_attribute_set_collection = $this->attribute_set->getCollection()->setEntityTypeFilter($this->productModel->getResource()->getTypeId()); 
         
@@ -10784,7 +10855,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
      */
     private function getImgSizes($fields, $field_name, $index){
 
-        $images_sizes = array();
+        $images_sizes = [];
 
         if (!empty($fields[$field_name]['image_sizes'])) {
 
@@ -10910,7 +10981,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
     private function checkAttributes($arrayProducts, $product_data_to_store, $default_attribute_set_id){
         
         $time_ini = microtime(1);
-        $attributes_checked = $attributes_in_set = array(); 
+        $attributes_checked = $attributes_in_set = []; 
 
         foreach ($arrayProducts as $keyProd => $product) {
 
@@ -10976,7 +11047,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
      */
     private function getGroupingRefs($schema){
 
-        $grouped = array();
+        $grouped = [];
         $grouping_product_reference_fields = preg_grep('/grouping_product_reference_\+?\d+$/', array_keys($schema['fields']));
 
         if (!empty($grouping_product_reference_fields)){
@@ -11000,7 +11071,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
      */
     private function getGroupingQty($schema){
 
-        $grouped = array();
+        $grouped = [];
         $grouping_product_quantity_fields = preg_grep('/grouping_product_quantity_\+?\d+$/', array_keys($schema['fields']));
 
         if (!empty($grouping_product_quantity_fields)){
@@ -11043,7 +11114,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
      */
     private function setAdditionalFields($fields, $fixed_product_fields){
 
-        $product_additional_fields = array();
+        $product_additional_fields = [];
 
         foreach ($fields as $field_name => $field_props){
 
@@ -11073,7 +11144,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
      */
     private function getConfigurableAttrs(){
 
-        $format_configurable_attributes_codes = array();
+        $format_configurable_attributes_codes = [];
 
         foreach ($this->format_configurable_attributes as $format_configurable_attribute_id) {
 
@@ -11103,7 +11174,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
      */
     private function prepareConfigurableAttrs($arrayFormats, $schema){
 
-        $parent_product_attributes = array();
+        $parent_product_attributes = [];
         $format_configurable_attributes_codes = $this->getConfigurableAttrs();
 
         //cargamos los parent_product_attributes cuyos formatos tengan valores válidos
@@ -11114,7 +11185,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
             $sl_parent_product_id   = $format[$this->format_field_products_id];
             $format_data            = $format['data'];
 
-            $attribute_data_empty = array();
+            $attribute_data_empty = [];
 
             if($this->isFormatOK($parent_product_attributes, $sl_parent_product_id, $attribute_data_empty)){            
 
@@ -11141,7 +11212,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
                     foreach ($attribute_data_empty as $error_msg) {
 
-                        $this->debbug('## Error. '.$format_data[$this->format_field_sku]." - ".print_R($error_msg,1));
+                        $this->debbug('## Error. '.$format_data[$this->format_field_sku]." - ".print_r($error_msg,1));
 
                     }
 
@@ -11165,7 +11236,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
      */
     /* private function getParentAttrs($arrayFormats, $schema, $format_configurable_attributes_codes){
         
-        $parent_product_attributes = array();
+        $parent_product_attributes = [];
 
         foreach ($arrayFormats as $format) {
                 
@@ -11188,7 +11259,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
                     if ((!is_array($sl_format_value) && $sl_format_value !== '') || (is_array($sl_format_value) && !empty($sl_format_value))){
                     
-                        if (!isset($parent_product_attributes[$sl_parent_product_id])){ $parent_product_attributes[$sl_parent_product_id] = array(); }
+                        if (!isset($parent_product_attributes[$sl_parent_product_id])){ $parent_product_attributes[$sl_parent_product_id] = []; }
                         if (!isset($parent_product_attributes[$sl_parent_product_id][$format_configurable_attribute_code])){
 
                             $parent_product_attributes[$sl_parent_product_id][$format_configurable_attribute_code] = array('format_configurable_attribute_code_lan' => $format_configurable_attribute_code_lan, 'mg_attribute_id' => $format_configurable_attribute_id);
@@ -11216,7 +11287,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
      */
     private function getParentAttrs($arrayFormats, $schema, $format_configurable_attributes_codes){
         
-        $parent_product_attributes = array();
+        $parent_product_attributes = [];
 
         foreach ($arrayFormats as $format) {
                 
@@ -11400,7 +11471,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
      */
     private function processResponse($get_response_table_data, $connector_id, $sync_params){
         
-        $arrayReturn = array();
+        $arrayReturn = [];
 
         $this->loadStoreViewIds($connector_id);
         $sync_params['conn_params']['store_view_ids'] = $this->store_view_ids;
@@ -11419,7 +11490,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
         foreach ($get_response_table_data as $nombre_tabla => $data_tabla) {
 
-            if (isset($data_tabla['deleted']) && count($data_tabla['deleted']) > 0) {
+            if (count($data_tabla['deleted'] ?? []) > 0) {
                 $arrayReturn = $this->processDeleted($data_tabla['deleted'], $sync_params, $arrayReturn, $nombre_tabla);
                 unset($get_response_table_data[$nombre_tabla]['deleted']);
             }
@@ -11532,7 +11603,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
             }
 
             $product_field_ID_key = $product_field_ID_catalogue_key = ''; 
-            $product_field_ID_cont = $product_field_ID_catalogue_cont = array();
+            $product_field_ID_cont = $product_field_ID_catalogue_cont = [];
             foreach ($data_schema['products']['fields'] as $key => $key_data){
                 if ($product_field_ID_key !== '' && $product_field_ID_catalogue_key !== '') break;
                 if ($product_field_ID_key == '' and $this->product_field_id == strtolower($key)){
@@ -11570,10 +11641,10 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
             }
 
-            $data_schema['product_formats']['fields'] = array();
+            $data_schema['product_formats']['fields'] = [];
             
             //We load the category tree
-            $category_tree = array();
+            $category_tree = [];
 
             if (isset($get_response_table_data['catalogue']['modified']) && !empty($get_response_table_data['catalogue']['modified'])){
 
@@ -11586,7 +11657,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
             }
 
             //We extract product ids and their category ids
-            $product_categories = $categories_used_by_products = array();
+            $product_categories = $categories_used_by_products = [];
 
             foreach ($get_response_table_data['products']['modified'] as $product) {
                 
@@ -11624,10 +11695,10 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
             }
 
-            $get_response_table_data['products']['modified'] = array();
+            $get_response_table_data['products']['modified'] = [];
             $get_response_table_data['products']['deleted'] = $get_response_table_data['product_formats']['deleted'];
 
-            $format_categories = $categories_used_by_formats = array();
+            $format_categories = $categories_used_by_formats = [];
 
             foreach ($get_response_table_data['product_formats']['modified'] as $format) {
                 
@@ -11647,7 +11718,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
                     
                 }else{
 
-                    $new_format = array($this->product_field_id => $format[$this->format_field_id], $this->product_field_catalogue_id => $product_categories[$format[$this->format_field_products_id]], 'data' => array());
+                    $new_format = array($this->product_field_id => $format[$this->format_field_id], $this->product_field_catalogue_id => $product_categories[$format[$this->format_field_products_id]], 'data' => []);
 
                     foreach ($field_relations as $new_format_field => $old_format_field) {
                         
@@ -11704,11 +11775,11 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
             }
 
-            $get_response_table_data['product_formats']['modified'] = array();   
-            $get_response_table_data['product_formats']['deleted'] = array();           
+            $get_response_table_data['product_formats']['modified'] = [];   
+            $get_response_table_data['product_formats']['deleted'] = [];           
 
             //We search for empty categories (not used by products or formats)
-            $empty_categories = array();
+            $empty_categories = [];
 
             foreach ($category_tree as $category_id => $category_parent_id) {
                 
@@ -12026,7 +12097,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
         $product_table = $this->getTable('catalog_product_entity');
         $mg_product_core_data = $this->get_product_core_data($this->mg_product_id);
         
-        $mg_product_data_to_update = array();
+        $mg_product_data_to_update = [];
 
         if ($mg_product_core_data['sku'] != $sl_data[$this->product_field_sku]){
             
@@ -12258,11 +12329,11 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
      */
     private function updateProductStock($sl_data){
 
-        $this->debbug('updateProductStock() - sl_data: '.print_R($sl_data,1));
+        $this->debbug('updateProductStock() - sl_data: '.print_r($sl_data,1));
 
         if ($this->product_created === true || $this->avoid_stock_update == '0'){
 
-            $sl_inventory_data = array();
+            $sl_inventory_data = [];
 
             $inventory_fields = array('sl_qty' => $this->product_field_qty, 'backorders' => $this->product_field_inventory_backorders, 'min_sale_qty' => $this->product_field_inventory_min_sale_qty, 'max_sale_qty' => $this->product_field_inventory_max_sale_qty);
 
@@ -12310,7 +12381,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
             }
 
-            $this->debbug('updateProductStock() - sl_inventory_data: '.print_R($sl_inventory_data,1));
+            $this->debbug('updateProductStock() - sl_inventory_data: '.print_r($sl_inventory_data,1));
 
             if (!empty($sl_inventory_data)){
 
@@ -12329,11 +12400,11 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
      */
     private function groupProduct($sl_data){
 
-        $linked_product_data = array();
+        $linked_product_data = [];
 
         if ($this->grouping_ref_field_linked === 1){
 
-            $processed_grouping_ids = array();
+            $processed_grouping_ids = [];
 
             $array_grouping_product = preg_grep('/grouping_product_reference_\+?\d+$/', array_keys($sl_data));
        
@@ -12412,7 +12483,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
             if (isset($sl_data[$field_sales])){
 
-                $linked_references = array();
+                $linked_references = [];
 
                 if (is_array($sl_data[$field_sales]) && !empty($sl_data[$field_sales])){
                     
@@ -12546,7 +12617,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
             }catch(\Exception $e){
 
-                $this->debbug('## Error. Updating attribute value: '.print_R($e->getMessage(),1));
+                $this->debbug('## Error. Updating attribute value: '.print_r($e->getMessage(),1));
                 return false;
 
             }
@@ -12619,7 +12690,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
         }catch(\Exception $e){
 
-            $this->debbug('## Error. Deleting global attribute in other stores than 0: '.print_R($e->getMessage(),1));
+            $this->debbug('## Error. Deleting global attribute in other stores than 0: '.print_r($e->getMessage(),1));
 
         }
 
@@ -12664,7 +12735,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
             }catch(\Exception $e){
 
-                $this->debbug('## Error. Updating index row '.$indexList.' : '.print_R($e->getMessage(),1));
+                $this->debbug('## Error. Updating index row '.$indexList.' : '.print_r($e->getMessage(),1));
 
             }
 
@@ -12683,11 +12754,16 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
      * @param  array $sl_product_additional_data_to_sync    product additional data to sync
      * @return void
      */
-    private function syncProdStoreAllData($store_view_ids, $sl_product_data_to_sync, $sl_product_additional_data_to_sync ){
+    private function syncProdStoreAllData($store_view_ids, $sl_product_data_to_sync, $sl_product_additional_data_to_sync, $sku=''){
 
         foreach ($store_view_ids as $store_view_id) {
             
             $time_ini_all_data = microtime(1);
+            /* $product = $this->existProduct($sku) ? $this->_productRepository->get($sku, false, $store_view_id) : null;
+
+            if (!$product) {
+                return;
+            } */
 
             if (!empty($sl_product_data_to_sync)){
 
@@ -12699,6 +12775,9 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
                     $this->setValues($mg_product_row_id, 'catalog_product_entity', $sl_product_data_to_sync, $this->product_entity_type_id, $store_view_id, true, false, $this->mg_product_row_ids);
                 
                 }
+                /* foreach ($sl_product_data_to_sync as $attrK => $attrV) {
+                    $product->setData($attrK, $attrV);
+                } */
                 
                 if ($this->sl_DEBBUG > 1) $this->debbug('## sync_product_data store_view_id: '.$store_view_id.': ', 'timer', (microtime(1) - $time_ini_sync_data));
 
@@ -12714,6 +12793,20 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
                     $this->setValues($mg_product_row_id, 'catalog_product_entity', $sl_product_additional_data_to_sync, $this->product_entity_type_id, $store_view_id, true, true, $this->mg_product_row_ids);                
                 }
 
+                /* foreach ($sl_product_additional_data_to_sync as $attrK => $attrV) {
+                    if (is_array($attrV) && isset($attrV[0])) {
+                        $attrV = $attrV[0];
+                    }
+                    $product->setData($attrK, $attrV);
+                } */
+
+                /** Set Brand **/
+                /* if(isset($sl_product_additional_data_to_sync['brand']))
+                {
+                    $this->setBrand($product,$sl_product_additional_data_to_sync['brand']);
+                }
+                $product->save(); */
+
                 if ($this->sl_DEBBUG > 1) $this->debbug('## sync_product_additional_data store_view_id: '.$store_view_id.': ', 'timer', (microtime(1) - $time_ini_additional_data));
 
             }
@@ -12725,6 +12818,41 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
         }
 
     }
+
+    /**
+     * Exist Product in Magento
+     * @param $sku
+     * @return bool
+     */
+    /* private function existProduct($sku)
+    {
+        try {
+            return $this->_productRepository->get($sku) ? true : false;
+        } catch (NoSuchEntityException $e) {
+            return false;
+        }
+    } */
+
+    /**
+     * Set Brand to product
+     * @param string   $sku
+     * @param string   $brand_value   Brand Name
+     */
+    private function setBrand($product,$brand_value)
+    {
+	    $sky_attributeF = 'brand';
+        $attrF = $product->getResource()->getAttribute($sky_attributeF);
+        if (!empty($attrF)) {
+            $avidF = $attrF->getSource()->getOptionId($brand_value);
+            $avidF = empty($avidF) ? $brand_value : $avidF;
+	        $product->setData($sky_attributeF, $avidF);
+            $sku = $product->getSku();
+	        $this->debbug(" > SL set BRAND: ".print_r("$sky_attributeF - $brand_value ($avidF) - SKU: $sku",1));
+	    } else {
+	       $this->debbug(" > SL set BRAND: Empty Attribute");
+	    }
+    }
+
 
     /**
      * Function to sync format data by store
@@ -12781,7 +12909,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
     private function prepareAllAdditionalFields($product){
 
         $time_additional_fields = microtime(1);
-        $sl_product_additional_data_to_sync = array();
+        $sl_product_additional_data_to_sync = [];
 
         if (count($this->product_additional_fields) > 0) {
             
@@ -13318,7 +13446,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
                                                     
         if ($img_filename) {
         
-            if (!isset($tables_insert_values[$attribute_table])){ $tables_insert_values[$attribute_table] = array(); }
+            if (!isset($tables_insert_values[$attribute_table])){ $tables_insert_values[$attribute_table] = []; }
             $values = array('attribute_id' => $attribute[\Magento\Eav\Api\Data\AttributeInterface::ATTRIBUTE_ID],
                             'store_id' => $storeId,
                             $identifier => $entityId,
@@ -13399,7 +13527,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
             }catch(\Exception $e){
 
-                $this->debbug('## Error. Updating category image: '.print_R($e->getMessage(),1));
+                $this->debbug('## Error. Updating category image: '.print_r($e->getMessage(),1));
 
             }
             if ($this->sl_DEBBUG > 2) $this->debbug('## time_process_mg_image: ', 'timer', (microtime(1) - $time_ini_check_mg_image));
@@ -13420,7 +13548,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
         if (!empty($this->existing_links_data)){
 
-            $link_ids_to_delete = array();
+            $link_ids_to_delete = [];
 
             foreach ($this->existing_links_data as $existing_link_data){
                 
@@ -13735,7 +13863,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
                 $connectors_data = json_decode($sl_multiconn_reg['sl_connectors'],1);
 
-                if (!is_array($connectors_data) || (is_array($connectors_data) && empty($connectors_data))){ $connectors_data = array(); }
+                if (!is_array($connectors_data) || (is_array($connectors_data) && empty($connectors_data))){ $connectors_data = []; }
 
                 $new_connectors_data = json_encode(array_unique(array_merge($connectors_data, $sl_item_connectors)));
 
@@ -13839,7 +13967,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
                 foreach ($modified_data as $category) {
 
                     if (!isset($sl_data[$comp_id]['category'][$category[$this->category_field_id]])){
-                        $sl_data[$comp_id]['category'][$category[$this->category_field_id]] = array();
+                        $sl_data[$comp_id]['category'][$category[$this->category_field_id]] = [];
                     }
 
                     $sl_data[$comp_id]['category'][$category[$this->category_field_id]][] = $connector_id;
@@ -13853,7 +13981,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
                 foreach ($modified_data as  $product) {
 
                     if (!isset($sl_data[$comp_id]['product'][$product[$this->product_field_id]])){
-                        $sl_data[$comp_id]['product'][$product[$this->product_field_id]] = array();
+                        $sl_data[$comp_id]['product'][$product[$this->product_field_id]] = [];
                     }
 
                     $sl_data[$comp_id]['product'][$product[$this->product_field_id]][] = $connector_id;
@@ -13867,7 +13995,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
                 foreach ($modified_data as $format) {
 
                     if (!isset($sl_data[$comp_id]['format'][$format[$this->format_field_id]])){
-                        $sl_data[$comp_id]['format'][$format[$this->format_field_id]] = array();
+                        $sl_data[$comp_id]['format'][$format[$this->format_field_id]] = [];
                     }
 
                     $sl_data[$comp_id]['format'][$format[$this->format_field_id]][] = $connector_id;
@@ -13936,7 +14064,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
         if ($get_response_table_data) {
 
-            if (!isset($sl_data[$comp_id])){ $sl_data[$comp_id] = array(); }
+            if (!isset($sl_data[$comp_id])){ $sl_data[$comp_id] = []; }
 
             foreach ($get_response_table_data as $nombre_tabla => $data_tabla) {
 

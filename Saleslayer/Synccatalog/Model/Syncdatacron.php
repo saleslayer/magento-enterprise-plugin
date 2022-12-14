@@ -11,6 +11,9 @@ umask(0);
 use Magento\Catalog\Api\ProductAttributeManagementInterface as productAttributeManagementInterface;
 use Magento\Catalog\Model\Category as categoryModel;
 use Magento\Catalog\Model\Product as productModel;
+use Magento\Catalog\Model\ProductRepository as productRepository;
+use Magento\Catalog\Api\Data\ProductLinkInterface as productLinkInterface;
+use Magento\Catalog\Api\Data\ProductInterfaceFactory as productInterfaceFactory;
 use Magento\Catalog\Model\Product\Attribute\Source\Countryofmanufacture as countryOfManufacture;
 use \Magento\Catalog\Model\Category\Attribute\Source\Layout as layoutSource;
 use Magento\CatalogInventory\Model\Configuration as catalogInventoryConfiguration;
@@ -94,7 +97,10 @@ class Syncdatacron extends Synccatalog{
                 layoutSource $layoutSource,
                 resource $resource = null,
                 resourceCollection $resourceCollection = null,
-                array $data = []) {
+                array $data = []/* ,
+            	productInterfaceFactory $productInterfaceFactory = null,
+                productRepository $productRepository = null,
+                productLinkInterface $productLinkInterface = null */) {
         parent::__construct($context,
                             $registry, 
                             $salesLayerConn, 
@@ -122,7 +128,10 @@ class Syncdatacron extends Synccatalog{
                             $layoutSource,
                             $resource,
                             $resourceCollection,
-                            $data);
+                            $data/* ,
+                            $productInterfaceFactory,
+                            $productRepository,
+                            $productLinkInterface */);
 
     }
 
@@ -456,11 +465,11 @@ class Syncdatacron extends Synccatalog{
         
         do{
 
-            $items_to_update = $this->connection->fetchAll(" SELECT * FROM ".$this->saleslayer_syncdata_table." WHERE sync_type = 'update' and item_type = '".$index."' and sync_tries <= 2 ORDER BY item_type ASC, sync_tries ASC, id ASC LIMIT 5");
+            $items_to_update = $this->connection->fetchAll(" SELECT * FROM ".$this->saleslayer_syncdata_table." WHERE sync_type = 'update' and item_type = '".$index."' and sync_tries <= 2 ORDER BY item_type ASC, sync_tries ASC, id ASC LIMIT 50");
 
             if ($this->test_one_item !== false && is_numeric($this->test_one_item)){
 
-                $items_to_update = $this->connection->fetchAll(" SELECT * FROM ".$this->saleslayer_syncdata_table." WHERE sync_type = 'update' and item_type = '".$index."' and sync_tries <= 2 and id = ".$this->test_one_item." ORDER BY item_type ASC, sync_tries ASC, id ASC LIMIT 5");
+                $items_to_update = $this->connection->fetchAll(" SELECT * FROM ".$this->saleslayer_syncdata_table." WHERE sync_type = 'update' and item_type = '".$index."' and sync_tries <= 2 and id = ".$this->test_one_item." ORDER BY item_type ASC, sync_tries ASC, id ASC LIMIT 50");
 
             }
 

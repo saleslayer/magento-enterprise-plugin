@@ -8,33 +8,36 @@ set_time_limit(0);
 umask(0);
 */
 
-use \Magento\Framework\Model\Context as context;
-use \Magento\Framework\Registry as registry;
-use \Magento\Framework\Model\ResourceModel\AbstractResource as resource;
-use \Magento\Framework\Data\Collection\AbstractDb as resourceCollection;
+use Magento\Framework\Model\Context as context;
+use Magento\Framework\Registry as registry;
+use Magento\Framework\Model\ResourceModel\AbstractResource as resource;
+use Magento\Framework\Data\Collection\AbstractDb as resourceCollection;
+use Magento\Framework\Filesystem\DirectoryList  as directoryListFilesystem;
+use Magento\Catalog\Model\Category as categoryModel;
+use Magento\Catalog\Model\Product as productModel;
+use Magento\Catalog\Model\ProductRepository as productRepository;
+use Magento\Catalog\Api\Data\ProductLinkInterface as productLinkInterface;
+use Magento\Catalog\Api\Data\ProductInterfaceFactory as productInterfaceFactory;
+use Magento\Eav\Model\Entity\Attribute as attribute;
+use Magento\Eav\Model\Entity\Attribute\Set as attribute_set;
+use Magento\Catalog\Api\ProductAttributeManagementInterface as productAttributeManagementInterface;
+use Magento\Indexer\Model\Indexer as indexer;
+use Magento\Framework\App\ResourceConnection as resourceConnection;
+use Magento\Eav\Model\ResourceModel\Entity\Attribute\Option\Collection as collectionOption;
+use Magento\Cron\Model\Schedule as cronSchedule;
+use Magento\Framework\App\Config\ScopeConfigInterface as scopeConfigInterface;
+use Magento\CatalogUrlRewrite\Model\CategoryUrlPathGenerator as categoryUrlPathGenerator;
+use Magento\CatalogUrlRewrite\Model\ProductUrlPathGenerator as productUrlPathGenerator;
+use Magento\CatalogInventory\Model\Configuration as catalogInventoryConfiguration;
+use Magento\Framework\App\DeploymentConfig as deploymentConfig;
+use Magento\Eav\Model\Config as eavConfig;
+use Magento\Framework\App\Cache\TypeListInterface as typeListInterface;
+use Magento\Framework\App\ProductMetadataInterface as productMetadata;
+use Magento\Catalog\Model\Product\Attribute\Source\Countryofmanufacture as countryOfManufacture;
+use Magento\Catalog\Model\Category\Attribute\Source\Layout as layoutSource;
 use Saleslayer\Synccatalog\Model\SalesLayerConn as SalesLayerConn;
 use Saleslayer\Synccatalog\Helper\Data as synccatalogDataHelper;
 use Saleslayer\Synccatalog\Helper\Config as synccatalogConfigHelper;
-use \Magento\Framework\Filesystem\DirectoryList  as directoryListFilesystem;
-use \Magento\Catalog\Model\Category as categoryModel;
-use \Magento\Catalog\Model\Product as productModel;
-use \Magento\Eav\Model\Entity\Attribute as attribute;
-use \Magento\Eav\Model\Entity\Attribute\Set as attribute_set;
-use \Magento\Catalog\Api\ProductAttributeManagementInterface as productAttributeManagementInterface;
-use \Magento\Indexer\Model\Indexer as indexer;
-use \Magento\Framework\App\ResourceConnection as resourceConnection;
-use \Magento\Eav\Model\ResourceModel\Entity\Attribute\Option\Collection as collectionOption;
-use \Magento\Cron\Model\Schedule as cronSchedule;
-use \Magento\Framework\App\Config\ScopeConfigInterface as scopeConfigInterface;
-use \Magento\CatalogUrlRewrite\Model\CategoryUrlPathGenerator as categoryUrlPathGenerator;
-use \Magento\CatalogUrlRewrite\Model\ProductUrlPathGenerator as productUrlPathGenerator;
-use \Magento\CatalogInventory\Model\Configuration as catalogInventoryConfiguration;
-use \Magento\Framework\App\DeploymentConfig as deploymentConfig;
-use \Magento\Eav\Model\Config as eavConfig;
-use \Magento\Framework\App\Cache\TypeListInterface as typeListInterface;
-use \Magento\Framework\App\ProductMetadataInterface as productMetadata;
-use \Magento\Catalog\Model\Product\Attribute\Source\Countryofmanufacture as countryOfManufacture;
-use \Magento\Catalog\Model\Category\Attribute\Source\Layout as layoutSource;
 
 /**
  * Class Saleslayer_Synccatalog_Model_Autosynccron
@@ -77,7 +80,10 @@ class Autosynccron extends Synccatalog{
                 layoutSource $layoutSource,
                 resource $resource = null,
                 resourceCollection $resourceCollection = null,
-                array $data = []) {
+                array $data = []/* ,
+                productInterfaceFactory $productInterfaceFactory = null,
+                productRepository $productRepository = null,
+                productLinkInterface $productLinkInterface = null */) {
         parent::__construct($context,
                             $registry, 
                             $salesLayerConn, 
@@ -105,7 +111,10 @@ class Autosynccron extends Synccatalog{
                             $layoutSource,
                             $resource,
                             $resourceCollection,
-                            $data);
+                            $data/* ,
+                            $productInterfaceFactory,
+                            $productRepository,
+                            $productLinkInterface */);
         $this->cron_schedule_table           = $this->resourceConnection->getTableName($this->cron_schedule_table);
 
     }
