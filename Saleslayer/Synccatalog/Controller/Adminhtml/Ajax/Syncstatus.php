@@ -32,15 +32,15 @@ class Syncstatuscommands extends \Magento\Framework\App\Action\Action
         $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
         $resultJsonFactory = $objectManager->create('Magento\Framework\Controller\Result\JsonFactory');
         $result = $resultJsonFactory->create();
-        if ($this->getRequest()->isAjax()) 
-        {
-            $test=Array
-            (
+        
+        if ($this->getRequest()->getParam('isAjax')) {
+            $test = [
                 'Firstname' => 'What is your firstname',
                 'Email' => 'What is your emailId',
                 'Lastname' => 'What is your lastname',
                 'Country' => 'Your Country'
-            );
+            ];
+            
             return $result->setData($test);
         }
 
