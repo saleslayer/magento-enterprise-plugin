@@ -213,7 +213,7 @@ class Categories extends \Magento\Backend\Block\Widget\Form\Generic implements \
         $cat_table_identifier = $this->getColumnIdentifier($category_table);
         $cat_name_table_identifier = $this->getColumnIdentifier($category_name_table);
 
-        if (!is_null($category_name_table)){
+        if (null !== $category_name_table) {
 
             if (version_compare($this->mg_version, '2.3.0') < 0) {
             
@@ -312,7 +312,7 @@ class Categories extends \Magento\Backend\Block\Widget\Form\Generic implements \
      */
     private function getTablePrefix(){
 
-        if (is_null($this->tablePrefix)) {
+        if (null === $this->tablePrefix) {
                 
             $this->tablePrefix = (string)$this->deploymentConfig->get(
                 \Magento\Framework\Config\ConfigOptionsListConstants::CONFIG_PATH_DB_PREFIX

@@ -577,7 +577,7 @@ class Syncdatacron extends Synccatalog{
         $sync_params = json_decode(stripslashes($item_to_delete['sync_params']),1);
         $this->processing_connector_id = $sync_params['conn_params']['connector_id'];
 
-        // if (is_null($this->comp_id) || $this->comp_id == ''){
+        // if (null === $this->comp_id || $this->comp_id == ''){
 
         //     $this->debbug('cargamos load_sl_multiconn_table_data debido a diferencia de comp_id');
         //     $this->load_sl_multiconn_table_data(); 

@@ -202,7 +202,7 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
      * Get attribute by code.
      *
      * @param string $attributeCode
-     * @return \Magento\Catalog\Api\Data\ProductAttributeInterface
+     * @return \Magento\Catalog\Model\ResourceModel\Eav\Attribute
      */
     public function getAttribute($attributeCode){
 

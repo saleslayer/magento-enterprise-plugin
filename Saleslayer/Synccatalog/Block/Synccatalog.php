@@ -61,7 +61,7 @@ class Synccatalog extends \Magento\Framework\View\Element\Template
      */
     public function getCollection()
     {
-        if (is_null($this->_synccatalogCollection)) {
+        if (null === $this->_synccatalogCollection) {
             $this->_synccatalogCollection = $this->_getCollection();
             $this->_synccatalogCollection->setCurPage($this->getCurrentPage());
             $this->_synccatalogCollection->setOrder('last_update','asc');
