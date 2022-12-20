@@ -4,12 +4,11 @@
         <resources>
             <resource id="Magento_Backend::admin">
                 <resource id="Saleslayer_Synccatalog::synccatalog" title="Synccatalog" sortOrder="40">
-                    <!-- <resource id="Saleslayer_Synccatalog::manage" title="All Synccatalog" sortOrder="10" > -->
                         <resource id="Saleslayer_Synccatalog::manage" title="Import" sortOrder="10" />
                         <resource id="Saleslayer_Synccatalog::tools" title="Tools" sortOrder="20" />
                         <resource id="Saleslayer_Synccatalog::showdebbug" title="View SL Logs" sortOrder="30" />
+                        <resource id="Saleslayer_Synccatalog::save" title="Save" sortOrder="40" />
                         <resource id="Saleslayer_Synccatalog::synccatalog_configuration_parameters" title="Configuration Parameters" sortOrder="40" />
-                    <!-- </resource> -->
                 </resource>
             </resource>
         </resources>

@@ -32,7 +32,7 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
     protected $tableFactory;
     
     /**
-     * @var \Magento\Eav\Api\Data\AttributeOption
+     * @var \Magento\Eav\Model\Entity\Attribute\Option
      */
     protected $optionModel;
 
@@ -134,7 +134,12 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
 
             $sort_order = $option->getSortOrder();
 
-            $attribute->setData('option', array('value' => array($option_id => $option_data)));
+            $attribute->setData('option', [
+                'value' => [
+                    $option_id => $option_data
+                ]
+            ]);
+
             $attribute->save();
 
         }catch(\Exception $e){

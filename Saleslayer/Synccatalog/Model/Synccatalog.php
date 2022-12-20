@@ -1235,7 +1235,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
         $slconn->set_API_version(self::sl_API_version);
 
-        $last_date_update = $this->get_conn_field($connector_id, 'last_update');
+        $last_date_update = $this->get_conn_field($connector_id, 'last_update') ?? '';
         
         $this->debbug('Connecting with API... (last update: '.$last_date_update.')');
 
