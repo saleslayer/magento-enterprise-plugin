@@ -1239,7 +1239,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
         
         $this->debbug('Connecting with API... (last update: '.$last_date_update.')');
 
-        if (preg_match('/^\d{4}-/', $last_date_update)) $last_date_update = strtotime($last_date_update);
+        if ($last_date_update !== null && preg_match('/^\d{4}-/', $last_date_update)) $last_date_update = strtotime($last_date_update);
 
         $slconn->set_group_multicategory(true);
         
@@ -4883,8 +4883,6 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
        }
 
-       $a = 100;
-
        if (isset($this->attributes_options_collection[$attribute_set_id][$attribute_id]['options'][0][$attribute_option_value_lower])){
             $this->updateAttributeOption_db($attribute_set_id, $attribute_id, $this->attributes_options_collection[$attribute_set_id][$attribute_id]['options'][0][$attribute_option_value_lower], $attribute_option_value);
            return $this->attributes_options_collection[$attribute_set_id][$attribute_id]['options'][0][$attribute_option_value_lower];
@@ -6465,6 +6463,8 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
      */
     private function find_saleslayer_format_id_db($saleslayer_id = null, $saleslayer_format_id = 0, $store_view_id = 0) {
 
+        if ($saleslayer_format_id == 0) return null;
+
         $product_table = $this->getTable('catalog_product_entity');
         $product_saleslayer_id_table = $this->getTable('catalog_product_entity_' . $this->product_saleslayer_id_attribute_backend_type);
         $product_saleslayer_comp_id_table = $this->getTable('catalog_product_entity_' . $this->product_saleslayer_comp_id_attribute_backend_type);
@@ -7618,7 +7618,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
             }
         }
 
-        if (preg_match('/<[^<]+>/s', $text_check)){
+        if ($text_check === null || preg_match('/<[^<]+>/s', $text_check)){
         
             return $text_check;
 
@@ -7669,7 +7669,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
             }
 
-        }else if (is_string($value)){
+        }else if (is_string($value) && $value !== null){
             
             $value_to_check = str_replace(' ', '_', strtolower($value));
             
@@ -7723,7 +7723,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
                 }
 
-            }else if (is_string($value)){
+            }else if (is_string($value) && $value !== null){
                 
                 $value_to_check = str_replace(' ', '_', strtolower($value));
 
@@ -7767,6 +7767,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
         if (is_array($sl_layout_value)) $sl_layout_value = reset($sl_layout_value);
         $sl_layout_value = trim(strtolower($sl_layout_value));
+        if ($sl_layout_value === null) return $this->category_page_layout;
        
         if (empty($this->layout_options)){
 
@@ -8140,7 +8141,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
 
         if (!$files_found) {
 
-            unlink($zipname);
+            if (file_exists($zipname)) unlink($zipname);
             $this->debbug('## Error. SL logs zip not found.');
 
         } else {
@@ -8764,7 +8765,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
             $file_array = explode('/',$file_to_delete);
             $file_to_delete = end($file_array);
 
-            if(preg_match('/[A-Za-z0-9]*.[A-Za-z0-9]{3}/',$file_to_delete)) {
+            if($file_to_delete !== null && preg_match('/[A-Za-z0-9]*.[A-Za-z0-9]{3}/',$file_to_delete)) {
                 $file_path = $this->sl_logs_path . $file_to_delete;
 
                 if ( file_exists( $file_path ) ) {
@@ -8797,7 +8798,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel{
         $logfile = end($elements_array);
         $exportlines = '';
 
-        if(preg_match('/[A-Za-z0-9]*.[A-Za-z0-9]{3}/',$logfile) && file_exists( $this->sl_logs_path.$logfile)){
+        if($logfile !== null && preg_match('/[A-Za-z0-9]*.[A-Za-z0-9]{3}/',$logfile) && file_exists( $this->sl_logs_path.$logfile)){
             $file = file($this->sl_logs_path.$logfile);
             $listed = 0;
             $warnings = 0;
