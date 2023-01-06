@@ -10,6 +10,7 @@ use Magento\Framework\Registry as registry;
 use Magento\Framework\Model\ResourceModel\AbstractResource as resource;
 use Magento\Framework\Data\Collection\AbstractDb as resourceCollection;
 use Magento\Framework\Filesystem\DirectoryList  as directoryListFilesystem;
+use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Catalog\Model\Category as categoryModel;
 use Magento\Catalog\Model\Product as productModel;
 use Magento\Catalog\Api\ProductRepositoryInterface as productRepository;
@@ -12809,6 +12810,31 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
     }
 
+    private function setAttributes(&$entity, array $attributes_values)
+    {
+        foreach ($attributes_values as $attrK => $attrV) {
+            if (is_array($attrV) && isset($attrV[0])) {
+                $attrV = $attrV[0];
+            }
+
+            $attribute = $entity->getResource()->getAttribute($attrK);
+            if ($attribute !== false) {
+                if ($attribute->usesSource()) {
+                    $option_id = $attribute->getSource()->getOptionId($attrV);
+                    if ($option_id !== '' || $option_id !== null) {
+                        $entity->setData($attrK, $option_id);
+                    } else {
+                        $entity->setData($attrK, $attrV);
+                    }
+                } else {
+                    $entity->setData($attrK, $attrV);
+                }
+
+            }
+
+        }
+    }
+
     /**
      * Function to sync product data by store
      * @param  array $store_view_ids                        store view ids in which the product will be updated
@@ -12822,9 +12848,14 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
             
             $time_ini_all_data = microtime(1);
 
-            $product = $this->_productRepository->get($sku, false, $store_view_id);
+            try {
+                $product = $this->_productRepository->get($sku, true, $store_view_id);
+            } catch (NoSuchEntityException $e) {
+                $product = null;
+                if ($this->sl_DEBBUG > 2) $this->debbug('## ' . $e->getMessage() . ' (SKU: ' . $sku, '), timer', (microtime(1) - $time_ini_all_data));
+            }
 
-            if ($product) {
+            if ($product !== null) {
 
                 if (!empty($sl_product_data_to_sync)){
 
@@ -12832,13 +12863,11 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                     $time_ini_sync_data = microtime(1);
                     
                     /* foreach ($this->mg_product_row_ids as $mg_product_row_id) {
-                    
                         $this->setValues($mg_product_row_id, 'catalog_product_entity', $sl_product_data_to_sync, $this->product_entity_type_id, $store_view_id, true, false, $this->mg_product_row_ids);
                     
                     } */
-                    foreach ($sl_product_data_to_sync as $attrK => $attrV) {
-                        $product->setData($attrK, $attrV);
-                    }
+
+                    $this->setAttributes($product, $sl_product_data_to_sync);
                     
                     if ($this->sl_DEBBUG > 1) $this->debbug('## sync_product_data store_view_id: '.$store_view_id.': ', 'timer', (microtime(1) - $time_ini_sync_data));
 
@@ -12854,12 +12883,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                         $this->setValues($mg_product_row_id, 'catalog_product_entity', $sl_product_additional_data_to_sync, $this->product_entity_type_id, $store_view_id, true, true, $this->mg_product_row_ids);              
                     } */
 
-                    foreach ($sl_product_additional_data_to_sync as $attrK => $attrV) {
-                        if (is_array($attrV) && isset($attrV[0])) {
-                            $attrV = $attrV[0];
-                        }
-                        $product->setData($attrK, $attrV);
-                    }
+                    $this->setAttributes($product, $sl_product_additional_data_to_sync);
 
                     /** Set Brand **/
                     /* if(isset($sl_product_additional_data_to_sync['brand']))
@@ -12919,9 +12943,14 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
             
             $time_ini_all_data = microtime(1);
 
-            $product = $this->_productRepository->get($sku, false, $store_view_id);
+            try {
+                $format = $this->_productRepository->get($sku, true, $store_view_id);
+            } catch (NoSuchEntityException $e) {
+                $format = null;
+                if ($this->sl_DEBBUG > 2) $this->debbug('## ' . $e->getMessage() . ' (SKU: ' . $sku, '), timer', (microtime(1) - $time_ini_all_data));
+            }
 
-            if ($product) {
+            if ($format !== null) {
 
                 if (!empty($sl_format_data_to_sync)){
 
@@ -12932,9 +12961,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                         $this->setValues($mg_format_row_id, 'catalog_product_entity', $sl_format_data_to_sync, $this->product_entity_type_id, $store_view_id, true, false, $this->mg_format_row_ids);
                     } */
 
-                    foreach ($sl_format_data_to_sync as $attrK => $attrV) {
-                        $product->setData($attrK, $attrV);
-                    }
+                    $this->setAttributes($format, $sl_format_data_to_sync);
                     
                     if ($this->sl_DEBBUG > 1) $this->debbug('## sync_format_data store_view_id: '.$store_view_id.': ', 'timer', (microtime(1) - $time_ini_sync_data));
 
@@ -12949,18 +12976,13 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                         $this->setValues($mg_format_row_id, 'catalog_product_entity', $sl_format_additional_data_to_sync, $this->product_entity_type_id, $store_view_id, true, true, $this->mg_format_row_ids);  
                     } */
 
-                    foreach ($sl_format_additional_data_to_sync as $attrK => $attrV) {
-                        if (is_array($attrV) && isset($attrV[0])) {
-                            $attrV = $attrV[0];
-                        }
-                        $product->setData($attrK, $attrV);
-                    }
+                    $this->setAttributes($format, $sl_format_additional_data_to_sync);
 
                     if ($this->sl_DEBBUG > 1) $this->debbug('## sync_format_additional_data store_view_id: '.$store_view_id.': ', 'timer', (microtime(1) - $time_ini_additional_data));
 
                 }
 
-                $this->_productRepository->save($product);
+                $this->_productRepository->save($format);
 
                 $this->debbug(" > In store view id: ".$store_view_id);
 
