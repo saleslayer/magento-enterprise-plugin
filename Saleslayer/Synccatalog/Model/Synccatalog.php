@@ -12813,25 +12813,25 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
     private function setAttributes(&$entity, array $attributes_values)
     {
         foreach ($attributes_values as $attrK => $attrV) {
+
             if (is_array($attrV) && isset($attrV[0])) {
                 $attrV = $attrV[0];
             }
 
-            $attribute = $entity->getResource()->getAttribute($attrK);
-            if ($attribute !== false) {
-                if ($attribute->usesSource()) {
-                    $option_id = $attribute->getSource()->getOptionId($attrV);
-                    if ($option_id !== '' || $option_id !== null) {
-                        $entity->setData($attrK, $option_id);
+            if ($attrV) {
+                $attribute = $entity->getResource()->getAttribute($attrK);
+                if ($attribute !== false) {
+                    if ($attribute->usesSource()) {
+                        $option_id = $attribute->getSource()->getOptionId($attrV);
+                        if ($option_id !== null) {
+                            $entity->setData($attrK, $option_id);
+                        }
                     } else {
                         $entity->setData($attrK, $attrV);
                     }
-                } else {
-                    $entity->setData($attrK, $attrV);
                 }
-
             }
-
+            
         }
     }
 
