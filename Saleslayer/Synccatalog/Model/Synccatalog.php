@@ -12157,9 +12157,9 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         
         $mg_product_data_to_update = [];
 
-        if ($mg_product_core_data['sku'] != $sl_data[$this->product_field_sku]){
+        if ($mg_product_core_data[$this->product_field_sku] != $sl_data[$this->product_field_sku]){
             
-            $mg_product_data_to_update['sku'] = $sl_data[$this->product_field_sku];
+            $mg_product_data_to_update[$this->product_field_sku] = $sl_data[$this->product_field_sku];
                 
         }
 
