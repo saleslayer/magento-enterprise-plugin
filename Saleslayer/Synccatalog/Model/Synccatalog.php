@@ -420,7 +420,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         $this->directoryListFilesystem                  = $directoryListFilesystem;
         $this->categoryModel                            = $categoryModel;
         $this->productModel                             = $productModel;
-	    $this->_productRepository                       = $productRepository ;
+	    $this->_productRepository                       = $productRepository;
         $this->attribute                                = $attribute;
         $this->attribute_set                            = $attribute_set;
         $this->productAttributeManagementInterface      = $productAttributeManagementInterface;
@@ -3808,7 +3808,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         if ($this->sl_DEBBUG > 1) $this->debbug('## time_sync_product_prepare_data: ', 'timer', (microtime(1) - $time_ini_sync_product_prepare_data));
 
         $time_sync_product_all_data = microtime(1);
-        $this->syncProdStoreAllData($store_view_ids, $sl_product_data_to_sync, $sl_product_additional_data_to_sync, $product['data']['sku']);
+        $this->syncProdStoreAllData($store_view_ids, $sl_product_data_to_sync, $sl_product_additional_data_to_sync, $product['data'][$this->product_field_sku]);
         if ($this->sl_DEBBUG > 1) $this->debbug('## time_sync_product_store_all_data: ', 'timer', (microtime(1) - $time_sync_product_all_data));
 
         $time_ini_url_rewrite = microtime(1);
@@ -12810,6 +12810,12 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
     }
 
+    /**
+     * Function to set attributes into MG entity
+     * @param object $entity            entity to set attribute values
+     * @param array $attributes_values  attributes values to set
+     * @return void
+     */
     private function setAttributes(&$entity, array $attributes_values)
     {
         foreach ($attributes_values as $attrK => $attrV) {
@@ -12840,9 +12846,10 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
      * @param  array $store_view_ids                        store view ids in which the product will be updated
      * @param  array $sl_product_data_to_sync               product data to sync
      * @param  array $sl_product_additional_data_to_sync    product additional data to sync
+     * @param  string $sku                                  product sku
      * @return void
      */
-    private function syncProdStoreAllData($store_view_ids, $sl_product_data_to_sync, $sl_product_additional_data_to_sync, $sku=''){
+    private function syncProdStoreAllData($store_view_ids, $sl_product_data_to_sync, $sl_product_additional_data_to_sync, $sku = ''){
 
         foreach ($store_view_ids as $store_view_id) {
             
@@ -12852,7 +12859,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                 $product = $this->_productRepository->get($sku, true, $store_view_id);
             } catch (NoSuchEntityException $e) {
                 $product = null;
-                if ($this->sl_DEBBUG > 2) $this->debbug('## ' . $e->getMessage() . ' (SKU: ' . $sku, '), timer', (microtime(1) - $time_ini_all_data));
+                if ($this->sl_DEBBUG > 2) $this->debbug('## Error.' . $e->getMessage() . ' (SKU: ' . $sku, '), timer', (microtime(1) - $time_ini_all_data));
             }
 
             if ($product !== null) {
@@ -12897,7 +12904,15 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                 }
 
-                $this->_productRepository->save($product);
+                try{
+
+                    $this->_productRepository->save($product);
+                
+                }catch(\Exception $e){
+
+                    $this->debbug('## Error. Updating product attributes with SKU '.$sku.' for store_view_id '.$store_view_id.': '.$e->getMessage());
+                
+                }
 
                 $this->debbug(" > In store view id: ".$store_view_id);
 
@@ -12935,9 +12950,10 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
      * @param  array $store_view_ids                        store view ids in which the format will be updated
      * @param  array $sl_format_data_to_sync                format data to sync
      * @param  array $sl_format_additional_data_to_sync     format additional data to sync
+     * @param  string $sku                                  format sku
      * @return void
      */
-    private function syncFormatStoreAllData($store_view_ids, $sl_format_data_to_sync, $sl_format_additional_data_to_sync, $sku=''){
+    private function syncFormatStoreAllData($store_view_ids, $sl_format_data_to_sync, $sl_format_additional_data_to_sync, $sku = ''){
 
         foreach ($store_view_ids as $store_view_id) {
             
@@ -12947,7 +12963,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                 $format = $this->_productRepository->get($sku, true, $store_view_id);
             } catch (NoSuchEntityException $e) {
                 $format = null;
-                if ($this->sl_DEBBUG > 2) $this->debbug('## ' . $e->getMessage() . ' (SKU: ' . $sku, '), timer', (microtime(1) - $time_ini_all_data));
+                if ($this->sl_DEBBUG > 2) $this->debbug('## Error.' . $e->getMessage() . ' (SKU: ' . $sku, '), timer', (microtime(1) - $time_ini_all_data));
             }
 
             if ($format !== null) {
@@ -12982,7 +12998,15 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                 }
 
-                $this->_productRepository->save($format);
+                try{
+
+                    $this->_productRepository->save($format);
+                
+                }catch(\Exception $e){
+                    
+                    $this->debbug('## Error. Updating product format attributes with SKU '.$sku.' for store_view_id '.$store_view_id.': '.$e->getMessage());
+                
+                }
 
                 $this->debbug(" > In store view id: ".$store_view_id);
 
