@@ -1351,20 +1351,17 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         if (!empty($this->sql_to_insert) && (count($this->sql_to_insert) >= $this->sql_to_insert_limit || $force_insert)){
 
-            $sql_to_insert = implode(',', $this->sql_to_insert);
-            
             try{
 
-                $sql_query_to_insert = " INSERT INTO ".$this->saleslayer_syncdata_table.
-                                                 " ( sync_type, item_type, item_data, sync_params ) VALUES ".
-                                                 $sql_to_insert;
-
-                $this->connection->query($sql_query_to_insert);
+                $this->connection->insertMultiple(
+                    $this->saleslayer_syncdata_table,
+                    $this->sql_to_insert
+                );
 
             }catch(\Exception $e){
 
                 $this->debbug('## Error. Insert syncdata SQL message: '.$e->getMessage());
-                $this->debbug('## Error. Insert syncdata SQL query: '.$sql_query_to_insert);
+                $this->debbug('## Error. Insert syncdata SQL items: '.print_r($this->sql_to_insert,1));
 
             }
 
@@ -2836,7 +2833,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         }
 
         if (($product['data'][$this->product_field_price] ?? '') === '') {
-            $hasFailed[$this->product_field_price] = '## Warning. Product with SL ID: '.$sl_id.' has no valid price.';
+            $hasFailed[$this->product_field_price] = '## Error. Product with SL ID: '.$sl_id.' has no valid price.';
         }
 
         if (($product['data'][$this->product_field_sku] ?? '') === '') {
@@ -12139,9 +12136,15 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         foreach ($items as $keyItem => $item) {
                     
-            $this->sql_to_insert[] = "('".$sync_type."', '".$item_type."', '".addslashes(json_encode($item))."', '".addslashes(json_encode($params))."')";
-            $this->insert_syncdata_sql();
+            $item_encoded = json_encode($item);
+            $params_encoded = json_encode($params);
             
+            $this->sql_to_insert[] = ['sync_type' => $sync_type,
+                                        'item_type' => $item_type, 
+                                        'item_data' => $item_encoded,
+                                        'sync_params' => $params_encoded];
+            
+            $this->insert_syncdata_sql();
             unset($items[$keyItem]); 
 
         }
