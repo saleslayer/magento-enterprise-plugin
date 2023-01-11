@@ -2824,32 +2824,35 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
      * @param array $product                    product to synchronize
      * @return boolean                          result of product check
      */
-    private function check_product_db($product){
+    private function check_product_db(array $product): bool
+    {
+        $hasFailed = [];
 
         $sl_id = $product[$this->product_field_id];
         $this->debbug(" > Checking product with SL ID: $sl_id");
-        if (($product['data'][$this->product_field_name] ?? '') === ''){
 
-            $this->debbug('## Error. Product with SL ID: '.$sl_id.' has no name.');
-            return false;
-
+        if (($product['data'][$this->product_field_name] ?? '') === '') {
+            $hasFailed[$this->product_field_name] = '## Error. Product with SL ID: '.$sl_id.' has no name.';
         }
 
-        if (!($product['data'][$this->product_field_price] ?? null)){
-            $this->debbug('## Warning. Product with SL ID: '.$sl_id.' has no valid price.');
+        if (($product['data'][$this->product_field_price] ?? '') === '') {
+            $hasFailed[$this->product_field_price] = '## Warning. Product with SL ID: '.$sl_id.' has no valid price.';
         }
 
-        if (($product['data'][$this->product_field_sku] ?? '') === ''){
-
-            $this->debbug('## Error. Product with name: '.$product['data'][$this->product_field_name].' and SL ID: '.$sl_id.' has no SKU.');
-            return false;
-
+        if (($product['data'][$this->product_field_sku] ?? '') === '') {
+            $hasFailed[$this->product_field_sku] = '## Error. Product with name: '.$product['data'][$this->product_field_name].' and SL ID: '.$sl_id.' has no SKU.';
         }
 
         $this->sl_product_mg_category_ids = $this->find_product_category_ids_db($product[$this->product_field_catalogue_id]);
         
-        if (empty($this->sl_product_mg_category_ids)){
-            $this->debbug('## Error. Product '.$product['data'][$this->product_field_name].' with SL ID '.$product['id'].' has no valid categories.');
+        if (empty($this->sl_product_mg_category_ids)) {
+            $hasFailed['category'] = '## Error. Product '.$product['data'][$this->product_field_name].' with SL ID '.$product['id'].' has no valid categories.';
+        }
+
+        if (! empty($hasFailed)) {
+            foreach ($hasFailed as $debugStr) {
+                $this->debbug($debugStr);
+            }
             return false;
         }
 
@@ -12828,10 +12831,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                 $attribute = $entity->getResource()->getAttribute($attrK);
                 if ($attribute !== false) {
                     if ($attribute->usesSource()) {
-                        $option_id = $attribute->getSource()->getOptionId($attrV);
-                        if ($option_id !== null) {
-                            $entity->setData($attrK, $option_id);
-                        }
+                        $entity->setData($attrK, $this->synccatalogDataHelper->createOrGetOptionIdByValue($attribute, $attrV));
                     } else {
                         $entity->setData($attrK, $attrV);
                     }

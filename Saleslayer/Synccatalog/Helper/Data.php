@@ -341,6 +341,54 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
     }
 
     /**
+     * Find or create a matching attribute option
+     *
+     * @param string $attributeCode Attribute the option should exist in
+     * @param string $label Label to find or add
+     * @return int
+     * @throws \Magento\Framework\Exception\LocalizedException
+     */
+    public function createOrGetOptionIdByValue($attribute, $attributeValue)
+    {
+        if (strlen($attributeValue) < 1) {
+            throw new \Magento\Framework\Exception\LocalizedException(
+                __('Label for %1 must not be empty.', $attribute->getAttributeCode)
+            );
+        }
+
+        // Does it already exist?
+        $optionId = $attribute->getSource()->getOptionId($attributeValue);
+
+        if ($optionId === null) {
+            // If no, add it.
+
+            /** @var \Magento\Eav\Model\Entity\Attribute\OptionLabel $optionLabel */
+            $optionLabel = $this->optionLabelFactory->create();
+            $optionLabel->setStoreId(0);
+            $optionLabel->setLabel($attributeValue);
+
+            $option = $this->optionFactory->create();
+            $option->setLabel($optionLabel);
+            $option->setStoreLabels([$optionLabel]);
+            $option->setSortOrder(0);
+            $option->setIsDefault(false);
+
+            $this->attributeOptionManagement->add(
+                \Magento\Catalog\Model\Product::ENTITY,
+                $attribute->getAttributeId(),
+                $option
+            );
+
+            // Get the inserted ID. Should be returned from the installer, but it isn't.
+            //$optionId = $this->getOptionId($attributeCode, $label, true);
+            $optionId = $attribute->getSource()->getOptionId($attributeValue);
+        }
+
+        return $optionId;
+    }
+
+
+    /**
      * Find the ID of an option matching $label, if any.
      *
      * @param string $attributeCode Attribute code
