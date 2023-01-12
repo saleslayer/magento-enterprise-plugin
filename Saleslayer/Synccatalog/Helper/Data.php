@@ -356,19 +356,18 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
             );
         }
 
-        // Does it already exist?
+        // Does it already exist?        
         $optionId = $attribute->getSource()->getOptionId($attributeValue);
 
         if ($optionId === null) {
             // If no, add it.
-
             /** @var \Magento\Eav\Model\Entity\Attribute\OptionLabel $optionLabel */
             $optionLabel = $this->optionLabelFactory->create();
             $optionLabel->setStoreId(0);
-            $optionLabel->setLabel($attributeValue);
+            $optionLabel->setLabel((string) $attributeValue);
 
             $option = $this->optionFactory->create();
-            $option->setLabel($optionLabel);
+            $option->setLabel((string) $attributeValue);
             $option->setStoreLabels([$optionLabel]);
             $option->setSortOrder(0);
             $option->setIsDefault(false);
@@ -380,7 +379,6 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
             );
 
             // Get the inserted ID. Should be returned from the installer, but it isn't.
-            //$optionId = $this->getOptionId($attributeCode, $label, true);
             $optionId = $attribute->getSource()->getOptionId($attributeValue);
         }
 
