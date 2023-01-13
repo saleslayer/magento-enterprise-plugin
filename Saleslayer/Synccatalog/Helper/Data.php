@@ -345,16 +345,19 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
      *
      * @param string $attributeCode Attribute the option should exist in
      * @param string $label Label to find or add
+     * @param id $storeViewId
      * @return int
      * @throws \Magento\Framework\Exception\LocalizedException
      */
-    public function createOrGetOptionIdByValue($attribute, $attributeValue)
+    public function createOrGetOptionIdByValue($attribute, $attributeValue, $storeViewId)
     {
         if (strlen($attributeValue) < 1) {
             throw new \Magento\Framework\Exception\LocalizedException(
                 __('Label for %1 must not be empty.', $attribute->getAttributeCode)
             );
         }
+
+        $attribute->setStoreId($storeViewId);
 
         // Does it already exist?        
         $optionId = $attribute->getSource()->getOptionId($attributeValue);
@@ -363,14 +366,12 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
             // If no, add it.
             /** @var \Magento\Eav\Model\Entity\Attribute\OptionLabel $optionLabel */
             $optionLabel = $this->optionLabelFactory->create();
-            $optionLabel->setStoreId(0);
+            $optionLabel->setStoreId($storeViewId);
             $optionLabel->setLabel((string) $attributeValue);
 
             $option = $this->optionFactory->create();
             $option->setLabel((string) $attributeValue);
             $option->setStoreLabels([$optionLabel]);
-            $option->setSortOrder(0);
-            $option->setIsDefault(false);
 
             $this->attributeOptionManagement->add(
                 \Magento\Catalog\Model\Product::ENTITY,
