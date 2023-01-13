@@ -328,18 +328,33 @@ class Autosynccron extends Synccatalog{
                             $data_return = $this->store_sync_data($connector_id, $last_sync);
                             
                             $this->debbug("#### time_cron_sync: " . (microtime(1) - $time_ini_cron_sync - $time_random) . ' seconds.', 'autosync');
-
                             
                             if (is_array($data_return)){
 
-                                //If the connector result has data we break process so it can sync.
-                                if (!empty($data_return)){ 
+                                if (!isset($data_return['storage_error'])){
 
-                                    break;
+                                    //If the connector result has data we break process so it can sync.
+                                    if (!empty($data_return)){ 
+
+                                        break;
+
+                                    }
+
+                                    //If the connector result data is empty we continue to the next connector.
+
+                                }else{
+
+                                    //If there was any error during storage, we print it
+                                    unset($data_return['storage_error']);
+
+                                    $this->debbug('Errors found when storing Sales Layer data: ', 'autosync');
+                                    foreach ($data_return as $error_message){
+            
+                                        $this->debbug($error_message, 'autosync');
+            
+                                    }
 
                                 }
-
-                                //If the connector result data is empty we continue to the next connector.
 
                             }else{
 
@@ -347,8 +362,7 @@ class Autosynccron extends Synccatalog{
                                 $this->debbug($data_return, 'autosync');
 
                             }
-
-                            
+ 
                         }
 
                     }else{

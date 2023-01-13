@@ -281,7 +281,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
     protected $sql_to_insert                        = [];
     protected $sql_to_insert_limit                  = 1;
-    protected $stop_storage_process                 = false;
+    protected $storage_process_errors               = [];
 
     protected $saleslayer_multiconn_table           = 'saleslayer_synccatalog_multiconn';
     protected $saleslayer_syncdata_table            = 'saleslayer_synccatalog_syncdata';
@@ -1381,6 +1381,15 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         $data_schema              = json_decode($this->sl_data_schema, 1);
         $schema                   = $data_schema['catalogue'];
 
+        if (!isset($schema['fields'][$this->category_field_name])){
+
+            $error_message = 'Category name field must be defined in order to synchronize information.';
+            $this->debbug('## Error. '.$error_message);
+            $this->storage_process_errors[$this->category_field_name] = $error_message;
+            return false;
+
+        }
+
         $category_data_to_store = [];
 
         $category_data_to_store['default_category_id'] = $this->default_category_id;
@@ -1460,7 +1469,6 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         $fixed_product_fields = [
             'ID',
             'ID_catalogue',
-            //'ID_products',
             $this->product_field_name,
             $this->product_field_description,
             $this->product_field_description_short,
@@ -1510,9 +1518,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         if (!isset($schema['fields'][$this->product_field_name])){
 
-            $this->debbug('## Error. Product name field must be defined in order to synchronize information.');
-            $this->stop_storage_process = true;
-            return false;
+            $this->storage_process_errors[$this->product_field_name] = 'Product name field must be defined in order to synchronize information.';
 
         }
 
@@ -1525,9 +1531,13 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         //Check of sku field case sensitive
         if (!isset($schema['fields'][$this->product_field_sku])){
 
-            $this->debbug('## Error. Product SKU field must be defined in order to synchronize information.');
-            $this->stop_storage_process = true;
-            return false;
+            $this->storage_process_errors[$this->product_field_sku] = 'Product SKU field must be defined in order to synchronize information.';
+
+        }
+
+        if (!isset($schema['fields'][$this->product_field_price])){
+
+            $this->storage_process_errors[$this->product_field_price] = 'Product price field must be defined in order to synchronize information.';
 
         }
 
@@ -1587,10 +1597,29 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                 $channel_fields[] = $data_store_field;
 
+                if ($field_name == 'product_field_price'){
+                
+                    $this->storage_process_errors[$this->product_field_price] = 'Product price field must be assigned in SL Connector in order to synchronize information.';
+                    break;
+                
+                }
+
             }
             
             $product_data_to_store['product_fields'][$field_name] = $data_store_field;
         
+        }
+
+        if (!empty($this->storage_process_errors)){
+
+            foreach ($this->storage_process_errors as $error_message){
+
+                $this->debbug('## Error. '.$error_message);
+
+            }
+
+            return false;
+
         }
 
         if (!empty($schema['fields'])){
@@ -1683,7 +1712,6 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
     */
     private function prepare_product_format_data_to_store($arrayFormats){
 
-
         $fixed_format_fields = [
             'ID',
             'ID_products',
@@ -1720,9 +1748,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         if (!isset($schema['fields'][$this->format_field_name])){
 
-            $this->debbug('## Error. Product format name field must be defined in order to synchronize information.');
-            $this->stop_storage_process = true;
-            return false;
+            $this->storage_process_errors[$this->format_field_name] = 'Product format name field must be defined in order to synchronize information.';
 
         }
 
@@ -1730,9 +1756,13 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         if (!isset($schema['fields'][$this->format_field_sku])){
 
-            $this->debbug('## Error. Product format SKU field must be defined in order to synchronize information.');
-            $this->stop_storage_process = true;
-            return false;
+            $this->storage_process_errors[$this->format_field_sku] = 'Product format SKU field must be defined in order to synchronize information.';
+
+        }
+
+        if (!isset($schema['fields'][$this->format_field_price])){
+
+            $this->storage_process_errors[$this->format_field_price] = 'Product format price field must be defined in order to synchronize information.';
 
         }
 
@@ -1778,9 +1808,28 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                     $channel_fields[] = $field_name;
 
+                    if ($field_name == 'format_price'){
+                
+                        $this->storage_process_errors[$this->product_field_price] = 'Product format price field must be assigned in SL Connector in order to synchronize information.';
+                        break;
+                    
+                    }
+
                 }
 
             }
+
+        }
+
+        if (!empty($this->storage_process_errors)){
+
+            foreach ($this->storage_process_errors as $error_message){
+
+                $this->debbug('## Error. '.$error_message);
+
+            }
+
+            return false;
 
         }
 
@@ -2010,20 +2059,20 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         }
 
-        if (!empty($sl_category_image_data_to_sync)){
+        // if (!empty($sl_category_image_data_to_sync)){
 
-            $this->debbug(" > SL category image data to sync: ".print_r($sl_category_image_data_to_sync,1));
+            // $this->debbug(" > SL category image data to sync: ".print_r($sl_category_image_data_to_sync,1));
             $time_ini_sync_category_image_store_data = microtime(1);
 
             foreach ($this->mg_category_row_ids as $mg_category_row_id){
 
-                $this->setCategoryImage($mg_category_row_id, 'catalog_category_entity', $sl_category_image_data_to_sync, $this->category_entity_type_id, 0, false, false, $this->mg_category_row_ids);
+                $this->setCategoryImage($mg_category_row_id, 'catalog_category_entity', $sl_category_image_data_to_sync, $this->category_entity_type_id, 0);
 
             }
 
             if ($this->sl_DEBBUG > 1) $this->debbug('## sync_category_image_data store_view_id 0: ', 'timer', (microtime(1) - $time_ini_sync_category_image_store_data));
 
-        }
+        // }
 
         $time_ini_sync_category_url_rewrite = microtime(1);
         $this->setCategoryUrlRewrite($store_view_ids);
@@ -2832,7 +2881,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
             $hasFailed[$this->product_field_name] = '## Error. Product with SL ID: '.$sl_id.' has no name.';
         }
 
-        if (($product['data'][$this->product_field_price] ?? '') === '') {
+        if (!is_numeric($product['data'][$this->product_field_price]) || $product['data'][$this->product_field_price] <= 0) {
             $hasFailed[$this->product_field_price] = '## Error. Product with SL ID: '.$sl_id.' has no valid price.';
         }
 
@@ -10242,82 +10291,142 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         
         $tables_insert_values = [];
 
-        foreach ($values as $code => $value) {
+        if (!empty($values)){
 
-            $image_data = $this->checkSlImages($value);
+            $this->debbug(" > SL category image data to sync: ".print_r($values,1));
             
-            if ($image_data['sl_category_image_url'] == ''){
-
-                //La imagen de SL no existe o es incorrecta, saltamos y dejamos la actual de MG.
-                continue;
-
-            }
-
-            $attribute = $this->getAttributeWysiwyg($code, $entityTypeId);
-
-            if (empty($attribute)) {
-                continue;
-            }
-
-            if (!isset($attribute[\Magento\Eav\Api\Data\AttributeInterface::BACKEND_TYPE]) || (isset($attribute[\Magento\Eav\Api\Data\AttributeInterface::BACKEND_TYPE]) && $attribute[\Magento\Eav\Api\Data\AttributeInterface::BACKEND_TYPE] === 'static')){
+            foreach ($values as $code => $value) {
+    
+                $image_data = $this->checkSlImages($value);
                 
-                continue;
-
-            }
-
-            $backendType = $attribute[\Magento\Eav\Api\Data\AttributeInterface::BACKEND_TYPE];
-            $attribute_table = $this->getTable($entityTable . '_' . $backendType);
-
-            if (null === $attribute_table){ 
-                continue; 
-            }
-
-            $identifier = $this->tables_identifiers[$attribute_table];
-
-            if ($attribute[\Magento\Catalog\Model\ResourceModel\Eav\Attribute::KEY_IS_GLOBAL] == $this->scope_global){
-
-                // Enviamos true para que siempre valide si el atributo ha sido procesado
-                if(!$this->globalizeAttribute(true, $attribute[\Magento\Eav\Api\Data\AttributeInterface::ATTRIBUTE_ID], $attribute_table, $identifier, $entityId)){
+                if ($image_data['sl_category_image_url'] == ''){
+    
+                    //La imagen de SL no existe o es incorrecta, saltamos y dejamos la actual de MG.
                     continue;
-                };
+    
+                }
 
-                $storeIdTemp = $storeId;
-                $storeId = 0;
+                $attribute_info = $this->getCategoryAttributeInfo($code, $entityTable, $entityTypeId, $entityId);
+                if ($attribute_info === false) continue;
+
+                $attribute = $attribute_info['attribute'];
+                $attribute_table = $attribute_info['attribute_table'];
+                $identifier = $attribute_info['identifier'];
+    
+                $time_ini_check_mg_image = microtime(1);
+                $datos = $this->connection->fetchRow(
+                                $this->connection->select()
+                                ->from(
+                                    $attribute_table,
+                                    ['value_id', 'value']
+                                )->where('attribute_id' . ' = ?', $attribute[\Magento\Eav\Api\Data\AttributeInterface::ATTRIBUTE_ID])
+                                ->where('store_id' . ' = ?', $storeId)
+                                ->where($identifier . ' = ?', $entityId)
+                                ->limit(1)
+                                );
+    
+                if (empty($datos) || (!empty($datos) && !isset($datos['value_id']))){
+    
+                    $tables_insert_values = $this->prepareImageInsert($image_data, $attribute, $storeId, $identifier, $entityId, $tables_insert_values, $attribute_table );
+                    
+                }else{
+    
+                    $this->updateCategoryImage($datos, $image_data, $attribute_table,  $time_ini_check_mg_image );
+    
+                }
+    
+                if ($attribute[\Magento\Catalog\Model\ResourceModel\Eav\Attribute::KEY_IS_GLOBAL] == $this->scope_global){
+    
+                    $this->processed_global_attributes[$attribute[\Magento\Eav\Api\Data\AttributeInterface::ATTRIBUTE_ID]] = 0;
+               
+                }
+    
+            }
+    
+            $this->insertNewAttributes($tables_insert_values);
+
+        }else{
+
+            $this->debbug(" > Deleting SL category image");
+
+            $attribute_info = $this->getCategoryAttributeInfo('image', $entityTable, $entityTypeId, $entityId);
+            if ($attribute_info === false) return false;
+
+            $attribute = $attribute_info['attribute'];
+            $attribute_table = $attribute_info['attribute_table'];
+            $identifier = $attribute_info['identifier'];
+
+            $time_ini_delete_mg_image = microtime(1);
+            try{
+
+                $this->connection->delete(
+                    $attribute_table, 
+                    ['attribute_id = ?' => $attribute[\Magento\Eav\Api\Data\AttributeInterface::ATTRIBUTE_ID],
+                    'store_id' . ' = ?' => $storeId,
+                    $identifier . ' = ?' => $entityId]
+                );
+
+                if ($attribute[\Magento\Catalog\Model\ResourceModel\Eav\Attribute::KEY_IS_GLOBAL] == $this->scope_global){
+    
+                    $this->processed_global_attributes[$attribute[\Magento\Eav\Api\Data\AttributeInterface::ATTRIBUTE_ID]] = 0;
+               
+                }
+            
+            }catch(\Exception $e){
+
+                $this->debbug('## Error. Deleting category image: '.print_r($e->getMessage(),1));
 
             }
-
-            $time_ini_check_mg_image = microtime(1);
-            $datos = $this->connection->fetchRow(
-                            $this->connection->select()
-                            ->from(
-                                $attribute_table,
-                                ['value_id', 'value']
-                            )->where('attribute_id' . ' = ?', $attribute[\Magento\Eav\Api\Data\AttributeInterface::ATTRIBUTE_ID])
-                            ->where('store_id' . ' = ?', $storeId)
-                            ->where($identifier . ' = ?', $entityId)
-                            ->limit(1)
-                            );
-
-            if (empty($datos) || (!empty($datos) && !isset($datos['value_id']))){
-
-                $tables_insert_values = $this->prepareImageInsert($image_data, $attribute, $storeId, $identifier, $entityId, $tables_insert_values, $attribute_table );
-                
-            }else{
-
-                $this->updateImage($datos, $image_data, $attribute_table,  $time_ini_check_mg_image );
-
-            }
-
-            if ($attribute[\Magento\Catalog\Model\ResourceModel\Eav\Attribute::KEY_IS_GLOBAL] == $this->scope_global){
-
-                $storeId = $storeIdTemp;
-                $this->processed_global_attributes[$attribute[\Magento\Eav\Api\Data\AttributeInterface::ATTRIBUTE_ID]] = 0;
-           
-            }
+            if ($this->sl_DEBBUG > 2) $this->debbug('## time_delete_mg_image: ', 'timer', (microtime(1) - $time_ini_delete_mg_image));
 
         }
 
-        $this->insertNewAttributes($tables_insert_values);
+    }
+
+    /**
+     * Function to get category attribute info
+     * @param string $code                          attribute code
+     * @param string $entityTable                   Magento table to process data
+     * @param int $entityTypeId                     entity type id of item
+     * @param int $entityId                         Magento entity id
+     * @return void
+     */
+    private function getCategoryAttributeInfo($attribute_code, $entityTable, $entityTypeId, $entityId){
+
+        $attribute_info = [];
+
+        $attribute = $this->getAttributeWysiwyg($attribute_code, $entityTypeId);
+    
+        if (empty($attribute) ||
+            !isset($attribute[\Magento\Eav\Api\Data\AttributeInterface::BACKEND_TYPE]) || 
+            (isset($attribute[\Magento\Eav\Api\Data\AttributeInterface::BACKEND_TYPE]) && 
+            $attribute[\Magento\Eav\Api\Data\AttributeInterface::BACKEND_TYPE] === 'static')){
+            
+            return false;
+
+        }
+
+        $backendType = $attribute[\Magento\Eav\Api\Data\AttributeInterface::BACKEND_TYPE];
+        $attribute_table = $this->getTable($entityTable . '_' . $backendType);
+
+        if (null === $attribute_table){ 
+            return false; 
+        }
+
+        $identifier = $this->tables_identifiers[$attribute_table];
+
+        if ($attribute[\Magento\Catalog\Model\ResourceModel\Eav\Attribute::KEY_IS_GLOBAL] == $this->scope_global){
+
+            // Enviamos true para que siempre valide si el atributo ha sido procesado
+            if(!$this->globalizeAttribute(true, $attribute[\Magento\Eav\Api\Data\AttributeInterface::ATTRIBUTE_ID], $attribute_table, $identifier, $entityId)){
+                return false;
+            };
+
+        }
+
+        return ['attribute' => $attribute,
+                'attribute_table' => $attribute_table,
+                'identifier' => $identifier];
 
     }
 
@@ -11555,6 +11664,15 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
             $arrayReturn = $this->processModified($data_tabla['modified'], $sync_params, $arrayReturn, $nombre_tabla);
            
+            if (!empty($this->storage_process_errors)){
+
+                $arrayReturn = $this->storage_process_errors;
+                $arrayReturn['storage_error'] = true;
+                $this->deleteSLRegs();
+                break;
+
+            }
+
             if (isset($get_response_table_data[$nombre_tabla]['modified'])){
                 unset($get_response_table_data[$nombre_tabla]['modified']);
             }
@@ -11993,14 +12111,16 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
     private function storeModifiedCategories($modified_data, $sync_params){
         
         $time_ini = microtime(1);
-
+        
         $categories_to_sync_count = count($modified_data);
-        $this->debbug('Total count of modified categories to store: '.$categories_to_sync_count);
-        if ($this->sl_DEBBUG > 1) $this->debbug('Modified categories data to store: '.print_r($modified_data,1));
+
+        if ($this->sl_DEBBUG > 1) $this->debbug('Total count of modified categories to store initial: '.$categories_to_sync_count);
+        if ($this->sl_DEBBUG > 1) $this->debbug('Modified categories data to store initial: '.print_r($modified_data,1));
 
         if ($categories_to_sync_count > 0){
 
             $category_data_to_store = $this->prepare_category_data_to_store($modified_data);
+            if ($category_data_to_store === false) return 0;
 
             unset($modified_data);
 
@@ -12017,8 +12137,11 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         }
 
+        $this->debbug('Total count of modified categories to store: '.count($categories_to_sync));
+        if ($this->sl_DEBBUG > 1) $this->debbug('Modified categories data to store final: '.print_r($categories_to_sync,1));
+
         if ($this->sl_DEBBUG > 1) $this->debbug('### time_insert_categories: ', 'timer', (microtime(1) - $time_ini));
-        return $categories_to_sync_count;
+        return count($categories_to_sync);
 
     }
 
@@ -12033,14 +12156,16 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         $time_ini_insert_products = microtime(1);
 
         $product_to_sync_count = count($modified_data);
-        $this->debbug('Total count of modified products to store: '.$product_to_sync_count);
-        if ($this->sl_DEBBUG > 1) $this->debbug('Modified products data to store: '.print_r($modified_data,1));
         
+        if ($this->sl_DEBBUG > 1) $this->debbug('Total count of modified products to store initial: '.$product_to_sync_count);
+        if ($this->sl_DEBBUG > 1) $this->debbug('Modified products data to store initial: '.print_r($modified_data,1));
+
         if ($product_to_sync_count > 0){
 
             $time_ini_prepare_product_data_to_store = microtime(1);
             $product_data_to_store = $this->prepare_product_data_to_store($modified_data);
             if ($this->sl_DEBBUG > 1) $this->debbug('## time_prepare_product_data_to_store: ', 'timer', (microtime(1) - $time_ini_prepare_product_data_to_store));
+            if ($product_data_to_store === false) return 0;
 
             unset($modified_data);
 
@@ -12066,8 +12191,12 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         }
 
+        
+        $this->debbug('Total count of modified products to store: '.count($products_to_sync));
+        if ($this->sl_DEBBUG > 1) $this->debbug('Modified products data to store final: '.print_r($products_to_sync,1));
+
         if ($this->sl_DEBBUG > 1) $this->debbug('### time_insert_products: ', 'timer', (microtime(1) - $time_ini_insert_products));
-        return $product_to_sync_count;
+        return count($products_to_sync);
 
     }
 
@@ -12097,12 +12226,13 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         }
 
-        $this->debbug('Total count of modified product formats to store: '.$product_formats_to_sync_count);
-        if ($this->sl_DEBBUG > 1) $this->debbug('Modified product formats data to store: '.print_r($modified_data,1));
+        if ($this->sl_DEBBUG > 1) $this->debbug('Total count of modified product formats to store initial: '.$product_formats_to_sync_count);
+        if ($this->sl_DEBBUG > 1) $this->debbug('Modified product formats data to store initial: '.print_r($modified_data,1));
         
         if ($product_formats_to_sync_count > 0){
 
             $product_format_data_to_store = $this->prepare_product_format_data_to_store($modified_data);
+            if ($product_format_data_to_store === false) return 0;
 
             unset($modified_data);
 
@@ -12119,8 +12249,11 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         }
 
+        $this->debbug('Total count of modified product formats to store: '.count($product_formats_to_sync));
+        if ($this->sl_DEBBUG > 1) $this->debbug('Modified product formats data to store final: '.print_r($product_formats_to_sync,1));
+
         if ($this->sl_DEBBUG > 1) $this->debbug('### time_insert_formats: ', 'timer', (microtime(1) - $time_ini_insert_formats));
-        return $product_formats_to_sync_count;
+        return count($product_formats_to_sync);
 
     }
 
@@ -13591,7 +13724,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
      * @param  double $time_ini_check_mg_image      timer of image process initiation
      * @return void
      */
-    private function updateImage($datos, $image_data, $attribute_table, $time_ini_check_mg_image ){
+    private function updateCategoryImage($datos, $image_data, $attribute_table, $time_ini_check_mg_image ){
 
         $mg_category_image_name = $datos['value'];
                
