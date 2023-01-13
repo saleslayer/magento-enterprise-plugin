@@ -12113,6 +12113,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         $time_ini = microtime(1);
         
         $categories_to_sync_count = count($modified_data);
+        $categories_to_sync = [];
 
         if ($this->sl_DEBBUG > 1) $this->debbug('Total count of modified categories to store initial: '.$categories_to_sync_count);
         if ($this->sl_DEBBUG > 1) $this->debbug('Modified categories data to store initial: '.print_r($modified_data,1));
@@ -12156,6 +12157,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         $time_ini_insert_products = microtime(1);
 
         $product_to_sync_count = count($modified_data);
+        $products_to_sync = [];
         
         if ($this->sl_DEBBUG > 1) $this->debbug('Total count of modified products to store initial: '.$product_to_sync_count);
         if ($this->sl_DEBBUG > 1) $this->debbug('Modified products data to store initial: '.print_r($modified_data,1));
@@ -12211,6 +12213,8 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         $time_ini_insert_formats = microtime(1);
 
         $product_formats_to_sync_count = count($modified_data);
+        $product_formats_to_sync = [];
+        
         if (!empty($this->products_not_synced) && $product_formats_to_sync_count > 0){
 
             foreach ($modified_data as $keyForm => $format) {
