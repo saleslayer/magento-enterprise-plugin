@@ -353,7 +353,7 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
     {
         if (strlen($attributeValue) < 1) {
             throw new \Magento\Framework\Exception\LocalizedException(
-                __('Label for %1 must not be empty.', $attribute->getAttributeCode)
+                __('Label for %1 must not be empty.', $attribute->getAttributeCode())
             );
         }
 

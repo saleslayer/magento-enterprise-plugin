@@ -12984,7 +12984,12 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                 //$attribute->setData('store_id', $storeViewId);
 
                 if ($attribute->usesSource()) {
-                    $entity->setData($attrK, $this->synccatalogDataHelper->createOrGetOptionIdByValue($attribute, $attrV, $storeViewId));
+
+                    if ($attrV !== ''){
+                        $entity->setData($attrK, $this->synccatalogDataHelper->createOrGetOptionIdByValue($attribute, $attrV, $storeViewId));
+                    }else{
+                        $entity->setData($attrK, $attrV);
+                    }
                     /* $option_id = $attribute->getSource()->getOptionId($attrV);
                     if ($option_id !== null) {
                         $entity->setData($attrK, $option_id);
