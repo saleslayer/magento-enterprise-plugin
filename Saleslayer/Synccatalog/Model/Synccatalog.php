@@ -2622,6 +2622,8 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         $incorrect_children_categories_path = $this->connection->fetchAll($incorrect_children_categories_path_sql);
 
+        $count_iterations = 0;
+
         if (!empty($incorrect_children_categories_path)){
             
             $parent_categories_ids_to_check = [];
@@ -2686,6 +2688,10 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                     }
                     
                 }
+
+                $count_iterations++;
+
+                if ($count_iterations == 20) break;
 
             }while(!empty($parent_categories_ids_to_check));
 
