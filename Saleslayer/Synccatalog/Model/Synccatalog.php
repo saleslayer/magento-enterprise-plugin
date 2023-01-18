@@ -2919,11 +2919,18 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
             if ($this->sl_DEBBUG > 1) $this->debbug('# time_check_duplicated_sku: ', 'timer', (microtime(1) - $time_ini_check_duplicated_sku));
 
             $product_already_assigned = false;
-            if (null !== $this->mg_product_id) $product_already_assigned = true;
+            
+            if (null !== $this->mg_product_id){
 
-            $time_ini_get_product_id_by_sku = microtime(1);
-            $this->get_product_id_by_sku_db($sl_sku, 'product');
-            if ($this->sl_DEBBUG > 2) $this->debbug('# time_get_product_id_by_sku: ', 'timer', (microtime(1) - $time_ini_get_product_id_by_sku));
+                $product_already_assigned = true;
+                
+            }else{
+                
+                $time_ini_get_product_id_by_sku = microtime(1);
+                $this->get_product_id_by_sku_db($sl_sku, 'product');
+                if ($this->sl_DEBBUG > 2) $this->debbug('# time_get_product_id_by_sku: ', 'timer', (microtime(1) - $time_ini_get_product_id_by_sku));
+            
+            }
             
             if(null !== $this->mg_product_id) {
             
