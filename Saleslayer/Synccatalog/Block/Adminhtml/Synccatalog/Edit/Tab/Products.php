@@ -30,7 +30,6 @@ class Products extends \Magento\Backend\Block\Widget\Form\Generic implements \Ma
      */
     protected $configurableAttributeHandler;
 
-
     /**
      * @param \Magento\Backend\Block\Template\Context $context
      * @param \Magento\Framework\Registry $registry
@@ -89,14 +88,14 @@ class Products extends \Magento\Backend\Block\Widget\Form\Generic implements \Ma
         }else{
             if (isset($modelData['store_view_ids'])
                 && !is_array($modelData['store_view_ids'])
-                && !is_null($modelData['store_view_ids'])){
+                && null !== $modelData['store_view_ids']) {
                 $modelData['store_view_ids'] = json_decode($modelData['store_view_ids'],1);
             }else{
                 $modelData['store_view_ids'] = array('0') ;
             }
             if (isset($modelData['format_configurable_attributes'])
                 && !is_array($modelData['format_configurable_attributes'])
-                && !is_null($modelData['format_configurable_attributes'])){
+                && null !== $modelData['format_configurable_attributes']){
                 $modelData['format_configurable_attributes'] = json_decode($modelData['format_configurable_attributes'],1);
             }
             if (isset($modelData['avoid_stock_update']) && $modelData['avoid_stock_update'] == '1'){

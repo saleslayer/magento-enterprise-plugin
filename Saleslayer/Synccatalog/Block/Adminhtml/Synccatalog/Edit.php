@@ -86,13 +86,4 @@ class Edit extends \Magento\Backend\Block\Widget\Form\Container
         return $this->getUrl('synccatalog/*/save', ['_current' => true, 'back' => 'edit', 'active_tab' => '{{tab_id}}']);
     }
 
-    /**
-     * Prepare layout
-     *
-     * @return \Magento\Framework\View\Element\AbstractBlock
-     */
-    protected function _prepareLayout()
-    {
-        return parent::_prepareLayout();
-    }
 }

@@ -67,43 +67,58 @@ class Save extends \Magento\Backend\App\Action
                 $data_return = $model->store_sync_data($connector_id);
 
                 if (is_array($data_return)){
-
-                    $indexes = array('categories_to_delete', 'products_to_delete', 'product_formats_to_delete', 'categories_to_sync', 'products_to_sync', 'product_formats_to_sync');
-
-                    $delete_msg = $sync_msg = '';
                     
-                    foreach ($indexes as $idx){
+                    if (!isset($data_return['storage_error'])){
 
-                        if (isset($data_return[$idx]) && $data_return[$idx] > 0){
+                        $indexes = array('categories_to_delete', 'products_to_delete', 'product_formats_to_delete', 'categories_to_sync', 'products_to_sync', 'product_formats_to_sync');
 
-                            $msg = $data_return[$idx];
+                        $delete_msg = $sync_msg = '';
+                        
+                        foreach ($indexes as $idx){
 
-                            if (strpos($idx, 'delete') !== false){
+                            if (isset($data_return[$idx]) && $data_return[$idx] > 0){
 
-                                ($delete_msg == '') ? $delete_msg = 'To delete: ' : $delete_msg .= ', ';
-                                $delete_msg .= $msg.' '.str_replace('_', ' ', substr($idx, 0, strpos($idx, '_to')));
+                                $msg = $data_return[$idx];
 
-                            }else{
+                                if (strpos($idx, 'delete') !== false){
 
-                                ($sync_msg == '') ? $sync_msg = 'To synchronize: ' : $sync_msg .= ', ';
-                                $sync_msg .= $msg.' '.str_replace('_', ' ', substr($idx, 0, strpos($idx, '_to')));
-                             
+                                    ($delete_msg == '') ? $delete_msg = 'To delete: ' : $delete_msg .= ', ';
+                                    $delete_msg .= $msg.' '.str_replace('_', ' ', substr($idx, 0, strpos($idx, '_to')));
+
+                                }else{
+
+                                    ($sync_msg == '') ? $sync_msg = 'To synchronize: ' : $sync_msg .= ', ';
+                                    $sync_msg .= $msg.' '.str_replace('_', ' ', substr($idx, 0, strpos($idx, '_to')));
+                                
+                                }
+
                             }
 
                         }
 
-                    }
+                        if ($delete_msg != '' || $sync_msg != ''){
 
-                    if ($delete_msg != '' || $sync_msg != ''){
+                            $this->messageManager->addSuccess(__('Sales Layer synchronization data stored successfully!'));
+                            $this->messageManager->addSuccess(__('Total items stored: '));
+                            if ($delete_msg != ''){ $this->messageManager->addSuccess(__($delete_msg.'.')); }
+                            if ($sync_msg != ''){ $this->messageManager->addSuccess(__($sync_msg).'.'); }
 
-                        $this->messageManager->addSuccess(__('Sales Layer synchronization data stored successfully!'));
-                        $this->messageManager->addSuccess(__('Total items stored: '));
-                        if ($delete_msg != ''){ $this->messageManager->addSuccess(__($delete_msg.'.')); }
-                        if ($sync_msg != ''){ $this->messageManager->addSuccess(__($sync_msg).'.'); }
+                        }else{
+
+                            $this->messageManager->addWarning(__('There is no information to synchronize.'));
+
+                        }
 
                     }else{
 
-                        $this->messageManager->addWarning(__('There is no information to synchronize.'));
+                        unset($data_return['storage_error']);
+
+                        $this->messageManager->addWarning(__('Errors found when storing Sales Layer data: '));
+                        foreach ($data_return as $error_message){
+
+                            $this->messageManager->addWarning(__($error_message));
+
+                        }
 
                     }
 
@@ -112,7 +127,6 @@ class Save extends \Magento\Backend\App\Action
                     $this->messageManager->addWarning(__($data_return));
 
                 }
-
 
             }else{
                 
@@ -157,7 +171,7 @@ class Save extends \Magento\Backend\App\Action
 
                         $this->_redirect('*/synchronization');
 
-                    } catch (\Magento\Framework\Model\Exception $e) {
+                    } catch (\Magento\Framework\Exception\LocalizedException $e) {
                         $this->messageManager->addError($e->getMessage());
                     } catch (\RuntimeException $e) {
                         $this->messageManager->addError($e->getMessage());

@@ -61,7 +61,7 @@ class Synccatalog extends \Magento\Framework\View\Element\Template
      */
     public function getCollection()
     {
-        if (is_null($this->_synccatalogCollection)) {
+        if (null === $this->_synccatalogCollection) {
             $this->_synccatalogCollection = $this->_getCollection();
             $this->_synccatalogCollection->setCurPage($this->getCurrentPage());
             $this->_synccatalogCollection->setOrder('last_update','asc');
@@ -96,7 +96,7 @@ class Synccatalog extends \Magento\Framework\View\Element\Template
      *
      * @return string|null
      */
-    public function getPager()
+    /* public function getPager()
     {
         $pager = $this->getChildBlock('synccatalog_list_pager');
         if ($pager instanceof \Magento\Framework\Object) {
@@ -121,5 +121,5 @@ class Synccatalog extends \Magento\Framework\View\Element\Template
         }
 
         return NULL;
-    }
+    } */
 }

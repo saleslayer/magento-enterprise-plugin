@@ -32,7 +32,7 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
     protected $tableFactory;
     
     /**
-     * @var \Magento\Eav\Api\Data\AttributeOption
+     * @var \Magento\Eav\Model\Entity\Attribute\Option
      */
     protected $optionModel;
 
@@ -96,7 +96,6 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
         $this->attributeOptionManagement = $attributeOptionManagement;
     }
 
-
     /**
      * Function to Updatate attribute option
      * @param array $option_stores array of values of stores view to update
@@ -105,11 +104,8 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
      * @param string $optionDefaultValue value to save  if $option_stores view is null
      * return booleano
      */
-    // public function updateAttributeOption($attribute_code, $option_id, $option_value, $option_data){
     public function updateAttributeOption($attribute_code, $option_id, $option_data){
         
-        // $this->debbug_data('updateAttributeOption - attribute_code: '.$attribute_code.' - option_id: '.$option_id.' - option_value: '.$option_value.' - option_data: '.print_R($option_data,1));
-     
         try{
 
             $attribute = $this->getAttribute($attribute_code);
@@ -134,7 +130,12 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
 
             $sort_order = $option->getSortOrder();
 
-            $attribute->setData('option', array('value' => array($option_id => $option_data)));
+            $attribute->setData('option', [
+                'value' => [
+                    $option_id => $option_data
+                ]
+            ]);
+
             $attribute->save();
 
         }catch(\Exception $e){
@@ -197,7 +198,7 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
      * Get attribute by code.
      *
      * @param string $attributeCode
-     * @return \Magento\Catalog\Api\Data\ProductAttributeInterface
+     * @return \Magento\Catalog\Model\ResourceModel\Eav\Attribute
      */
     public function getAttribute($attributeCode){
 
@@ -333,6 +334,52 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
 
         return $optionId;
 
+    }
+
+    /**
+     * Find or create a matching attribute option
+     *
+     * @param string $attributeCode Attribute the option should exist in
+     * @param string $label Label to find or add
+     * @param id $storeViewId
+     * @return int
+     * @throws \Magento\Framework\Exception\LocalizedException
+     */
+    public function createOrGetOptionIdByValue($attribute, $attributeValue, $storeViewId)
+    {
+        if (strlen($attributeValue) < 1) {
+            throw new \Magento\Framework\Exception\LocalizedException(
+                __('Label for %1 must not be empty.', $attribute->getAttributeCode())
+            );
+        }
+
+        $attribute->setStoreId($storeViewId);
+
+        // Does it already exist?        
+        $optionId = $attribute->getSource()->getOptionId($attributeValue);
+
+        if ($optionId === null) {
+            // If no, add it.
+            /** @var \Magento\Eav\Model\Entity\Attribute\OptionLabel $optionLabel */
+            $optionLabel = $this->optionLabelFactory->create();
+            $optionLabel->setStoreId($storeViewId);
+            $optionLabel->setLabel((string) $attributeValue);
+
+            $option = $this->optionFactory->create();
+            $option->setLabel((string) $attributeValue);
+            $option->setStoreLabels([$optionLabel]);
+
+            $this->attributeOptionManagement->add(
+                \Magento\Catalog\Model\Product::ENTITY,
+                $attribute->getAttributeId(),
+                $option
+            );
+
+            // Get the inserted ID. Should be returned from the installer, but it isn't.
+            $optionId = $attribute->getSource()->getOptionId($attributeValue);
+        }
+
+        return $optionId;
     }
 
     /**

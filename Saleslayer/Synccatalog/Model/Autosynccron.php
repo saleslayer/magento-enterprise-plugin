@@ -8,33 +8,34 @@ set_time_limit(0);
 umask(0);
 */
 
-use \Magento\Framework\Model\Context as context;
-use \Magento\Framework\Registry as registry;
-use \Magento\Framework\Model\ResourceModel\AbstractResource as resource;
-use \Magento\Framework\Data\Collection\AbstractDb as resourceCollection;
+use Magento\Framework\Model\Context as context;
+use Magento\Framework\Registry as registry;
+use Magento\Framework\Model\ResourceModel\AbstractResource as resource;
+use Magento\Framework\Data\Collection\AbstractDb as resourceCollection;
+use Magento\Framework\Filesystem\DirectoryList  as directoryListFilesystem;
+use Magento\Catalog\Model\Category as categoryModel;
+use Magento\Catalog\Model\Product as productModel;
+use Magento\Catalog\Api\ProductRepositoryInterface as productRepository;
+use Magento\Eav\Model\Entity\Attribute as attribute;
+use Magento\Eav\Model\Entity\Attribute\Set as attribute_set;
+use Magento\Catalog\Api\ProductAttributeManagementInterface as productAttributeManagementInterface;
+use Magento\Indexer\Model\Indexer as indexer;
+use Magento\Framework\App\ResourceConnection as resourceConnection;
+use Magento\Eav\Model\ResourceModel\Entity\Attribute\Option\Collection as collectionOption;
+use Magento\Cron\Model\Schedule as cronSchedule;
+use Magento\Framework\App\Config\ScopeConfigInterface as scopeConfigInterface;
+use Magento\CatalogUrlRewrite\Model\CategoryUrlPathGenerator as categoryUrlPathGenerator;
+use Magento\CatalogUrlRewrite\Model\ProductUrlPathGenerator as productUrlPathGenerator;
+use Magento\CatalogInventory\Model\Configuration as catalogInventoryConfiguration;
+use Magento\Framework\App\DeploymentConfig as deploymentConfig;
+use Magento\Eav\Model\Config as eavConfig;
+use Magento\Framework\App\Cache\TypeListInterface as typeListInterface;
+use Magento\Framework\App\ProductMetadataInterface as productMetadata;
+use Magento\Catalog\Model\Product\Attribute\Source\Countryofmanufacture as countryOfManufacture;
+use Magento\Catalog\Model\Category\Attribute\Source\Layout as layoutSource;
 use Saleslayer\Synccatalog\Model\SalesLayerConn as SalesLayerConn;
 use Saleslayer\Synccatalog\Helper\Data as synccatalogDataHelper;
 use Saleslayer\Synccatalog\Helper\Config as synccatalogConfigHelper;
-use \Magento\Framework\Filesystem\DirectoryList  as directoryListFilesystem;
-use \Magento\Catalog\Model\Category as categoryModel;
-use \Magento\Catalog\Model\Product as productModel;
-use \Magento\Eav\Model\Entity\Attribute as attribute;
-use \Magento\Eav\Model\Entity\Attribute\Set as attribute_set;
-use \Magento\Catalog\Api\ProductAttributeManagementInterface as productAttributeManagementInterface;
-use \Magento\Indexer\Model\Indexer as indexer;
-use \Magento\Framework\App\ResourceConnection as resourceConnection;
-use \Magento\Eav\Model\ResourceModel\Entity\Attribute\Option\Collection as collectionOption;
-use \Magento\Cron\Model\Schedule as cronSchedule;
-use \Magento\Framework\App\Config\ScopeConfigInterface as scopeConfigInterface;
-use \Magento\CatalogUrlRewrite\Model\CategoryUrlPathGenerator as categoryUrlPathGenerator;
-use \Magento\CatalogUrlRewrite\Model\ProductUrlPathGenerator as productUrlPathGenerator;
-use \Magento\CatalogInventory\Model\Configuration as catalogInventoryConfiguration;
-use \Magento\Framework\App\DeploymentConfig as deploymentConfig;
-use \Magento\Eav\Model\Config as eavConfig;
-use \Magento\Framework\App\Cache\TypeListInterface as typeListInterface;
-use \Magento\Framework\App\ProductMetadataInterface as productMetadata;
-use \Magento\Catalog\Model\Product\Attribute\Source\Countryofmanufacture as countryOfManufacture;
-use \Magento\Catalog\Model\Category\Attribute\Source\Layout as layoutSource;
 
 /**
  * Class Saleslayer_Synccatalog_Model_Autosynccron
@@ -50,64 +51,68 @@ class Autosynccron extends Synccatalog{
      * @return void
      */
     public function __construct(
-                context $context,
-                registry $registry,
-                SalesLayerConn $salesLayerConn,
-                synccatalogDataHelper $synccatalogDataHelper,
-                synccatalogConfigHelper $synccatalogConfigHelper,
-                directoryListFilesystem $directoryListFilesystem,
-                categoryModel $categoryModel,
-                productModel $productModel,
-                attribute $attribute,
-                attribute_set $attribute_set,
-                productAttributeManagementInterface $productAttributeManagementInterface,
-                indexer $indexer,
-                resourceConnection $resourceConnection,
-                collectionOption $collectionOption,
-                cronSchedule $cronSchedule,
-                scopeConfigInterface $scopeConfigInterface,
-                categoryUrlPathGenerator $categoryUrlPathGenerator,
-                productUrlPathGenerator $productUrlPathGenerator,
-                catalogInventoryConfiguration $catalogInventoryConfiguration,
-                deploymentConfig $deploymentConfig,
-                eavConfig $eavConfig,
-                typeListInterface $typeListInterface,
-                productMetadata $productMetadata,
-                countryOfManufacture $countryOfManufacture,
-                layoutSource $layoutSource,
-                resource $resource = null,
-                resourceCollection $resourceCollection = null,
-                array $data = []) {
+        context $context,
+        registry $registry,
+        SalesLayerConn $salesLayerConn,
+        synccatalogDataHelper $synccatalogDataHelper,
+        synccatalogConfigHelper $synccatalogConfigHelper,
+        directoryListFilesystem $directoryListFilesystem,
+        categoryModel $categoryModel,
+        productModel $productModel,
+        attribute $attribute,
+        attribute_set $attribute_set,
+        productAttributeManagementInterface $productAttributeManagementInterface,
+        indexer $indexer,
+        resourceConnection $resourceConnection,
+        collectionOption $collectionOption,
+        cronSchedule $cronSchedule,
+        scopeConfigInterface $scopeConfigInterface,
+        categoryUrlPathGenerator $categoryUrlPathGenerator,
+        productUrlPathGenerator $productUrlPathGenerator,
+        catalogInventoryConfiguration $catalogInventoryConfiguration,
+        deploymentConfig $deploymentConfig,
+        eavConfig $eavConfig,
+        typeListInterface $typeListInterface,
+        productMetadata $productMetadata,
+        countryOfManufacture $countryOfManufacture,
+        layoutSource $layoutSource,
+        productRepository $productRepository,
+        resource $resource = null,
+        resourceCollection $resourceCollection = null,
+        array $data = []
+    ) {
         parent::__construct($context,
-                            $registry, 
-                            $salesLayerConn, 
-                            $synccatalogDataHelper, 
-                            $synccatalogConfigHelper,
-                            $directoryListFilesystem,
-                            $categoryModel, 
-                            $productModel,
-                            $attribute,
-                            $attribute_set,
-                            $productAttributeManagementInterface,
-                            $indexer,
-                            $resourceConnection,
-                            $collectionOption,
-                            $cronSchedule,
-                            $scopeConfigInterface,
-                            $categoryUrlPathGenerator,
-                            $productUrlPathGenerator,
-                            $catalogInventoryConfiguration,
-                            $deploymentConfig,
-                            $eavConfig,
-                            $typeListInterface,
-                            $productMetadata,
-                            $countryOfManufacture,
-                            $layoutSource,
-                            $resource,
-                            $resourceCollection,
-                            $data);
-        $this->cron_schedule_table           = $this->resourceConnection->getTableName($this->cron_schedule_table);
+            $registry, 
+            $salesLayerConn, 
+            $synccatalogDataHelper, 
+            $synccatalogConfigHelper,
+            $directoryListFilesystem,
+            $categoryModel, 
+            $productModel,
+            $attribute,
+            $attribute_set,
+            $productAttributeManagementInterface,
+            $indexer,
+            $resourceConnection,
+            $collectionOption,
+            $cronSchedule,
+            $scopeConfigInterface,
+            $categoryUrlPathGenerator,
+            $productUrlPathGenerator,
+            $catalogInventoryConfiguration,
+            $deploymentConfig,
+            $eavConfig,
+            $typeListInterface,
+            $productMetadata,
+            $countryOfManufacture,
+            $layoutSource,
+            $productRepository,
+            $resource,
+            $resourceCollection,
+            $data
+        );
 
+        $this->cron_schedule_table           = $this->resourceConnection->getTableName($this->cron_schedule_table);
     }
     
     /**
@@ -323,18 +328,33 @@ class Autosynccron extends Synccatalog{
                             $data_return = $this->store_sync_data($connector_id, $last_sync);
                             
                             $this->debbug("#### time_cron_sync: " . (microtime(1) - $time_ini_cron_sync - $time_random) . ' seconds.', 'autosync');
-
                             
                             if (is_array($data_return)){
 
-                                //If the connector result has data we break process so it can sync.
-                                if (!empty($data_return)){ 
+                                if (!isset($data_return['storage_error'])){
 
-                                    break;
+                                    //If the connector result has data we break process so it can sync.
+                                    if (!empty($data_return)){ 
+
+                                        break;
+
+                                    }
+
+                                    //If the connector result data is empty we continue to the next connector.
+
+                                }else{
+
+                                    //If there was any error during storage, we print it
+                                    unset($data_return['storage_error']);
+
+                                    $this->debbug('Errors found when storing Sales Layer data: ', 'autosync');
+                                    foreach ($data_return as $error_message){
+            
+                                        $this->debbug($error_message, 'autosync');
+            
+                                    }
 
                                 }
-
-                                //If the connector result data is empty we continue to the next connector.
 
                             }else{
 
@@ -342,8 +362,7 @@ class Autosynccron extends Synccatalog{
                                 $this->debbug($data_return, 'autosync');
 
                             }
-
-                            
+ 
                         }
 
                     }else{

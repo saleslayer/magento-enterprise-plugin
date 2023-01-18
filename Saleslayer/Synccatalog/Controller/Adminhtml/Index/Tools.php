@@ -52,7 +52,6 @@ class Tools extends \Magento\Backend\App\Action
             'Saleslayer_Synccatalog::synccatalog_tools'
         );*/
 
-
        /*
         $resultPage->setActiveMenu(
             'Saleslayer_Synccatalog::synccatalog_manage'

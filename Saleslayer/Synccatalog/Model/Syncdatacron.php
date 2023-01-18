@@ -11,6 +11,7 @@ umask(0);
 use Magento\Catalog\Api\ProductAttributeManagementInterface as productAttributeManagementInterface;
 use Magento\Catalog\Model\Category as categoryModel;
 use Magento\Catalog\Model\Product as productModel;
+use Magento\Catalog\Api\ProductRepositoryInterface as productRepository;
 use Magento\Catalog\Model\Product\Attribute\Source\Countryofmanufacture as countryOfManufacture;
 use \Magento\Catalog\Model\Category\Attribute\Source\Layout as layoutSource;
 use Magento\CatalogInventory\Model\Configuration as catalogInventoryConfiguration;
@@ -40,8 +41,8 @@ use Zend_Db_Expr as Expr;
 /**
  * Class Saleslayer_Synccatalog_Model_Syncdatacron
  */
-class Syncdatacron extends Synccatalog{
-    
+class Syncdatacron extends Synccatalog
+{    
     protected       $sl_time_ini_sync_data_process;
     protected       $max_execution_time                 = 290;
     protected       $end_process;
@@ -67,62 +68,67 @@ class Syncdatacron extends Synccatalog{
      * @return void
      */
     public function __construct(
-                context $context,
-                registry $registry,
-                SalesLayerConn $salesLayerConn,
-                synccatalogDataHelper $synccatalogDataHelper,
-                synccatalogConfigHelper $synccatalogConfigHelper,
-                directoryListFilesystem $directoryListFilesystem,
-                categoryModel $categoryModel,
-                productModel $productModel,
-                attribute $attribute,
-                attribute_set $attribute_set,
-                productAttributeManagementInterface $productAttributeManagementInterface,
-                indexer $indexer,
-                resourceConnection $resourceConnection,
-                collectionOption $collectionOption,
-                cronSchedule $cronSchedule,
-                scopeConfigInterface $scopeConfigInterface,
-                categoryUrlPathGenerator $categoryUrlPathGenerator,
-                productUrlPathGenerator $productUrlPathGenerator,
-                catalogInventoryConfiguration $catalogInventoryConfiguration,
-                deploymentConfig $deploymentConfig,
-                eavConfig $eavConfig,
-                typeListInterface $typeListInterface,
-                productMetadata $productMetadata,
-                countryOfManufacture $countryOfManufacture,
-                layoutSource $layoutSource,
-                resource $resource = null,
-                resourceCollection $resourceCollection = null,
-                array $data = []) {
-        parent::__construct($context,
-                            $registry, 
-                            $salesLayerConn, 
-                            $synccatalogDataHelper, 
-                            $synccatalogConfigHelper,
-                            $directoryListFilesystem,
-                            $categoryModel, 
-                            $productModel,
-                            $attribute,
-                            $attribute_set,
-                            $productAttributeManagementInterface,
-                            $indexer,
-                            $resourceConnection,
-                            $collectionOption,
-                            $cronSchedule,
-                            $scopeConfigInterface,
-                            $categoryUrlPathGenerator,
-                            $productUrlPathGenerator,
-                            $catalogInventoryConfiguration,
-                            $deploymentConfig,
-                            $eavConfig,
-                            $typeListInterface,
-                            $productMetadata,
-                            $countryOfManufacture,
-                            $layoutSource,
-                            $resource,
-                            $resourceCollection,
-                            $data);
+        context $context,
+        registry $registry,
+        SalesLayerConn $salesLayerConn,
+        synccatalogDataHelper $synccatalogDataHelper,
+        synccatalogConfigHelper $synccatalogConfigHelper,
+        directoryListFilesystem $directoryListFilesystem,
+        categoryModel $categoryModel,
+        productModel $productModel,
+        attribute $attribute,
+        attribute_set $attribute_set,
+        productAttributeManagementInterface $productAttributeManagementInterface,
+        indexer $indexer,
+        resourceConnection $resourceConnection,
+        collectionOption $collectionOption,
+        cronSchedule $cronSchedule,
+        scopeConfigInterface $scopeConfigInterface,
+        categoryUrlPathGenerator $categoryUrlPathGenerator,
+        productUrlPathGenerator $productUrlPathGenerator,
+        catalogInventoryConfiguration $catalogInventoryConfiguration,
+        deploymentConfig $deploymentConfig,
+        eavConfig $eavConfig,
+        typeListInterface $typeListInterface,
+        productMetadata $productMetadata,
+        countryOfManufacture $countryOfManufacture,
+        layoutSource $layoutSource,
+        productRepository $productRepository,
+        resource $resource = null,
+        resourceCollection $resourceCollection = null,
+        array $data = []
+    ) {
+        parent::__construct(
+            $context,
+            $registry, 
+            $salesLayerConn, 
+            $synccatalogDataHelper, 
+            $synccatalogConfigHelper,
+            $directoryListFilesystem,
+            $categoryModel, 
+            $productModel,
+            $attribute,
+            $attribute_set,
+            $productAttributeManagementInterface,
+            $indexer,
+            $resourceConnection,
+            $collectionOption,
+            $cronSchedule,
+            $scopeConfigInterface,
+            $categoryUrlPathGenerator,
+            $productUrlPathGenerator,
+            $catalogInventoryConfiguration,
+            $deploymentConfig,
+            $eavConfig,
+            $typeListInterface,
+            $productMetadata,
+            $countryOfManufacture,
+            $layoutSource,
+            $productRepository,
+            $resource,
+            $resourceCollection,
+            $data
+        );
 
     }
 
@@ -157,12 +163,74 @@ class Syncdatacron extends Synccatalog{
 
             }
             
-            $this->category_fields = array('category_field_name', 'category_field_url_key', 'category_field_description', 'category_field_image', 'category_field_meta_title', 'category_field_meta_keywords', 'category_field_meta_description', 'category_field_active', 'category_images_sizes', 'category_field_page_layout','category_field_is_anchor');
-            $this->product_fields = array('product_field_name', 'product_field_description', 'product_field_description_short', 'product_field_price', 'product_field_image', 'product_field_sku', 'product_field_qty', 'product_field_inventory_backorders', 'product_field_inventory_min_sale_qty', 'product_field_inventory_max_sale_qty', 'product_field_meta_title', 'product_field_meta_keywords', 'product_field_meta_description', 'product_field_length', 'product_field_width', 'product_field_height', 'product_field_weight', 'product_field_status', 'product_field_visibility', 'product_field_related_references', 'product_field_crosssell_references', 'product_field_upsell_references', 'product_field_attribute_set_id', 'product_images_sizes','main_image_extension', 'product_field_tax_class_id', 'product_field_country_of_manufacture', 'product_field_special_price', 'product_field_special_from_date', 'product_field_special_to_date', 'grouping_ref_field_linked');
-            $this->product_format_fields = array('format_images_sizes', 'main_image_extension', 'format_field_sku', 'format_name', 'format_price', 'format_quantity', 'format_field_inventory_backorders', 'format_field_inventory_min_sale_qty', 'format_field_inventory_max_sale_qty', 'format_image', 'format_field_tax_class_id', 'format_field_country_of_manufacture', 'format_field_visibility', 'format_field_special_price', 'format_field_special_from_date', 'format_field_special_to_date');
+            $this->category_fields = [
+                'category_field_name',
+                'category_field_url_key',
+                'category_field_description',
+                'category_field_image',
+                'category_field_meta_title',
+                'category_field_meta_keywords',
+                'category_field_meta_description',
+                'category_field_active',
+                'category_images_sizes',
+                'category_field_page_layout',
+                'category_field_is_anchor'
+            ];
+
+            $this->product_fields = [
+                'product_field_name',
+                'product_field_description',
+                'product_field_description_short',
+                'product_field_price',
+                'product_field_image',
+                'product_field_sku',
+                'product_field_qty',
+                'product_field_inventory_backorders',
+                'product_field_inventory_min_sale_qty',
+                'product_field_inventory_max_sale_qty',
+                'product_field_meta_title',
+                'product_field_meta_keywords',
+                'product_field_meta_description',
+                'product_field_length',
+                'product_field_width',
+                'product_field_height',
+                'product_field_weight',
+                'product_field_status',
+                'product_field_visibility', 
+                'product_field_related_references',
+                'product_field_crosssell_references',
+                'product_field_upsell_references',
+                'product_field_attribute_set_id',
+                'product_images_sizes',
+                'main_image_extension',
+                'product_field_tax_class_id',
+                'product_field_country_of_manufacture',
+                'product_field_special_price',
+                'product_field_special_from_date',
+                'product_field_special_to_date',
+                'grouping_ref_field_linked'
+            ];
+
+            $this->product_format_fields = [
+                'format_images_sizes',
+                'main_image_extension',
+                'format_field_sku',
+                'format_name',
+                'format_price',
+                'format_quantity',
+                'format_field_inventory_backorders',
+                'format_field_inventory_min_sale_qty',
+                'format_field_inventory_max_sale_qty',
+                'format_image',
+                'format_field_tax_class_id',
+                'format_field_country_of_manufacture',
+                'format_field_visibility',
+                'format_field_special_price', 
+                'format_field_special_from_date',
+                'format_field_special_to_date'
+            ];
 
             $this->initialized_vars = true;
-
         }
 
     }
@@ -456,11 +524,11 @@ class Syncdatacron extends Synccatalog{
         
         do{
 
-            $items_to_update = $this->connection->fetchAll(" SELECT * FROM ".$this->saleslayer_syncdata_table." WHERE sync_type = 'update' and item_type = '".$index."' and sync_tries <= 2 ORDER BY item_type ASC, sync_tries ASC, id ASC LIMIT 5");
+            $items_to_update = $this->connection->fetchAll(" SELECT * FROM ".$this->saleslayer_syncdata_table." WHERE sync_type = 'update' and item_type = '".$index."' and sync_tries <= 2 ORDER BY item_type ASC, sync_tries ASC, id ASC LIMIT 50");
 
             if ($this->test_one_item !== false && is_numeric($this->test_one_item)){
 
-                $items_to_update = $this->connection->fetchAll(" SELECT * FROM ".$this->saleslayer_syncdata_table." WHERE sync_type = 'update' and item_type = '".$index."' and sync_tries <= 2 and id = ".$this->test_one_item." ORDER BY item_type ASC, sync_tries ASC, id ASC LIMIT 5");
+                $items_to_update = $this->connection->fetchAll(" SELECT * FROM ".$this->saleslayer_syncdata_table." WHERE sync_type = 'update' and item_type = '".$index."' and sync_tries <= 2 and id = ".$this->test_one_item." ORDER BY item_type ASC, sync_tries ASC, id ASC LIMIT 50");
 
             }
 
@@ -568,7 +636,7 @@ class Syncdatacron extends Synccatalog{
         $sync_params = json_decode(stripslashes($item_to_delete['sync_params']),1);
         $this->processing_connector_id = $sync_params['conn_params']['connector_id'];
 
-        // if (is_null($this->comp_id) || $this->comp_id == ''){
+        // if (null === $this->comp_id || $this->comp_id == ''){
 
         //     $this->debbug('cargamos load_sl_multiconn_table_data debido a diferencia de comp_id');
         //     $this->load_sl_multiconn_table_data(); 
