@@ -143,26 +143,6 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
     protected $product_field_inventory_backorders   = 'product_inventory_backorders';
     protected $product_field_inventory_min_sale_qty = 'product_inventory_min_sale_qty';
     protected $product_field_inventory_max_sale_qty = 'product_inventory_max_sale_qty';
-    
-
-
-
-
-
-
-
-    /* protected $product_field_out_of_stock_qty       = 'out_of_stock_qty';
-    protected $product_field_inventory_use_config_min_qty     = 'product_inventory_use_config_min_qty';
-    protected $product_field_inventory_use_config_manage_stock= 'product_inventory_use_config_manage_stock';
-    protected $product_field_inventory_min_qty                = 'product_inventory_min_qty'; */
-
-
-
-
-
-
-
-
     protected $product_field_meta_title             = 'product_meta_title';
     protected $product_field_meta_keywords          = 'product_meta_keywords';
     protected $product_field_meta_description       = 'product_meta_description';
@@ -203,32 +183,6 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
     protected $format_field_inventory_backorders    = 'format_inventory_backorders';
     protected $format_field_inventory_min_sale_qty  = 'format_inventory_min_sale_qty';
     protected $format_field_inventory_max_sale_qty  = 'format_inventory_max_sale_qty';
-
-
-
-
-
-
-
-
-
-
-
-    /* protected $format_field_out_of_stock_qty        = 'out_of_stock_qty';
-    protected $format_field_inventory_use_config_min_qty      = 'format_inventory_use_config_min_qty';
-    protected $format_field_inventory_use_config_manage_stock = 'format_inventory_use_config_manage_stock';
-    protected $format_field_inventory_min_qty                 = 'format_inventory_min_qty'; */
-
-
-
-
-
-
-
-
-
-
-
     protected $format_field_image                   = 'format_image';
     protected $format_field_tax_class_id            = 'format_tax_class_id';
     protected $format_field_country_of_manufacture  = 'format_country_of_manufacture';
@@ -1567,10 +1521,6 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
             'product_field_inventory_backorders',
             'product_field_inventory_min_sale_qty',
             'product_field_inventory_max_sale_qty',
-            /* 'product_field_out_of_stock_qty',
-            'product_field_inventory_use_config_min_qty',
-            'product_field_inventory_use_config_manage_stock',
-            'product_field_inventory_min_qty', */
             'product_field_status',
             'product_field_visibility',
             'product_field_tax_class_id',
@@ -1772,12 +1722,6 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         $product_format_data_to_store['product_format_fields']['format_field_inventory_backorders'] = $this->format_field_inventory_backorders;
         $product_format_data_to_store['product_format_fields']['format_field_inventory_min_sale_qty'] = $this->format_field_inventory_min_sale_qty;
         $product_format_data_to_store['product_format_fields']['format_field_inventory_max_sale_qty'] = $this->format_field_inventory_max_sale_qty;
-
-        /* $product_format_data_to_store['product_format_fields']['format_field_inventory_use_config_min_qty'] = $this->format_field_inventory_use_config_min_qty;
-        $product_format_data_to_store['product_format_fields']['format_field_inventory_use_config_manage_stock'] = $this->format_field_inventory_use_config_manage_stock;
-        $product_format_data_to_store['product_format_fields']['format_field_inventory_min_qty'] = $this->format_field_inventory_min_qty; */
-
-
         $product_format_data_to_store['product_format_fields']['format_field_image'] = $this->format_field_image;
         $product_format_data_to_store['product_format_fields']['format_field_tax_class_id'] = $this->format_field_tax_class_id;
         $product_format_data_to_store['product_format_fields']['format_field_country_of_manufacture'] = $this->format_field_country_of_manufacture;
@@ -2059,20 +2003,15 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         }
 
-        // if (!empty($sl_category_image_data_to_sync)){
+        $time_ini_sync_category_image_store_data = microtime(1);
 
-            // $this->debbug(" > SL category image data to sync: ".print_r($sl_category_image_data_to_sync,1));
-            $time_ini_sync_category_image_store_data = microtime(1);
+        foreach ($this->mg_category_row_ids as $mg_category_row_id){
 
-            foreach ($this->mg_category_row_ids as $mg_category_row_id){
+            $this->setCategoryImage($mg_category_row_id, 'catalog_category_entity', $sl_category_image_data_to_sync, $this->category_entity_type_id, 0);
 
-                $this->setCategoryImage($mg_category_row_id, 'catalog_category_entity', $sl_category_image_data_to_sync, $this->category_entity_type_id, 0);
+        }
 
-            }
-
-            if ($this->sl_DEBBUG > 1) $this->debbug('## sync_category_image_data store_view_id 0: ', 'timer', (microtime(1) - $time_ini_sync_category_image_store_data));
-
-        // }
+        if ($this->sl_DEBBUG > 1) $this->debbug('## sync_category_image_data store_view_id 0: ', 'timer', (microtime(1) - $time_ini_sync_category_image_store_data));
 
         $time_ini_sync_category_url_rewrite = microtime(1);
         $this->setCategoryUrlRewrite($store_view_ids);
@@ -2154,7 +2093,6 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                     continue;
 
                 }
-
 
             }else{
 
@@ -3085,7 +3023,6 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
             }
 
-
             $this->product_created = true;
             $this->mg_product_id = $entity_id;
 
@@ -3123,7 +3060,6 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         
         if (null === $this->mg_product_id) {
 
-            // $this->mg_product_id = $this->find_saleslayer_product_id_db($product[$this->product_field_id]);
             $this->find_saleslayer_product_id_db($product[$this->product_field_id]);
    
         }
@@ -4601,8 +4537,6 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                     }
 
                 }
-
-
 
             }
 
@@ -6565,7 +6499,6 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         return null;
 
     }
-
 
     /**
      * Function to find the product format id associated to the Sales Layer product format id.
@@ -9277,7 +9210,6 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
     }
 
-
     /**
      * Function to find the category id associated to the Sales Layer category id.
      * @param int $saleslayer_id                Sales Layer category id
@@ -11414,57 +11346,6 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
      * @param  array $format_configurable_attributes_codes          product format configurable attribute codes
      * @return array $parent_product_attributes                     parent product attributes found
      */
-    /* private function getParentAttrs($arrayFormats, $schema, $format_configurable_attributes_codes){
-        
-        $parent_product_attributes = [];
-
-        foreach ($arrayFormats as $format) {
-                
-            $sl_parent_product_id   = $format[$this->format_field_products_id];
-            $format_data            = $format['data'];
-            
-            foreach ($format_configurable_attributes_codes as $format_configurable_attribute_id => $format_configurable_attribute_code){
-
-                $format_configurable_attribute_code_lan = $format_configurable_attribute_code;
-
-                if (isset($schema['fields'][$format_configurable_attribute_code]) && $schema['fields'][$format_configurable_attribute_code]['has_multilingual']) {
-
-                    $format_configurable_attribute_code_lan .= '_'.$this->sl_language;
-
-                }
-                
-                if (isset($format_data[$format_configurable_attribute_code_lan])){
-
-                    $sl_format_value = $this->getCodeValue($format_data, $format_configurable_attribute_code,  $format_configurable_attribute_code_lan);
-
-                    if ((!is_array($sl_format_value) && $sl_format_value !== '') || (is_array($sl_format_value) && !empty($sl_format_value))){
-                    
-                        if (!isset($parent_product_attributes[$sl_parent_product_id])){ $parent_product_attributes[$sl_parent_product_id] = []; }
-                        if (!isset($parent_product_attributes[$sl_parent_product_id][$format_configurable_attribute_code])){
-
-                            $parent_product_attributes[$sl_parent_product_id][$format_configurable_attribute_code] = array('format_configurable_attribute_code_lan' => $format_configurable_attribute_code_lan, 'mg_attribute_id' => $format_configurable_attribute_id);
-
-                        }
-
-                    }
-
-                }
-
-            }
-
-        }
-
-        return $parent_product_attributes;
-
-    } */
-
-    /**
-     * Function to get produt format parent attributes
-     * @param  array $arrayFormats                                  product formats to check
-     * @param  array $schema                                        Sales Layer schema
-     * @param  array $format_configurable_attributes_codes          product format configurable attribute codes
-     * @return array $parent_product_attributes                     parent product attributes found
-     */
     private function getParentAttrs($arrayFormats, $schema, $format_configurable_attributes_codes){
         
         $parent_product_attributes = [];
@@ -11775,7 +11656,6 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                 }
 
-
             }
 
             //We check extra fields
@@ -11826,7 +11706,6 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                     $data_schema['products']['fields'][$product_field] = $data_schema['product_formats']['fields'][$format_field];
 
                 }
-
 
             }
 
@@ -12857,7 +12736,6 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
      */
     private function compareValue($attribute, $db_value, $value){
 
-
         if (isset($attribute[\Magento\Catalog\Api\Data\EavAttributeInterface::IS_WYSIWYG_ENABLED]) && $attribute[\Magento\Catalog\Api\Data\EavAttributeInterface::IS_WYSIWYG_ENABLED] == 1){ 
         
             if (trim(strip_tags($db_value)) === trim(strip_tags($value))){
@@ -12994,8 +12872,6 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                     $storeViewId = 0;
                 }
 
-                //$attribute->setData('store_id', $storeViewId);
-
                 if ($attribute->usesSource()) {
 
                     if ($attrV !== ''){
@@ -13003,17 +12879,14 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                     }else{
                         $entity->setData($attrK, $attrV);
                     }
-                    /* $option_id = $attribute->getSource()->getOptionId($attrV);
-                    if ($option_id !== null) {
-                        $entity->setData($attrK, $option_id);
-                    } */
+
                 } else {
                     $entity->setData($attrK, $attrV);
                 }
             }
-            
-            
+                
         }
+
     }
 
     /**
@@ -13041,20 +12914,11 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                 
                 $time_ini_all_data = microtime(1);
 
-                //$product->setStoreId($store_view_id);
-
                 if (!empty($sl_product_data_to_sync)){
 
                     $this->debbug(" > SL product data to sync: ".print_r($sl_product_data_to_sync,1));
                     $time_ini_sync_data = microtime(1);
-                    
-                    /* foreach ($this->mg_product_row_ids as $mg_product_row_id) {
-                        $this->setValues($mg_product_row_id, 'catalog_product_entity', $sl_product_data_to_sync, $this->product_entity_type_id, $store_view_id, true, false, $this->mg_product_row_ids);
-                    
-                    } */
-
                     $this->setAttributes($product, $sl_product_data_to_sync, $store_view_id);
-                    
                     if ($this->sl_DEBBUG > 1) $this->debbug('## sync_product_data store_view_id: '.$store_view_id.': ', 'timer', (microtime(1) - $time_ini_sync_data));
 
                 }
@@ -13062,21 +12926,8 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                 if (!empty($sl_product_additional_data_to_sync)){
 
                     $this->debbug(" > SL product additional data to sync: ".print_r($sl_product_additional_data_to_sync,1));
-                    $time_ini_additional_data = microtime(1);
-                
-                    /* foreach ($this->mg_product_row_ids as $mg_product_row_id) {
-                    
-                        $this->setValues($mg_product_row_id, 'catalog_product_entity', $sl_product_additional_data_to_sync, $this->product_entity_type_id, $store_view_id, true, true, $this->mg_product_row_ids);              
-                    } */
-
+                    $time_ini_additional_data = microtime(1);                
                     $this->setAttributes($product, $sl_product_additional_data_to_sync, $store_view_id);
-
-                    /** Set Brand **/
-                    /* if(isset($sl_product_additional_data_to_sync['brand']))
-                    {
-                        $this->setBrand($product,$sl_product_additional_data_to_sync['brand']);
-                    }*/
-
                     if ($this->sl_DEBBUG > 1) $this->debbug('## sync_product_additional_data store_view_id: '.$store_view_id.': ', 'timer', (microtime(1) - $time_ini_additional_data));
 
                 }
@@ -13093,34 +12944,11 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                 
                 } 
 
-
             }
-
 
         }
 
     }
-
-    /**
-     * Set Brand to product
-     * @param string   $sku
-     * @param string   $brand_value   Brand Name
-     */
-    /* private function setBrand($product,$brand_value)
-    {
-	    $sky_attributeF = 'brand';
-        $attrF = $product->getResource()->getAttribute($sky_attributeF);
-        if (!empty($attrF)) {
-            $avidF = $attrF->getSource()->getOptionId($brand_value);
-            $avidF = empty($avidF) ? $brand_value : $avidF;
-	        $product->setData($sky_attributeF, $avidF);
-            $sku = $product->getSku();
-	        $this->debbug(" > SL set BRAND: ".print_r("$sky_attributeF - $brand_value ($avidF) - SKU: $sku",1));
-	    } else {
-	       $this->debbug(" > SL set BRAND: Empty Attribute");
-	    }
-    } */
-
 
     /**
      * Function to sync format data by store
@@ -13148,20 +12976,11 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                 
                 $time_ini_all_data = microtime(1);
 
-                //$format->setStoreId($store_view_id);
-
                 if (!empty($sl_format_data_to_sync)){
 
                     $this->debbug(" > SL format data to sync: ".print_r($sl_format_data_to_sync,1));
                     $time_ini_sync_data = microtime(1);
-                    
-                    /* foreach ($this->mg_format_row_ids as $mg_format_row_id) {
-                        $this->setValues($mg_format_row_id, 'catalog_product_entity', $sl_format_data_to_sync, $this->format_entity_type_id, $store_view_id, true, false, $this->mg_format_row_ids);
-                    
-                    } */
-
                     $this->setAttributes($format, $sl_format_data_to_sync, $store_view_id);
-                    
                     if ($this->sl_DEBBUG > 1) $this->debbug('## sync_format_data store_view_id: '.$store_view_id.': ', 'timer', (microtime(1) - $time_ini_sync_data));
 
                 }
@@ -13170,20 +12989,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                     $this->debbug(" > SL format additional data to sync: ".print_r($sl_format_additional_data_to_sync,1));
                     $time_ini_additional_data = microtime(1);
-                
-                    /* foreach ($this->mg_format_row_ids as $mg_format_row_id) {
-                    
-                        $this->setValues($mg_format_row_id, 'catalog_product_entity', $sl_format_additional_data_to_sync, $this->format_entity_type_id, $store_view_id, true, true, $this->mg_format_row_ids);              
-                    } */
-
                     $this->setAttributes($format, $sl_format_additional_data_to_sync, $store_view_id);
-
-                    /** Set Brand **/
-                    /* if(isset($sl_format_additional_data_to_sync['brand']))
-                    {
-                        $this->setBrand($format,$sl_format_additional_data_to_sync['brand']);
-                    }*/
-
                     if ($this->sl_DEBBUG > 1) $this->debbug('## sync_format_additional_data store_view_id: '.$store_view_id.': ', 'timer', (microtime(1) - $time_ini_additional_data));
 
                 }
@@ -13200,9 +13006,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                 
                 } 
 
-
             }
-
 
         }
 

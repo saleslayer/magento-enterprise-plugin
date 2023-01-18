@@ -18,7 +18,6 @@ class Downlogs extends \Magento\Backend\App\Action
         parent::__construct($context);
     }
 
-
     public function execute(){
         
         $result = $this->modelo->downloadSLLogs();

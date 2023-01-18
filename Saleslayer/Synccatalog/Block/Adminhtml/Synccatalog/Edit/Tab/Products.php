@@ -30,7 +30,6 @@ class Products extends \Magento\Backend\Block\Widget\Form\Generic implements \Ma
      */
     protected $configurableAttributeHandler;
 
-
     /**
      * @param \Magento\Backend\Block\Template\Context $context
      * @param \Magento\Framework\Registry $registry

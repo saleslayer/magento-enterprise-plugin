@@ -96,7 +96,6 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
         $this->attributeOptionManagement = $attributeOptionManagement;
     }
 
-
     /**
      * Function to Updatate attribute option
      * @param array $option_stores array of values of stores view to update
@@ -105,11 +104,8 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
      * @param string $optionDefaultValue value to save  if $option_stores view is null
      * return booleano
      */
-    // public function updateAttributeOption($attribute_code, $option_id, $option_value, $option_data){
     public function updateAttributeOption($attribute_code, $option_id, $option_data){
         
-        // $this->debbug_data('updateAttributeOption - attribute_code: '.$attribute_code.' - option_id: '.$option_id.' - option_value: '.$option_value.' - option_data: '.print_R($option_data,1));
-     
         try{
 
             $attribute = $this->getAttribute($attribute_code);
@@ -385,7 +381,6 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
 
         return $optionId;
     }
-
 
     /**
      * Find the ID of an option matching $label, if any.
