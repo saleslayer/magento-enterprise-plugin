@@ -5222,9 +5222,16 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         if (!$this->check_duplicated_sku_db('product_format', $sl_sku, $sl_product_id, $sl_id)){
 
             $format_already_assigned = false;
-            if (null !== $this->mg_format_id) $format_already_assigned = true;
+            if (null !== $this->mg_format_id){
 
-            $this->get_product_id_by_sku_db($sl_sku, 'format');
+                $format_already_assigned = true;
+            
+            }else{
+
+                $this->get_product_id_by_sku_db($sl_sku, 'format');
+            
+            }
+
             
             if(null !== $this->mg_format_id) {
             
@@ -12192,9 +12199,9 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         
         $mg_product_data_to_update = [];
 
-        if ($mg_product_core_data[$this->product_field_sku] != $sl_data[$this->product_field_sku]){
+        if ($mg_product_core_data['sku'] != $sl_data[$this->product_field_sku]){
             
-            $mg_product_data_to_update[$this->product_field_sku] = $sl_data[$this->product_field_sku];
+            $mg_product_data_to_update['sku'] = $sl_data[$this->product_field_sku];
                 
         }
 
@@ -12935,15 +12942,17 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                 try {
 
                     $this->_productRepository->save($product);
-
-                    if ($this->sl_DEBBUG > 2) $this->debbug('## time_sync_product_store_all_data store_view_id: '.$store_view_id.': ', 'timer', (microtime(1) - $time_ini_all_data));
-                
+                    
                 } catch(\Exception $e) {
-    
+                    
                     $this->debbug('## Error. Updating product attributes with SKU '.$sku.' for store_view_id '.$store_view_id.': '.$e->getMessage());
-                
+                    
                 } 
+                
+                $this->debbug(" > In store view id: ".$store_view_id);
 
+                if ($this->sl_DEBBUG > 2) $this->debbug('## time_sync_product_store_all_data store_view_id: '.$store_view_id.': ', 'timer', (microtime(1) - $time_ini_all_data));
+            
             }
 
         }
@@ -12978,7 +12987,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                 if (!empty($sl_format_data_to_sync)){
 
-                    $this->debbug(" > SL format data to sync: ".print_r($sl_format_data_to_sync,1));
+                    $this->debbug(" > SL product format data to sync: ".print_r($sl_format_data_to_sync,1));
                     $time_ini_sync_data = microtime(1);
                     $this->setAttributes($format, $sl_format_data_to_sync, $store_view_id);
                     if ($this->sl_DEBBUG > 1) $this->debbug('## sync_format_data store_view_id: '.$store_view_id.': ', 'timer', (microtime(1) - $time_ini_sync_data));
@@ -12987,7 +12996,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                 if (!empty($sl_format_additional_data_to_sync)){
 
-                    $this->debbug(" > SL format additional data to sync: ".print_r($sl_format_additional_data_to_sync,1));
+                    $this->debbug(" > SL product format additional data to sync: ".print_r($sl_format_additional_data_to_sync,1));
                     $time_ini_additional_data = microtime(1);
                     $this->setAttributes($format, $sl_format_additional_data_to_sync, $store_view_id);
                     if ($this->sl_DEBBUG > 1) $this->debbug('## sync_format_additional_data store_view_id: '.$store_view_id.': ', 'timer', (microtime(1) - $time_ini_additional_data));
@@ -12998,14 +13007,17 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                     $this->_productRepository->save($format);
 
-                    if ($this->sl_DEBBUG > 2) $this->debbug('## time_sync_format_store_all_data store_view_id: '.$store_view_id.': ', 'timer', (microtime(1) - $time_ini_all_data));
-                
+                    
                 } catch(\Exception $e) {
-    
-                    $this->debbug('## Error. Updating format attributes with SKU '.$sku.' for store_view_id '.$store_view_id.': '.$e->getMessage());
-                
+                    
+                    $this->debbug('## Error. Updating product format attributes with SKU '.$sku.' for store_view_id '.$store_view_id.': '.$e->getMessage());
+                    
                 } 
+                
+                $this->debbug(" > In store view id: ".$store_view_id);
 
+                if ($this->sl_DEBBUG > 2) $this->debbug('## time_sync_format_store_all_data store_view_id: '.$store_view_id.': ', 'timer', (microtime(1) - $time_ini_all_data));
+            
             }
 
         }
