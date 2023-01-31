@@ -102,7 +102,7 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
      * @param string $attributeCode attribute code  in string  ('color' or 'size'....)
      * @param int $optionId Option_id
      * @param string $optionDefaultValue value to save  if $option_stores view is null
-     * return booleano
+     * @return boolean
      */
     public function updateAttributeOption($attribute_code, $option_id, $option_data){
         
@@ -337,11 +337,11 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
     }
 
     /**
-     * Find or create a matching attribute option
+     * Create or get a matching attribute option
      *
      * @param string $attributeCode Attribute the option should exist in
-     * @param string $label Label to find or add
-     * @param id $storeViewId
+     * @param string $attributeValue Attribute value to create or get
+     * @param int $storeViewId  Store view id
      * @return int
      * @throws \Magento\Framework\Exception\LocalizedException
      */
@@ -388,7 +388,7 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
      * @param string $attributeCode Attribute code
      * @param string $label Label to find
      * @param bool $force If true, will fetch the options even if they're already cached.
-     * @return int|false
+     * @return int|boolean
      */
     public function getOptionId($attributeCode, $label, $force = false){
         

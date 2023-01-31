@@ -1,9 +1,9 @@
 <h1 align="center">
   <a href="https://support.saleslayer.com">
-    <img src="https://saleslayer.com/assets/images/logo.svg" alt="Magento Enteprise plugin" width="230"></a>
+    <img src="https://saleslayer.com/assets/images/logo.svg" alt="Magento Enterprise plugin" width="230"></a>
   </a>
   <br><br>
-  Sales Layer Magento plugin for Enteprise
+  Sales Layer Magento plugin for Enterprise
   <br>
 </h1>
 
@@ -21,7 +21,7 @@ Please check the [important notes](https://support.saleslayer.com/magento/import
 
 ## Version compatibility
 
-Tested on: 2.4.3
+Tested from 2.4.3 to 2.4.5-p1
 
 ## Requirements
 
