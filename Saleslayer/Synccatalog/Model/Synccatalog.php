@@ -68,21 +68,9 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
     protected $directoryListFilesystem;
     protected $_productRepository;
     
-    const sl_API_version    = '1.17';
-    const sl_connector_type = 'CN_MAGNT';
-    const sl_data           = 'Synccatalog_data';
-    const sl_connectorid    = 'Synccatalog_connectorid';
-    const sl_secretkey      = 'Synccatalog_secretkey';
-    const sl_rememberme     = 'Synccatalog_rememberme';
-    const sl_time           = 'Synccatalog_response_time';
-    const sl_def_lang       = 'Synccatalog_response_default_language';
-    const sl_lang           = 'Synccatalog_response_language';
-    const sl_lang_used      = 'Synccatalog_response_languages_used';
-    const sl_conn_schema    = 'Synccatalog_response_connector_schema';
-    const sl_data_schema    = 'Synccatalog_response_data_schema';
-    const sl_api_version    = 'Synccatalog_response_api_version';
-    const sl_action         = 'Synccatalog_response_action';
-    const sl_default_cat_id = 'Synccatalog_default_category_id';
+    protected $sl_API_version    = '1.18';
+    protected $sl_connector_type = 'CN_MAGNT';
+    protected $sl_conn_pagination_n_items = 5000;
     
     protected $sl_DEBBUG         = 0;
     protected $sl_time_ini_process = '';
@@ -101,8 +89,8 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
     protected $sl_data_schema;
     protected $processing_connector_id;
 
-    protected $category_field_id                    = 'id';
-    protected $category_field_catalogue_parent_id   = 'catalogue_parent_id';
+    protected $category_field_id                    = 'ID';
+    protected $category_field_catalogue_parent_id   = 'ID_PARENT';
     protected $category_field_name                  = 'section_name';
     protected $category_field_url_key               = 'section_url_key';
     protected $category_field_description           = 'section_description';
@@ -128,8 +116,8 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
     protected $products_collection                  = [];
     protected $products_collection_skus             = [];
     protected $products_collection_names            = [];
-    protected $product_field_id                     = 'id';
-    protected $product_field_catalogue_id           = 'catalogue_id';
+    protected $product_field_id                     = 'ID';
+    protected $product_field_catalogue_id           = 'ID_catalogue';
     protected $product_field_name                   = 'product_name';
     protected $product_field_description            = 'product_description';
     protected $product_field_description_short      = 'product_description_short';
@@ -171,8 +159,8 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
     protected $item_image_type                      = 'product';
 
     protected $format_images_sizes                  = [];
-    protected $format_field_id                      = 'id';
-    protected $format_field_products_id             = 'products_id';
+    protected $format_field_id                      = 'ID';
+    protected $format_field_products_id             = 'ID_products';
     protected $format_field_sku                     = 'format_sku';
     protected $format_field_name                    = 'format_name';
     protected $format_field_price                   = 'format_price';
@@ -301,7 +289,15 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
     protected $tables_identifiers                   = [];
 
-    protected $moduleVersion = null;
+    protected $moduleVersion                        = null;
+
+    protected $sl_schemas_checked                   = false;
+    protected $store_data_params_loaded             = false;
+    protected $format_as_products_schema            = false;
+    protected $format_as_products_schema_checked    = false;
+    protected $format_as_product_category_tree      = [];
+    protected $format_as_product_categories_used_by_products = [];
+    protected $format_as_product_categories_used_by_formats = [];
 
     /**
      * Function __construct
@@ -422,6 +418,8 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         $this->sl_DEBBUG = $this->synccatalogConfigHelper->getDebugerLevel();
         $this->sql_to_insert_limit = $this->synccatalogConfigHelper->getSqlToInsertLimit();
+        $this->sl_API_version = $this->synccatalogConfigHelper->getAPIVersion();
+        $this->sl_conn_pagination_n_items = $this->synccatalogConfigHelper->getPaginationNItems();
         // $this->manage_indexers = $this->synccatalogConfigHelper->getManageIndexers();
         $this->avoid_images_updates = $this->synccatalogConfigHelper->getAvoidImagesUpdates();
         $this->sync_data_hour_from = $this->synccatalogConfigHelper->getSyncDataHourFrom();
@@ -1180,15 +1178,21 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         $slconn = new SalesLayerConn ($connector_id, $secretKey);
 
-        $slconn->set_API_version(self::sl_API_version);
+        $slconn->set_API_version($this->sl_API_version);
+        $debug_pagination_text = '';
+        if ($this->sl_API_version == '1.18'){
+            $slconn->set_pagination($this->sl_conn_pagination_n_items);
+            $debug_pagination_text = ', Pagination: '.print_R($this->sl_conn_pagination_n_items,1);
+        }
+        $slconn->set_group_multicategory(true);
+        $slconn->set_parents_category_tree(true);
+        $slconn->set_same_parent_variants_modifications(true);
 
         $last_date_update = $this->get_conn_field($connector_id, 'last_update') ?? '';
         
-        $this->debbug('Connecting with API... (last update: '.$last_date_update.')');
+        $this->debbug('Connecting with API... (last update: '.$last_date_update.') API Version: '.$this->sl_API_version.$debug_pagination_text);
 
         if ($last_date_update !== null && preg_match('/^\d{4}-/', $last_date_update)) $last_date_update = strtotime($last_date_update);
-
-        $slconn->set_group_multicategory(true);
         
         if ($this->test_sync_all){
         
@@ -1208,7 +1212,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
             $response_connector_type = $response_connector_schema['connector_type'];
 
-            if ($response_connector_type != self::sl_connector_type) {
+            if ($response_connector_type != $this->sl_connector_type) {
                 return 'Invalid Sales Layer connector type';
             }
         }
@@ -1256,7 +1260,6 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         $sync_params['conn_params']['comp_id'] = $slconn->get_response_company_ID();
         $sync_params['conn_params']['connector_id'] = $connector_id;
         
-        $get_response_table_data  = $slconn->get_response_table_data();
         $get_response_time        = $slconn->get_response_time('timestamp');
 
         $this->getResponseLanguages($slconn);
@@ -1276,24 +1279,87 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         $this->debbug('Update new date: '.$get_response_time.' ('.date('Y-m-d H:i:s', $get_response_time).')');
 
-        if ($get_response_table_data) {
+        $this->return_response = [];
+        $info_processed = false;
 
-            $time_process = microtime(1);
-            $arrayReturn = $this->processResponse($get_response_table_data, $connector_id, $sync_params); 
-            if ($this->sl_DEBBUG > 1) $this->debbug('##### time_all_store_process: ', 'timer', (microtime(1) - $time_process));
+        do{
 
-        }else{
+            $pagination_response_data = $slconn->get_response_table_data();
+            
+            if ($this->checkIfResponseDataIsEmpty($pagination_response_data)){
 
-            $arrayReturn = [];
+                $info_processed = true;
+                
+                if (!$this->store_data_params_loaded){
+                    
+                    $sync_params = $this->loadStoreDataParams($sync_params);
+                    $this->store_data_params_loaded = true;
+                
+                }
 
-        }
+                if (!$this->format_as_products_schema_checked){
 
+                    $this->checkFormatAsProductsSchema();
+                    $this->format_as_products_schema_checked = true;
+        
+                }
+
+                if (!$this->sl_schemas_checked){
+                
+                    if (!$this->checkSLSchemas()){
+                
+                        $this->return_response = [];
+                        
+                        if (!empty($this->storage_process_errors)){
+
+                            $this->return_response = $this->storage_process_errors;
+                            $this->return_response['storage_error'] = true;
+                            $this->deleteSLRegs();
+            
+                        }
+                        
+                        $info_processed = false;
+                        break;
+                
+                    }
+                
+                    $this->sl_schemas_checked = true;
+                    
+                }
+
+                $this->storeResponseToProcess($pagination_response_data, $sync_params);
+
+            }
+
+        }while ($slconn->have_next_page() && $slconn->get_next_page_info());
+
+        if ($info_processed && $this->format_as_products_schema) $this->cleanFormatAsProductsUnusedCategories();
         
         $this->debbug('### time_store_sync_data: ', 'timer', (microtime(1) - $time_ini_data));
         $this->debbug("\r\n==== Store Sync Data END ====\r\n");
 
-        return $arrayReturn;
+        return $this->return_response;
     
+    }
+
+    /**
+     * Function to check if response data has items to process
+     * @param array $response_data              response data to check
+     * @return boolean                          true if there is information to process   
+     */
+    private function checkIfResponseDataIsEmpty($response_data){
+
+        foreach ($response_data as $table_name => $table_info){
+
+            if ((isset($table_info['count_deleted']) && $table_info['count_deleted'] > 0) ||
+                (isset($table_info['count_modified']) && $table_info['count_modified'] > 0)){
+                    return true;
+            }
+
+        }
+
+        return false;
+
     }
 
     /**
@@ -1326,11 +1392,25 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
     }
 
     /**
-    * Function to store Sales Layer categories data.
-    * @param array $arrayCatalogue                 categories data to organize
-    * @return array $categories_data_to_store       categories data to store
-    */
-    private function prepare_category_data_to_store ($arrayCatalogue) {
+     * Function to check Sales Layer catalogue schemas
+     * @return boolean                  true if schemas are correct   
+     */
+    private function checkSLSchemas(){
+
+        $data_schema              = json_decode($this->sl_data_schema, 1);
+        if (!$this->checkSLCategoriesSchema()) return false;
+        if (!$this->checkSLProductsSchema()) return false;
+        if ($this->format_as_products_schema === false && !$this->checkSLVariantsSchema()) return false;
+
+        return true;
+
+    }
+
+    /**
+     * Function to check Sales Layer categories schema
+     * @return boolean                  true if schema is correct 
+     */
+    private function checkSLCategoriesSchema(){
 
         $data_schema              = json_decode($this->sl_data_schema, 1);
         $schema                   = $data_schema['catalogue'];
@@ -1344,16 +1424,16 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         }
 
-        $category_data_to_store = [];
+        $this->category_sync_params_to_store = [];
 
-        $category_data_to_store['default_category_id'] = $this->default_category_id;
-        $category_data_to_store['category_is_anchor'] = $this->category_is_anchor;
-        $category_data_to_store['category_page_layout'] = $this->category_page_layout;
-        $category_data_to_store['avoid_images_updates'] = $this->avoid_images_updates;
+        $this->category_sync_params_to_store['default_category_id'] = $this->default_category_id;
+        $this->category_sync_params_to_store['category_is_anchor'] = $this->category_is_anchor;
+        $this->category_sync_params_to_store['category_page_layout'] = $this->category_page_layout;
+        $this->category_sync_params_to_store['avoid_images_updates'] = $this->avoid_images_updates;
 
         $this->category_images_sizes = $this->getImgSizes($schema['fields'], $this->category_field_image, 'Category');
 
-        $category_data_to_store['category_fields']['category_images_sizes'] = $this->category_images_sizes;
+        $this->category_sync_params_to_store['category_fields']['category_images_sizes'] = $this->category_images_sizes;
 
         $field_names = ['category_field_name',
                         'category_field_description',
@@ -1365,7 +1445,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                         'category_field_is_anchor'
                     ];
 
-        $channel_fields = [];
+        $this->category_schema_channel_fields = [];
 
         foreach ($field_names as $field_name){
 
@@ -1373,56 +1453,78 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
             if (isset($schema['fields'][$data_store_field]['origin']) && $schema['fields'][$data_store_field]['origin'] == 'channel'){
 
-                $channel_fields[] = $data_store_field;
+                $this->category_schema_channel_fields[] = $data_store_field;
 
             } 
             
-            $category_data_to_store['category_fields'][$field_name] = $data_store_field;
+            $this->category_sync_params_to_store['category_fields'][$field_name] = $data_store_field;
         
         }
 
         if (isset($this->media_field_names['catalogue']) && !empty($this->media_field_names['catalogue'])){
 
-            $category_data_to_store['catalogue_media_field_names'] = $this->media_field_names['catalogue'];
+            $this->category_sync_params_to_store['catalogue_media_field_names'] = $this->media_field_names['catalogue'];
 
         }
 
-        if (!empty($arrayCatalogue)){
-
-            if (!empty($channel_fields)){
-
-                foreach ($arrayCatalogue as $keyCat => $category) {
-                    
-                    $arrayCatalogue[$keyCat]['data'] = array_diff_key($category['data'], array_flip($channel_fields));
-
-                }
-
-            }
-            
-            unset($channel_fields);
-
-            $time_ini_reorganize = microtime(1);
-            $arrayCatalogue = $this->reorganizeCategories($arrayCatalogue);
-            if ($this->sl_DEBBUG > 1) $this->debbug('### time_reorganize_categories: ', 'timer', (microtime(1) - $time_ini_reorganize));
-            
-            $category_data_to_store['category_data'] = $arrayCatalogue;
-
-        }
-
-        return $category_data_to_store;
+        return true;
 
     }
 
     /**
-    * Function to store Sales Layer products data.
-    * @param array $arrayProducts              products data to organize
-    * @return array $products_data_to_store     products data to store
-    */
-    private function prepare_product_data_to_store($arrayProducts){
-        
+     * Function to filter categories channel fields
+     * @param array $arrayCatalogue     categories to filter channel fields
+     * @return array $arrayCatalogue    categories with channel fields filtered
+     */
+    private function filterCategoryChannelFields($arrayCatalogue){
+
+        foreach ($arrayCatalogue as $keyCat => $category) {
+            
+            $arrayCatalogue[$keyCat]['data'] = array_diff_key($category['data'], array_flip($this->category_schema_channel_fields));
+
+        }
+
+        return $arrayCatalogue;
+
+    }
+
+    
+    /**
+     * Function to prepare Sales Layer categories data.
+     * @param array $arrayCatalogue                 categories data to organize
+     * @return array $arrayCatalogue                categories data to store
+     */
+    private function prepare_category_data_to_store($arrayCatalogue){
+
+        if (!empty($arrayCatalogue)){
+
+            if (!empty($this->category_schema_channel_fields)){
+
+                $arrayCatalogue = $this->filterCategoryChannelFields($arrayCatalogue);
+
+            }
+            
+            
+            if ($this->format_as_products_schema === true){
+
+                $this->loadFormatAsProductsCategoryTree($arrayCatalogue);
+
+            }
+        }
+
+        return $arrayCatalogue;
+
+    }
+
+    /**
+     * Function to check Sales Layer products schema
+     * @return boolean                  true if schema is correct 
+     */
+    private function checkSLProductsSchema(){
+
         $fixed_product_fields = [
-            'ID',
-            'ID_catalogue',
+            $this->product_field_id,
+            $this->product_field_catalogue_id,
             $this->product_field_name,
             $this->product_field_description,
             $this->product_field_description_short,
@@ -1455,16 +1557,15 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
             $this->product_field_website
         ];
 
-        $product_data_to_store = [];
+        $this->product_sync_params_to_store = [];
 
-        $product_data_to_store['avoid_stock_update'] = $this->avoid_stock_update;
-        $product_data_to_store['products_previous_categories'] = $this->products_previous_categories;
-        $product_data_to_store['avoid_images_updates'] = $this->avoid_images_updates;
-        $product_data_to_store['attribute_set_collection'] = $this->getAttributeSetCollection();
+        $this->product_sync_params_to_store['avoid_stock_update'] = $this->avoid_stock_update;
+        $this->product_sync_params_to_store['products_previous_categories'] = $this->products_previous_categories;
+        $this->product_sync_params_to_store['avoid_images_updates'] = $this->avoid_images_updates;
+        $this->product_sync_params_to_store['attribute_set_collection'] = $this->getAttributeSetCollection();
         
-        $default_attribute_set_id = $this->getAttributeSetId($product_data_to_store['attribute_set_collection']);
         
-        $product_data_to_store['default_attribute_set_id'] = $default_attribute_set_id;
+        $this->product_sync_params_to_store['default_attribute_set_id'] = $this->getAttributeSetId($this->product_sync_params_to_store['attribute_set_collection']);
 
         $data_schema = json_decode($this->sl_data_schema, 1);
         $schema      = $data_schema['products'];
@@ -1497,8 +1598,8 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         $this->product_images_sizes = $this->getImgSizes($schema['fields'], $this->product_field_image, 'Product');
 
-        $product_data_to_store['product_fields']['product_images_sizes'] = $this->product_images_sizes;
-        $product_data_to_store['product_fields']['main_image_extension'] = $this->product_images_sizes[0];
+        $this->product_sync_params_to_store['product_fields']['product_images_sizes'] = $this->product_images_sizes;
+        $this->product_sync_params_to_store['product_fields']['main_image_extension'] = $this->product_images_sizes[0];
 
         $field_names = [
             'product_field_name',
@@ -1537,7 +1638,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         }
 
-        $channel_fields = [];
+        $this->product_schema_channel_fields = [];
 
         foreach ($field_names as $field_name){
 
@@ -1545,7 +1646,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
             if (isset($schema['fields'][$data_store_field]['origin']) && $schema['fields'][$data_store_field]['origin'] == 'channel'){
 
-                $channel_fields[] = $data_store_field;
+                $this->product_schema_channel_fields[] = $data_store_field;
 
                 if ($field_name == 'product_field_price'){
                 
@@ -1556,7 +1657,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
             }
             
-            $product_data_to_store['product_fields'][$field_name] = $data_store_field;
+            $this->product_sync_params_to_store['product_fields'][$field_name] = $data_store_field;
         
         }
 
@@ -1586,7 +1687,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                     
                     if (isset($schema['fields'][$grouping_ref_field]['origin']) && $schema['fields'][$grouping_ref_field]['origin'] == 'channel'){
 
-                        $channel_fields[] = $grouping_ref_field;
+                        $this->product_schema_channel_fields[] = $grouping_ref_field;
 
                     }else{
 
@@ -1598,7 +1699,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
             }
 
-            $product_data_to_store['product_fields']['grouping_ref_field_linked'] = $grouping_ref_field_linked;
+            $this->product_sync_params_to_store['product_fields']['grouping_ref_field_linked'] = $grouping_ref_field_linked;
 
             $grouping_qty_fields = $this->getGroupingQty($schema);
 
@@ -1610,7 +1711,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                     
                     if (isset($schema['fields'][$grouping_qty_field]['origin']) && $schema['fields'][$grouping_qty_field]['origin'] == 'channel'){
 
-                        $channel_fields[] = $grouping_qty_field;
+                        $this->product_schema_channel_fields[] = $grouping_qty_field;
 
                     }
 
@@ -1618,53 +1719,76 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
             }
 
-            $product_data_to_store['product_additional_fields'] = $this->setAdditionalFields($schema['fields'], $fixed_product_fields);          
+            $this->product_sync_params_to_store['product_additional_fields'] = $this->setAdditionalFields($schema['fields'], $fixed_product_fields);          
             
         }
 
-        if ($this->sl_DEBBUG > 1 and isset($product_data_to_store['product_additional_fields']) && count($product_data_to_store['product_additional_fields'])){
+        if ($this->sl_DEBBUG > 1 and isset($this->product_sync_params_to_store['product_additional_fields']) && 
+            count($this->product_sync_params_to_store['product_additional_fields'])){
 
-            $this->debbug("Product additional fields:\n".print_r($product_data_to_store['product_additional_fields'],1));
+            $this->debbug("Product additional fields:\n".print_r($this->product_sync_params_to_store['product_additional_fields'],1));
 
         }
 
         if (isset($this->media_field_names['products']) && !empty($this->media_field_names['products'])){
 
-            $product_data_to_store['products_media_field_names'] = $this->media_field_names['products'];
-
-        }
-        
-        if (!empty($arrayProducts)){
-
-            if (!empty($channel_fields)){
-
-                foreach ($arrayProducts as $keyProd => $product) {
-                    
-                    $arrayProducts[$keyProd]['data'] = array_diff_key($product['data'], array_flip($channel_fields));
-
-                }
-
-            }
-            
-            unset($channel_fields);
-
-            $product_data_to_store['product_data'] = $this->checkAttributes($arrayProducts, $product_data_to_store, $default_attribute_set_id);
+            $this->product_sync_params_to_store['products_media_field_names'] = $this->media_field_names['products'];
 
         }
 
-        return $product_data_to_store;
+        return true;
+
     }
 
     /**
-    * Function to store Sales Layer product formats data.
-    * @param array $arrayFormats               product formats data to organize
-    * @return array $product_format_data_to_store     product formats data to store
-    */
-    private function prepare_product_format_data_to_store($arrayFormats){
+     * Function to filter products channel fields
+     * @param array $arrayProducts     products to filter channel fields
+     * @return array $arrayProducts    products with channel fields filtered
+     */
+    private function filterProductChannelFields($arrayProducts){
+        
+        foreach ($arrayProducts as $keyProd => $product) {
+                    
+            $arrayProducts[$keyProd]['data'] = array_diff_key($product['data'], array_flip($this->product_schema_channel_fields));
 
+        }
+
+        return $arrayProducts;
+
+    }
+
+    /**
+     * Function to prepare Sales Layer products data.
+     * @param array $arrayProducts              products data to organize
+     * @return array $arrayProducts             products data to store
+     */
+    private function prepare_product_data_to_store($arrayProducts){
+
+        if (!empty($arrayProducts)){
+
+            if (!empty($this->product_schema_channel_fields)){
+
+                $arrayProducts = $this->filterProductChannelFields($arrayProducts);
+
+            }
+
+            $arrayProducts = $this->checkAttributes($arrayProducts, $this->product_sync_params_to_store);
+
+        }
+
+        return $arrayProducts;
+
+    }
+    
+    /**
+     * Function to check Sales Layer product formats schema
+     * @return boolean                  true if schema is correct 
+     */
+    private function checkSLVariantsSchema(){
+        
         $fixed_format_fields = [
-            'ID',
-            'ID_products',
+            $this->format_field_id,
+            $this->format_field_products_id,
             $this->format_field_sku,
             $this->format_field_name,
             $this->format_field_price,
@@ -1683,18 +1807,15 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
             $this->format_field_website
         ];
 
-        $product_format_data_to_store = [];
+        $this->variant_sync_params_to_store = [];
 
-        $product_format_data_to_store['avoid_stock_update'] = $this->avoid_stock_update;
-        $product_format_data_to_store['format_configurable_attributes'] = $this->format_configurable_attributes;
-        $product_format_data_to_store['avoid_images_updates'] = $this->avoid_images_updates;
+        $this->variant_sync_params_to_store['avoid_stock_update'] = $this->avoid_stock_update;
+        $this->variant_sync_params_to_store['format_configurable_attributes'] = $this->format_configurable_attributes;
+        $this->variant_sync_params_to_store['avoid_images_updates'] = $this->avoid_images_updates;
 
         $data_schema = json_decode($this->sl_data_schema, 1);
         $schema      = $data_schema['product_formats'];
         unset($data_schema);
-
-        //Renombramos campos multiidioma para que los codigos de atributos configurables coincidan con los atributos en MG
-        $arrayFormats = $this->organizeTablesIndex($arrayFormats, $schema['fields']);
 
         if (!isset($schema['fields'][$this->format_field_name])){
 
@@ -1702,7 +1823,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         }
 
-        $product_format_data_to_store['product_format_fields']['format_field_name'] = $this->format_field_name;
+        $this->variant_sync_params_to_store['product_format_fields']['format_field_name'] = $this->format_field_name;
 
         if (!isset($schema['fields'][$this->format_field_sku])){
 
@@ -1716,27 +1837,27 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         }
 
-        $product_format_data_to_store['product_format_fields']['format_field_sku'] = $this->format_field_sku;
-        $product_format_data_to_store['product_format_fields']['format_field_price'] = $this->format_field_price;
-        $product_format_data_to_store['product_format_fields']['format_field_quantity'] = $this->format_field_quantity;
-        $product_format_data_to_store['product_format_fields']['format_field_inventory_backorders'] = $this->format_field_inventory_backorders;
-        $product_format_data_to_store['product_format_fields']['format_field_inventory_min_sale_qty'] = $this->format_field_inventory_min_sale_qty;
-        $product_format_data_to_store['product_format_fields']['format_field_inventory_max_sale_qty'] = $this->format_field_inventory_max_sale_qty;
-        $product_format_data_to_store['product_format_fields']['format_field_image'] = $this->format_field_image;
-        $product_format_data_to_store['product_format_fields']['format_field_tax_class_id'] = $this->format_field_tax_class_id;
-        $product_format_data_to_store['product_format_fields']['format_field_country_of_manufacture'] = $this->format_field_country_of_manufacture;
-        $product_format_data_to_store['product_format_fields']['format_field_special_price'] = $this->format_field_special_price;
-        $product_format_data_to_store['product_format_fields']['format_field_special_from_date'] = $this->format_field_special_from_date;
-        $product_format_data_to_store['product_format_fields']['format_field_special_to_date'] = $this->format_field_special_to_date;
-        $product_format_data_to_store['product_format_fields']['format_field_visibility'] = $this->format_field_visibility;
-        $product_format_data_to_store['product_format_fields']['format_field_website'] = $this->format_field_website;
+        $this->variant_sync_params_to_store['product_format_fields']['format_field_sku'] = $this->format_field_sku;
+        $this->variant_sync_params_to_store['product_format_fields']['format_field_price'] = $this->format_field_price;
+        $this->variant_sync_params_to_store['product_format_fields']['format_field_quantity'] = $this->format_field_quantity;
+        $this->variant_sync_params_to_store['product_format_fields']['format_field_inventory_backorders'] = $this->format_field_inventory_backorders;
+        $this->variant_sync_params_to_store['product_format_fields']['format_field_inventory_min_sale_qty'] = $this->format_field_inventory_min_sale_qty;
+        $this->variant_sync_params_to_store['product_format_fields']['format_field_inventory_max_sale_qty'] = $this->format_field_inventory_max_sale_qty;
+        $this->variant_sync_params_to_store['product_format_fields']['format_field_image'] = $this->format_field_image;
+        $this->variant_sync_params_to_store['product_format_fields']['format_field_tax_class_id'] = $this->format_field_tax_class_id;
+        $this->variant_sync_params_to_store['product_format_fields']['format_field_country_of_manufacture'] = $this->format_field_country_of_manufacture;
+        $this->variant_sync_params_to_store['product_format_fields']['format_field_special_price'] = $this->format_field_special_price;
+        $this->variant_sync_params_to_store['product_format_fields']['format_field_special_from_date'] = $this->format_field_special_from_date;
+        $this->variant_sync_params_to_store['product_format_fields']['format_field_special_to_date'] = $this->format_field_special_to_date;
+        $this->variant_sync_params_to_store['product_format_fields']['format_field_visibility'] = $this->format_field_visibility;
+        $this->variant_sync_params_to_store['product_format_fields']['format_field_website'] = $this->format_field_website;
 
         $this->format_images_sizes = $this->getImgSizes($schema['fields'], $this->format_field_image, 'Product format');
 
-        $product_format_data_to_store['product_format_fields']['format_images_sizes'] = $this->format_images_sizes;
-        $product_format_data_to_store['product_format_fields']['main_image_extension'] = $this->format_images_sizes[0];   
+        $this->variant_sync_params_to_store['product_format_fields']['format_images_sizes'] = $this->format_images_sizes;
+        $this->variant_sync_params_to_store['product_format_fields']['main_image_extension'] = $this->format_images_sizes[0];   
 
-        $channel_fields = [];
+        $this->variant_schema_channel_fields = [];
 
         if (!empty($schema['fields'])){
            
@@ -1744,13 +1865,13 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                 if (!in_array($field_name, $fixed_format_fields)){
 
-                    $product_format_data_to_store['format_additional_fields'][$field_name] = $field_name;
+                    $this->variant_sync_params_to_store['format_additional_fields'][$field_name] = $field_name;
 
                 }
 
                 if (isset($field_props['origin']) && $field_props['origin'] == 'channel'){
 
-                    $channel_fields[] = $field_name;
+                    $this->variant_schema_channel_fields[] = $field_name;
 
                     if ($field_name == 'format_price'){
                 
@@ -1777,40 +1898,163 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         }
 
-        if ($this->sl_DEBBUG > 1 and isset($product_format_data_to_store['format_additional_fields']) && count($product_format_data_to_store['format_additional_fields'])){
+        if ($this->sl_DEBBUG > 1 and isset($this->variant_sync_params_to_store['format_additional_fields']) && 
+            count($this->variant_sync_params_to_store['format_additional_fields'])){
 
-            $this->debbug("Product format additional fields:\n".print_r($product_format_data_to_store['format_additional_fields'],1));
+            $this->debbug("Product format additional fields:\n".print_r($this->variant_sync_params_to_store['format_additional_fields'],1));
 
         }
 
         if (isset($this->media_field_names['product_formats']) && !empty($this->media_field_names['product_formats'])){
 
-            $product_format_data_to_store['product_formats_media_field_names'] = $this->media_field_names['product_formats'];
+            $this->variant_sync_params_to_store['product_formats_media_field_names'] = $this->media_field_names['product_formats'];
 
         }
 
-        if (!empty($arrayFormats) && !empty($channel_fields)){
+        return true;
 
-            foreach ($arrayFormats as $keyForm => $format) {
-                
-                $arrayFormats[$keyForm]['data'] = array_diff_key($format['data'], array_flip($channel_fields));
+    }
 
-            }    
+    /**
+     * Function to filter product formats channel fields
+     * @param array $arrayFormats     product formats to filter channel fields
+     * @return array $arrayFormats    product formats with channel fields filtered
+     */
+    private function filterVariantChannelFields($arrayFormats){
 
-            unset($channel_fields);
-
-        }
-
-        if (!empty($this->format_configurable_attributes)){
-
-            $arrayFormats = $this->prepareConfigurableAttrs($arrayFormats, $schema);
+        foreach ($arrayFormats as $keyForm => $format) {
             
+            $arrayFormats[$keyForm]['data'] = array_diff_key($format['data'], array_flip($this->variant_schema_channel_fields));
+
+        }    
+
+        return $arrayFormats;
+
+    }
+
+    /**
+     * Function to prepare Sales Layer product formats data.
+     * @param array $arrayFormats               product formats data to organize
+     * @return array $arrayFormats              product formats data to store
+     */
+    private function prepare_product_format_data_to_store($arrayFormats){
+
+        if (!empty($arrayFormats)){
+
+            $data_schema = json_decode($this->sl_data_schema, 1);
+            $schema      = $data_schema['product_formats'];
+            unset($data_schema);
+
+            //Renombramos campos multiidioma para que los codigos de atributos configurables coincidan con los atributos en MG
+            $arrayFormats = $this->organizeTablesIndex($arrayFormats, $schema['fields']);
+
+            if (!empty($this->variant_schema_channel_fields)){
+
+                $arrayFormats = $this->filterVariantChannelFields($arrayFormats);
+
+            }
+
+            if (!empty($this->format_configurable_attributes)){
+
+                $arrayFormats = $this->prepareConfigurableAttrs($arrayFormats, $schema);
+                
+            }
+
+            unset($schema);
 
         }
 
-        $product_format_data_to_store['product_format_data'] = $arrayFormats;
+        return $arrayFormats;
 
-        return $product_format_data_to_store;
+    }
+
+    /**
+     * Function to convert Sales Layer product formats to products
+     * @param array $arrayFormats               product formats to convert 
+     * @return array $arrayProducts             converted products
+     */
+    private function convertFormatsToProducts($arrayFormats){
+
+        $data_schema = json_decode($this->sl_data_schema, 1);
+        $products_schema = $data_schema['products'];
+        unset($data_schema);
+
+        $arrayProducts = [];
+
+        foreach ($arrayFormats as $format) {
+            
+            if (!isset($this->format_as_product_product_categories[$format[$this->format_field_products_id]])){
+
+                if (isset($format['data']['format_sku'])){
+
+                    $format_index = 'SKU '.$format['data']['format_sku'];
+
+                }else{
+
+                    $format_index = 'SL ID '.$format[$this->format_field_id];
+
+                }
+
+                $this->debbug("## Error. The product format with ".$format_index." doesn't has a parent product to get information from. Cannot convert.");
+                
+            }else{
+
+                $new_format = array($this->product_field_id => $format[$this->format_field_id], $this->product_field_catalogue_id => $this->format_as_product_product_categories[$format[$this->format_field_products_id]], 'data' => []);
+
+                foreach ($this->format_as_product_field_relations as $new_format_field => $old_format_field) {
+                    
+                    if (isset($products_schema['fields'][$new_format_field])){
+
+                        if ($products_schema['fields'][$new_format_field]['has_multilingual'] == 1){
+
+                            $old_format_field = $old_format_field.'_'.$this->sl_language;
+                            $new_format_field = $products_schema['fields'][$new_format_field]['multilingual_name'];
+
+                        }
+
+                        if (isset($format['data'][$old_format_field])){
+
+                            $new_format['data'][$new_format_field] = $format['data'][$old_format_field];
+
+                        }
+
+                    }
+
+                }
+
+                $arrayProducts[] = $new_format;
+                
+                foreach ($new_format[$this->product_field_catalogue_id] as $category_id) {
+                    
+                    $category_id_to_check = $category_id;
+
+                    do {
+                        
+                        if (!isset($this->format_as_product_categories_used_by_formats[$category_id_to_check]) && $category_id_to_check != 0){
+                            
+                            $this->format_as_product_categories_used_by_formats[$category_id_to_check] = 0;
+
+                        }
+
+                        if (isset($this->format_as_product_category_tree[$category_id_to_check])){
+                            
+                            $category_id_to_check = $this->format_as_product_category_tree[$category_id_to_check];
+                
+                        }else{
+
+                            break;
+
+                        }
+
+                    } while ($category_id_to_check != 0);
+
+                }
+
+            }
+
+        }
+
+        return $arrayProducts;
 
     }
 
@@ -2836,7 +3080,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         $this->sl_product_mg_category_ids = $this->find_product_category_ids_db($product[$this->product_field_catalogue_id]);
         
         if (empty($this->sl_product_mg_category_ids)) {
-            $hasFailed['category'] = '## Error. Product '.$product['data'][$this->product_field_name].' with SL ID '.$product['id'].' has no valid categories.';
+            $hasFailed['category'] = '## Error. Product '.$product['data'][$this->product_field_name].' with SL ID '.$product[$this->product_field_id].' has no valid categories.';
         }
 
         if (! empty($hasFailed)) {
@@ -3056,7 +3300,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         
         $sl_data = $product['data'];
 
-        $this->debbug(" > Updating product core data ID: ".$product['id']." (parent IDs: ".print_r($this->sl_product_mg_category_ids,1).')');
+        $this->debbug(" > Updating product core data ID: ".$product[$this->product_field_id]." (parent IDs: ".print_r($this->sl_product_mg_category_ids,1).')');
         
         if (null === $this->mg_product_id) {
 
@@ -5197,22 +5441,33 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
      */
     private function check_format_db($format){
 
+        $hasFailed = [];
+
         $sl_id = $format[$this->format_field_id];
         $sl_product_id = $format[$this->format_field_products_id];
 
         $this->debbug(" > Checking product format with SL ID: $sl_id");
         if ($format['data'][$this->format_field_name] == ''){
 
-            $this->debbug('## Error. Product format with SL ID: '.$sl_id.' has no name.');
-            return false;
+            $hasFailed[$this->format_field_name] = '## Error. Product format with SL ID: '.$sl_id.' has no name.';
 
         }
 
         if ($format['data'][$this->format_field_sku] == ''){
 
-            $this->debbug('## Error. Product with name: '.$format['data'][$this->format_field_name].' and SL ID: '.$sl_id.' has no SKU.');
-            return false;
+            $hasFailed[$this->format_field_sku] = '## Error. Product format with name: '.$format['data'][$this->format_field_name].' and SL ID: '.$sl_id.' has no SKU.';
 
+        }
+
+        if (!is_numeric($format['data'][$this->format_field_price]) || $format['data'][$this->format_field_price] <= 0) {
+            $hasFailed[$this->format_field_price] = '## Error. Product format with SL ID: '.$sl_id.' has no valid price.';
+        }
+
+        if (!empty($hasFailed)) {
+            foreach ($hasFailed as $debugStr) {
+                $this->debbug($debugStr);
+            }
+            return false;
         }
 
         $sl_sku = $format['data'][$this->format_field_sku];
@@ -7497,104 +7752,104 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
      * @param array $categories         data to reorganize
      * @return array $new_categories    reorganized data
      */
-    private function reorganizeCategories($categories){
+    // private function reorganizeCategories($categories){
             
-        $new_categories = [];
+    //     $new_categories = [];
 
-        if (count($categories) > 0){
+    //     if (count($categories) > 0){
 
-            $counter = 0;
-            $first_level = $first_clean = true;
-            $categories_loaded = [];
+    //         $counter = 0;
+    //         $first_level = $first_clean = true;
+    //         $categories_loaded = [];
             
-            do{
+    //         do{
 
-                $level_categories = $this->getLevelCategories($categories, $categories_loaded, $first_level);
+    //             $level_categories = $this->getLevelCategories($categories, $categories_loaded, $first_level);
             
-                if (!empty($level_categories)){
+    //             if (!empty($level_categories)){
 
-                    $counter = 0;
-                    $first_level = false;
+    //                 $counter = 0;
+    //                 $first_level = false;
 
-                    foreach ($categories as $keyCat => $category) {
+    //                 foreach ($categories as $keyCat => $category) {
                         
-                        if (isset($level_categories[$category[$this->category_field_id]])){
+    //                     if (isset($level_categories[$category[$this->category_field_id]])){
                             
-                            array_push($new_categories, $category);
-                            $categories_loaded[$category[$this->category_field_id]] = 0;
-                            unset($categories[$keyCat]);
+    //                         array_push($new_categories, $category);
+    //                         $categories_loaded[$category[$this->category_field_id]] = 0;
+    //                         unset($categories[$keyCat]);
 
-                        }
+    //                     }
 
-                    }
+    //                 }
 
-                }else{
+    //             }else{
 
-                    $counter++;
+    //                 $counter++;
 
-                }
+    //             }
 
-                if ($counter == 3){
+    //             if ($counter == 3){
             
-                    if ($first_clean && !empty($categories)){
+    //                 if ($first_clean && !empty($categories)){
 
-                        $categories_not_loaded_ids = array_flip(array_column($categories, $this->category_field_id));
+    //                     $categories_not_loaded_ids = array_flip(array_column($categories, $this->category_field_id));
             
-                        foreach ($categories as $keyCat => $category) {
+    //                     foreach ($categories as $keyCat => $category) {
                             
-                            if (!is_array($category[$this->category_field_catalogue_parent_id])){
+    //                         if (!is_array($category[$this->category_field_catalogue_parent_id])){
                             
-                                $category_parent_ids = array($category[$this->category_field_catalogue_parent_id]);
+    //                             $category_parent_ids = array($category[$this->category_field_catalogue_parent_id]);
                             
-                            }else{
+    //                         }else{
                             
-                                $category_parent_ids = array($category[$this->category_field_catalogue_parent_id]);
+    //                             $category_parent_ids = array($category[$this->category_field_catalogue_parent_id]);
                             
-                            }
+    //                         }
 
-                            $has_any_parent = false;
+    //                         $has_any_parent = false;
                             
-                            foreach ($category_parent_ids as $category_parent_id) {
+    //                         foreach ($category_parent_ids as $category_parent_id) {
                                 
-                                if (isset($categories_not_loaded_ids[$category_parent_id])){
+    //                             if (isset($categories_not_loaded_ids[$category_parent_id])){
 
-                                    $has_any_parent = true;
-                                    break;
+    //                                 $has_any_parent = true;
+    //                                 break;
 
-                                } 
+    //                             } 
 
-                            }
+    //                         }
 
-                            if (!$has_any_parent){
+    //                         if (!$has_any_parent){
 
-                                $category[$this->category_field_catalogue_parent_id] = 0;
+    //                             $category[$this->category_field_catalogue_parent_id] = 0;
 
-                                array_push($new_categories, $category);
-                                $categories_loaded[$category[$this->category_field_id]] = 0;
-                                unset($categories[$keyCat]);
+    //                             array_push($new_categories, $category);
+    //                             $categories_loaded[$category[$this->category_field_id]] = 0;
+    //                             unset($categories[$keyCat]);
 
-                                $counter = 0;
-                                $first_level = $first_clean = false;
+    //                             $counter = 0;
+    //                             $first_level = $first_clean = false;
 
-                            }
+    //                         }
 
-                        }
+    //                     }
 
-                    }else{
+    //                 }else{
 
-                        break;
+    //                     break;
 
-                    }
+    //                 }
 
-                }
+    //             }
 
-            }while (count($categories) > 0);    
+    //         }while (count($categories) > 0);    
         
-        }
+    //     }
 
-        return $new_categories;
+    //     return $new_categories;
 
-    }
+    // }
 
     /**
      * Function to get categories by its root level
@@ -7603,55 +7858,55 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
      * @param boolean $first                first time checking this level
      * @return array $level_categories      categories that own to that level
      */
-    private function getLevelCategories($categories, $categories_loaded, $first = false){
+    // private function getLevelCategories($categories, $categories_loaded, $first = false){
 
-        $level_categories = [];
+    //     $level_categories = [];
 
-        if ($first){
+    //     if ($first){
 
-            foreach ($categories as $category) {
+    //         foreach ($categories as $category) {
                 
-                if (!is_array($category[$this->category_field_catalogue_parent_id]) && $category[$this->category_field_catalogue_parent_id] == 0){
+    //             if (!is_array($category[$this->category_field_catalogue_parent_id]) && $category[$this->category_field_catalogue_parent_id] == 0){
 
-                    $level_categories[$category[$this->category_field_id]] = 0;
+    //                 $level_categories[$category[$this->category_field_id]] = 0;
                 
-                }
+    //             }
 
-            }
+    //         }
 
-        }else{
+    //     }else{
 
-            foreach ($categories as $category) {
+    //         foreach ($categories as $category) {
                 
-                if (!is_array($category[$this->category_field_catalogue_parent_id])){
-                    $category_parent_ids = array($category[$this->category_field_catalogue_parent_id]);
-                }else{
-                    $category_parent_ids = array($category[$this->category_field_catalogue_parent_id]);
-                }
+    //             if (!is_array($category[$this->category_field_catalogue_parent_id])){
+    //                 $category_parent_ids = array($category[$this->category_field_catalogue_parent_id]);
+    //             }else{
+    //                 $category_parent_ids = array($category[$this->category_field_catalogue_parent_id]);
+    //             }
 
-                $parents_loaded = true;
-                foreach ($category_parent_ids as $category_parent_id) {
+    //             $parents_loaded = true;
+    //             foreach ($category_parent_ids as $category_parent_id) {
                     
-                    if (!isset($categories_loaded[$category_parent_id])){
+    //                 if (!isset($categories_loaded[$category_parent_id])){
 
-                        $parents_loaded = false;
-                        break;
-                    } 
-                }
+    //                     $parents_loaded = false;
+    //                     break;
+    //                 } 
+    //             }
 
-                if ($parents_loaded){
+    //             if ($parents_loaded){
 
-                    $level_categories[$category[$this->category_field_id]] = 0;
+    //                 $level_categories[$category[$this->category_field_id]] = 0;
 
-                }
+    //             }
 
-            }
+    //         }
 
-        }
+    //     }
 
-        return $level_categories;
+    //     return $level_categories;
 
-    }
+    // }
 
     /**
      * Function to validate if a text contains html tags, if not, adds line break tags to avoid auto-compress.
@@ -8290,7 +8545,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
     //             $slconn = new SalesLayerConn($connector_id, $secret_key);
 
-    //             $slconn->set_API_version(self::sl_API_version);
+    //             $slconn->set_API_version($this->sl_API_version);
     //             $slconn->set_group_multicategory(true);
     //             $slconn->get_info();
 
@@ -8302,7 +8557,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                 //     $response_connector_type = $response_connector_schema['connector_type'];
 
-                //     if ($response_connector_type != self::sl_connector_type) { 
+                //     if ($response_connector_type != $this->sl_connector_type) { 
                 //         continue; 
                 //     }
 
@@ -8312,7 +8567,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
     //             $get_response_table_data  = $slconn->get_response_table_data();
 
-    //             $get_data_schema = self::get_data_schema($slconn);
+    //             $get_data_schema = $this->get_data_schema($slconn);
 
                 // if (!$get_data_schema){ 
                 //     continue; 
@@ -8699,31 +8954,31 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
      * Function to load multi-connector items in SL Multiconn table.
      * @return void
      */
-    public function loadMulticonnItems(){
+    // public function loadMulticonnItems(){
 
-        $connectors = $this->getConnectors();
-        $sl_data = [];
+    //     $connectors = $this->getConnectors();
+    //     $sl_data = [];
 
-        if (empty($connectors)){
-            return;
-        }
+    //     if (empty($connectors)){
+    //         return;
+    //     }
 
-        $this->loadConfigParameters();
-        $this->load_magento_variables();
+    //     $this->loadConfigParameters();
+    //     $this->load_magento_variables();
 
-        foreach ($connectors as $connector) {
+    //     foreach ($connectors as $connector) {
 
-            $sl_data = $this->loadConnItems($connector, $sl_data);
+    //         $sl_data = $this->loadConnItems($connector, $sl_data);
            
-        }
+    //     }
 
-        if (!empty($sl_data)){
+    //     if (!empty($sl_data)){
 
-            $this->saveConns($sl_data);
+    //         $this->saveConns($sl_data);
 
-        }
+    //     }
 
-    }
+    // }
 
     /**
      * Function to load multiconn data into class param.
@@ -11047,16 +11302,17 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
      * Function to get attribute set id by string or numeric.
      * @param  int $sl_attribute_set_id_value       Sales Layer attribute set id value
      * @param  array $product_data_to_store         array with attribute set collection
-     * @param  int $default_attribute_set_id        value of default attribute set id, in case Sales Layer value is not found
      * @return int $sl_attribute_set_id_value       attribute set id value to update
      */
-    private function correctAttributeId($sl_attribute_set_id_value, $product_data_to_store, $default_attribute_set_id ){
+    private function correctAttributeId($sl_attribute_set_id_value, $product_data_to_store){
+
+        if ($sl_attribute_set_id_value == '') return $this->product_sync_params_to_store['default_attribute_set_id'];
 
         if (is_array($sl_attribute_set_id_value)){
 
             if (empty($sl_attribute_set_id_value)){
 
-                return $default_attribute_set_id;
+                return $this->product_sync_params_to_store['default_attribute_set_id'];
 
             }else{
 
@@ -11070,7 +11326,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
             
             if (!isset($product_data_to_store['attribute_set_collection'][$sl_attribute_set_id_value])){
                 
-                $sl_attribute_set_id_value = $default_attribute_set_id;
+                $sl_attribute_set_id_value = $this->product_sync_params_to_store['default_attribute_set_id'];
             
             }
             
@@ -11080,13 +11336,21 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
             
             if (!is_numeric($sl_attribute_set_id_value)){
                 
-                $sl_attribute_set_id_value = $default_attribute_set_id;
+                $sl_attribute_set_id_value = $this->product_sync_params_to_store['default_attribute_set_id'];
             
             }
             
         }
 
-        return $sl_attribute_set_id_value;
+        if ($sl_attribute_set_id_value == ''){
+            
+            return $this->product_sync_params_to_store['default_attribute_set_id'];
+        
+        }else{
+
+            return $sl_attribute_set_id_value;
+        
+        }
 
     }
 
@@ -11094,10 +11358,9 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
      * Function to check and unset attribute that are not in attribute set
      * @param  array $arrayProducts             products to update
      * @param  array $product_data_to_store     data to store
-     * @param  int $default_attribute_set_id    default attribute set id
      * @return array                            array of products to update or false if no one is valid
      */
-    private function checkAttributes($arrayProducts, $product_data_to_store, $default_attribute_set_id){
+    private function checkAttributes($arrayProducts, $product_data_to_store){
         
         $time_ini = microtime(1);
         $attributes_checked = $attributes_in_set = []; 
@@ -11109,11 +11372,10 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                 unset($arrayProducts[$keyProd]);
                 continue;
             }
-
             
             if (isset($product['data'][$this->product_field_attribute_set_id])){
 
-                $sl_attribute_set_id_value = $this->correctAttributeId($product['data'][$this->product_field_attribute_set_id], $product_data_to_store, $default_attribute_set_id);
+                $sl_attribute_set_id_value = $this->correctAttributeId($product['data'][$this->product_field_attribute_set_id], $product_data_to_store);
                 
                 $arrayProducts[$keyProd]['data'][$this->product_field_attribute_set_id] = $sl_attribute_set_id_value;
             
@@ -11530,16 +11792,9 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
     }
 
-    /**
-     * Function to process response of data storage
-     * @param  array $get_response_table_data           Sales Layer connector call data return
-     * @param  int $connector_id                        connector row id
-     * @param  array $sync_params                       Synchronization parameters to store
-     * @return array $arrayReturn                       response of storage
-     */
-    private function processResponse($get_response_table_data, $connector_id, $sync_params){
-        
-        $arrayReturn = [];
+    private function loadStoreDataParams($sync_params){
+
+        $connector_id = $sync_params['conn_params']['connector_id'];
 
         $this->loadStoreViewIds($connector_id);
         $sync_params['conn_params']['store_view_ids'] = $this->store_view_ids;
@@ -11553,44 +11808,69 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         $this->category_page_layout = $this->get_conn_field($connector_id, 'category_page_layout');
 
         if (!$this->sl_language) { $this->sl_language = $this->get_conn_field($connector_id, 'languages'); }
-        
-        $this->checkFrmAsPrd($get_response_table_data);
 
-        foreach ($get_response_table_data as $nombre_tabla => $data_tabla) {
-
-            if (count($data_tabla['deleted'] ?? []) > 0) {
-                $arrayReturn = $this->processDeleted($data_tabla['deleted'], $sync_params, $arrayReturn, $nombre_tabla);
-                unset($get_response_table_data[$nombre_tabla]['deleted']);
-            }
-
-            $arrayReturn = $this->processModified($data_tabla['modified'], $sync_params, $arrayReturn, $nombre_tabla);
-           
-            if (!empty($this->storage_process_errors)){
-
-                $arrayReturn = $this->storage_process_errors;
-                $arrayReturn['storage_error'] = true;
-                $this->deleteSLRegs();
-                break;
-
-            }
-
-            if (isset($get_response_table_data[$nombre_tabla]['modified'])){
-                unset($get_response_table_data[$nombre_tabla]['modified']);
-            }
-
-        }
-
-        return $arrayReturn;
+        return $sync_params;
 
     }
 
     /**
-     * Function to check if variants as products option is set, and if so, convert variants to products.
-     * @param  array $get_response_table_data   Sales Layer connector call data return
+     * Function to store response of data storage
+     * @param  array $table_data_to_store           Sales Layer connector call data return
+     * @param  array $sync_params                       Synchronization parameters to store
      * @return void
      */
-    private function checkFrmAsPrd(array &$get_response_table_data): void
-    {
+    private function storeResponseToProcess($table_data_to_store, $sync_params){
+        
+        if ($this->format_as_products_schema === true){
+
+            if (isset($table_data_to_store['products']['modified']) && !empty($table_data_to_store['products']['modified'])){
+
+                $this->loadFormatAsProductsProductsCategories($table_data_to_store['products']['modified']);
+
+            }
+
+            $table_data_to_store['products']['modified'] = [];
+            $table_data_to_store['products']['deleted'] = [];
+            
+            if (isset($table_data_to_store['product_formats']['deleted']) && !empty($table_data_to_store['product_formats']['deleted'])){
+            
+                $table_data_to_store['products']['deleted'] = $table_data_to_store['product_formats']['deleted'];
+
+            }
+
+            $table_data_to_store['products']['modified'] = $this->convertFormatsToProducts($table_data_to_store['product_formats']['modified']);
+            $table_data_to_store['product_formats']['modified'] = [];
+            $table_data_to_store['product_formats']['deleted'] = [];
+
+        }
+
+        foreach ($table_data_to_store as $table_name => $table_data) {
+
+            if (count($table_data['deleted'] ?? []) > 0) {
+
+                $this->processDeleted($table_data['deleted'], $sync_params, $table_name);
+                unset($table_data_to_store[$table_name]['deleted']);
+
+            }
+
+            if (count($table_data['modified'] ?? []) > 0){
+
+                $this->processModified($table_data['modified'], $sync_params, $table_name);
+                unset($table_data_to_store[$table_name]['modified']);
+
+            }
+
+        }
+
+    }
+
+    
+    /**
+     * Function to check if variants as products option is set, and if so, convert and load params.
+     * @return void
+     */
+    private function checkFormatAsProductsSchema(){
+
         $data_schema = json_decode($this->sl_data_schema, 1);
         
         if (!isset($data_schema['products'])){
@@ -11605,40 +11885,44 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         if (isset($data_schema['product_formats']['fields']['frm_prd_fields'])){
 
+            $this->format_as_products_schema = true;
+
             if ($this->sl_DEBBUG > 1) $this->debbug('Option to process variants as products active. Reorganizing data.');
 
             //Field relation between products and variants
-            $field_relations = array(
-            'sku'                               => 'format_sku',
-            'product_name'                      => 'format_name',
-            'product_description'               => 'format_description',
-            'product_description_short'         => 'format_description_short',
-            'product_image'                     => 'format_image',
-            'product_price'                     => 'format_price',
-            'product_special_price'             => 'format_special_price',
-            'product_special_from_date'         => 'format_special_from_date',
-            'product_special_to_date'           => 'format_special_to_date',
-            'qty'                               => 'format_quantity',
-            'product_inventory_backorders'      => 'format_inventory_backorders',
-            'product_inventory_min_sale_qty'    => 'format_inventory_min_sale_qty',
-            'product_inventory_max_sale_qty'    => 'format_inventory_max_sale_qty',
-            'attribute_set_id'                  => 'format_attribute_set_id',
-            'product_meta_title'                => 'format_meta_title',
-            'product_meta_keywords'             => 'format_meta_keywords',
-            'product_meta_description'          => 'format_meta_description',
-            'product_length'                    => 'format_length',
-            'product_width'                     => 'format_width',
-            'product_height'                    => 'format_height',
-            'product_weight'                    => 'format_weight',
-            'product_status'                    => 'format_status',
-            'product_visibility'                => 'format_visibility',
-            'product_tax_class_id'              => 'format_tax_class_id',
-            'product_country_of_manufacture'    => 'format_country_of_manufacture',
-            'grouping_product_reference_1'      => 'grouping_format_reference_1',
-            'grouping_product_quantity_1'       => 'grouping_format_quantity_1',
-            'related_products_references'       => 'related_formats_references',
-            'upsell_products_references'        => 'upsell_formats_references',
-            'crosssell_products_references'     => 'crosssell_formats_references');
+            $this->format_as_product_field_relations = [
+                'sku'                               => 'format_sku',
+                'product_name'                      => 'format_name',
+                'product_description'               => 'format_description',
+                'product_description_short'         => 'format_description_short',
+                'product_image'                     => 'format_image',
+                'product_price'                     => 'format_price',
+                'product_special_price'             => 'format_special_price',
+                'product_special_from_date'         => 'format_special_from_date',
+                'product_special_to_date'           => 'format_special_to_date',
+                'qty'                               => 'format_quantity',
+                'product_inventory_backorders'      => 'format_inventory_backorders',
+                'product_inventory_min_sale_qty'    => 'format_inventory_min_sale_qty',
+                'product_inventory_max_sale_qty'    => 'format_inventory_max_sale_qty',
+                'attribute_set_id'                  => 'format_attribute_set_id',
+                'product_meta_title'                => 'format_meta_title',
+                'product_meta_keywords'             => 'format_meta_keywords',
+                'product_meta_description'          => 'format_meta_description',
+                'product_length'                    => 'format_length',
+                'product_width'                     => 'format_width',
+                'product_height'                    => 'format_height',
+                'product_weight'                    => 'format_weight',
+                'product_status'                    => 'format_status',
+                'product_visibility'                => 'format_visibility',
+                'product_tax_class_id'              => 'format_tax_class_id',
+                'product_country_of_manufacture'    => 'format_country_of_manufacture',
+                'grouping_product_reference_1'      => 'grouping_format_reference_1',
+                'grouping_product_quantity_1'       => 'grouping_format_quantity_1',
+                'related_products_references'       => 'related_formats_references',
+                'upsell_products_references'        => 'upsell_formats_references',
+                'crosssell_products_references'     => 'crosssell_formats_references',
+                'product_website'                   => 'format_website'
+            ];
 
             //Checking if there are additional grouping format fields
             $grouping_indexes = array('reference', 'quantity');
@@ -11655,7 +11939,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                         foreach ($array_grouping_format as $grouping_format) {
                             
-                            $field_relations[str_replace('grouping_'.$format_field.'_'.$grouping_index.'_', 'grouping_product_'.$grouping_index.'_', $grouping_format)] = $grouping_format;
+                            $this->format_as_product_field_relations[str_replace('grouping_'.$format_field.'_'.$grouping_index.'_', 'grouping_product_'.$grouping_index.'_', $grouping_format)] = $grouping_format;
                             
                         }
 
@@ -11666,13 +11950,13 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
             }
 
             //We check extra fields
-            $fixed_fields = array_merge(array($this->format_field_id, $this->format_field_products_id), $field_relations);
+            $fixed_fields = array_merge(array($this->format_field_id, $this->format_field_products_id), $this->format_as_product_field_relations);
             
             foreach ($data_schema['product_formats']['fields'] as $field_name => $field_data) {
 
                 if (!in_array($field_name, $fixed_fields) && $field_name !== 'frm_prd_fields'){
 
-                    $field_relations[$field_name] = $field_name;
+                    $this->format_as_product_field_relations[$field_name] = $field_name;
 
                 }
 
@@ -11682,7 +11966,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
             $product_field_ID_cont = $product_field_ID_catalogue_cont = [];
             foreach ($data_schema['products']['fields'] as $key => $key_data){
                 if ($product_field_ID_key !== '' && $product_field_ID_catalogue_key !== '') break;
-                if ($product_field_ID_key == '' and $this->product_field_id == strtolower($key)){
+                if ($product_field_ID_key == '' and strtolower($this->product_field_id) == strtolower($key)){
                     $product_field_ID_key = $key;
                     $product_field_ID_cont = $key_data;
                     continue;
@@ -11697,10 +11981,10 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                     continue;
                 }
             }
-            
+
             $data_schema['products']['fields'] = array($product_field_ID_key => $product_field_ID_cont, $product_field_ID_catalogue_key => $product_field_ID_catalogue_cont);
 
-            foreach ($field_relations as $product_field => $format_field){
+            foreach ($this->format_as_product_field_relations as $product_field => $format_field){
                 
                 if (isset($data_schema['product_formats']['fields'][$format_field])){
 
@@ -11709,170 +11993,132 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                         $data_schema['product_formats']['fields'][$format_field]['multilingual_name'] = $product_field.'_'.$this->sl_language;
 
                     }
-
+                    
                     $data_schema['products']['fields'][$product_field] = $data_schema['product_formats']['fields'][$format_field];
-
+            
                 }
 
             }
 
             $data_schema['product_formats']['fields'] = [];
             
-            //We load the category tree
-            $category_tree = [];
+            $this->sl_data_schema = json_encode($data_schema);
+        
+        }
 
-            if (isset($get_response_table_data['catalogue']['modified']) && !empty($get_response_table_data['catalogue']['modified'])){
+    }
 
-                foreach ($get_response_table_data['catalogue']['modified'] as $category) {
-                    
-                    $category_tree[$category[$this->category_field_id]] = $category[$this->category_field_catalogue_parent_id];
+    private function cleanFormatAsProductsUnusedCategories(){
 
-                }
+        $empty_categories = [];
 
-            }
+        foreach ($this->format_as_product_category_tree as $category_id => $category_parent_id) {
+            
+            if (!isset($this->format_as_product_categories_used_by_products[$category_id]) && 
+                !isset($this->format_as_product_categories_used_by_formats[$category_id])){
 
-            //We extract product ids and their category ids
-            $product_categories = $categories_used_by_products = [];
+                $category_id_to_add = $category_id;
 
-            foreach ($get_response_table_data['products']['modified'] as $product) {
-                
-                if (isset($product[$this->product_field_catalogue_id]) && !empty($product[$this->product_field_catalogue_id])){
+                do {
 
-                    $product_categories[$product[$this->product_field_id]] = $product[$this->product_field_catalogue_id];
-
-                    foreach ($product[$this->product_field_catalogue_id] as $category_id) {
-
-                        $category_id_to_check = $category_id;
-
-                        do {
-                            
-                            if (!isset($categories_used_by_products[$category_id_to_check])  && $category_id_to_check != 0){
-                                
-                                $categories_used_by_products[$category_id_to_check] = 0;
-
-                            }
-
-                            if (isset($category_tree[$category_id_to_check])){
-                                
-                                $category_id_to_check = $category_tree[$category_id_to_check];
-                            
-                            }else{
-
-                                break;
-
-                            }
-
-                        } while ($category_id_to_check != 0);
+                    if (!isset($empty_categories[$category_id_to_add]) && $category_id_to_add != 0){
+                        
+                        $empty_categories[$category_id_to_add] = 0;
 
                     }
 
-                }
-
-            }
-
-            $get_response_table_data['products']['modified'] = [];
-            $get_response_table_data['products']['deleted'] = $get_response_table_data['product_formats']['deleted'];
-
-            $format_categories = $categories_used_by_formats = [];
-
-            foreach ($get_response_table_data['product_formats']['modified'] as $format) {
-                
-                if (!isset($product_categories[$format[$this->format_field_products_id]])){
-
-                    if (isset($format['data']['format_sku'])){
-
-                        $format_index = 'SKU '.$format['data']['format_sku'];
-
+                    if (isset($this->format_as_product_category_tree[$category_id_to_add])){
+                        
+                        $category_id_to_add = $this->format_as_product_category_tree[$category_id_to_add];
+                    
                     }else{
 
-                        $format_index = 'SL ID '.$format[$this->format_field_id];
+                        break;
 
                     }
 
-                    $this->debbug("## Error. The product format with ".$format_index." doesn't has a parent product to get information from. Cannot convert.");
-                    
-                }else{
-
-                    $new_format = array($this->product_field_id => $format[$this->format_field_id], $this->product_field_catalogue_id => $product_categories[$format[$this->format_field_products_id]], 'data' => []);
-
-                    foreach ($field_relations as $new_format_field => $old_format_field) {
-                        
-                        if (isset($data_schema['products']['fields'][$new_format_field])){
-
-                            if ($data_schema['products']['fields'][$new_format_field]['has_multilingual'] == 1){
-
-                                $old_format_field = $old_format_field.'_'.$this->sl_language;
-                                $new_format_field = $data_schema['products']['fields'][$new_format_field]['multilingual_name'];
-
-                            }
-
-                            if (isset($format['data'][$old_format_field])){
-
-                                $new_format['data'][$new_format_field] = $format['data'][$old_format_field];
-
-                            }
-
-                        }
-
-                    }
-
-                    $get_response_table_data['products']['modified'][] = $new_format;
-
-                    $format_categories[$new_format[$this->format_field_id]] = $new_format[$this->product_field_catalogue_id];
-
-                    foreach ($new_format[$this->product_field_catalogue_id] as $category_id) {
-                        
-                        $category_id_to_check = $category_id;
-
-                        do {
-                            
-                            if (!isset($categories_used_by_formats[$category_id_to_check]) && $category_id_to_check != 0){
-                                
-                                $categories_used_by_formats[$category_id_to_check] = 0;
-
-                            }
-
-                            if (isset($category_tree[$category_id_to_check])){
-                                
-                                $category_id_to_check = $category_tree[$category_id_to_check];
-                    
-                            }else{
-
-                                break;
-
-                            }
-
-                        } while ($category_id_to_check != 0);
-
-                    }
-
-                }
+                } while ($category_id_to_add != 0);
 
             }
 
-            $get_response_table_data['product_formats']['modified'] = [];   
-            $get_response_table_data['product_formats']['deleted'] = [];           
+        }
 
-            //We search for empty categories (not used by products or formats)
-            $empty_categories = [];
+        $categories_to_process = $empty_categories + $this->format_as_product_categories_used_by_formats;
 
-            foreach ($category_tree as $category_id => $category_parent_id) {
-                
-                if (!isset($categories_used_by_products[$category_id]) && !isset($categories_used_by_formats[$category_id])){
+        if (!empty($categories_to_process)){
 
-                    $category_id_to_add = $category_id;
+            foreach ($this->format_as_product_category_tree as $category_id => $category_parent_id){
+
+                if (!isset($categories_to_process[$category_id])){
+
+                    $match = "'%\"ID\":\"".$category_id."\"%'";
+
+                    try{
+                        
+                        $this->connection->delete(
+                            $this->saleslayer_syncdata_table,
+                            ['item_data LIKE '.$match]
+                            
+                        );
+                        
+                    }catch(\Exception $e){
+
+                        $this->debbug('## Error. Deleting unused category to process: '.$e->getMessage());
+
+                    }
+
+                    if (isset($this->return_response['categories_to_sync']) &&
+                        $this->return_response['categories_to_sync'] > 0){
+                        
+                        $this->return_response['categories_to_sync']--;
+                    
+                    }
+
+                }        
+
+            }
+
+        }
+
+    }
+
+    private function loadFormatAsProductsCategoryTree($arrayCatalogue){
+
+        foreach ($arrayCatalogue as $keyCat => $category) {
+            
+            $this->format_as_product_category_tree[$category[$this->category_field_id]] = $category[$this->category_field_catalogue_parent_id];
+                    
+        }
+        
+    }
+
+    /**
+     * Function to load product categories for Format As Products option
+     * @param array $arrayProducts          products to load 
+     */
+    private function loadFormatAsProductsProductsCategories($arrayProducts){
+
+        foreach ($arrayProducts as $product) {
+            
+            if (isset($product[$this->product_field_catalogue_id]) && !empty($product[$this->product_field_catalogue_id])){
+
+                $this->format_as_product_product_categories[$product[$this->product_field_id]] = $product[$this->product_field_catalogue_id];
+
+                foreach ($product[$this->product_field_catalogue_id] as $category_id) {
+
+                    $category_id_to_check = $category_id;
 
                     do {
-
-                        if (!isset($empty_categories[$category_id_to_add]) && $category_id_to_add != 0){
+                        
+                        if (!isset($this->format_as_product_categories_used_by_products[$category_id_to_check])  && $category_id_to_check != 0){
                             
-                            $empty_categories[$category_id_to_add] = 0;
+                            $this->format_as_product_categories_used_by_products[$category_id_to_check] = 0;
 
                         }
 
-                        if (isset($category_tree[$category_id_to_add])){
+                        if (isset($this->format_as_product_category_tree[$category_id_to_check])){
                             
-                            $category_id_to_add = $category_tree[$category_id_to_add];
+                            $category_id_to_check = $this->format_as_product_category_tree[$category_id_to_check];
                         
                         }else{
 
@@ -11880,30 +12126,14 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                         }
 
-                    } while ($category_id_to_add != 0);
+                    } while ($category_id_to_check != 0);
 
                 }
 
             }
 
-            $categories_to_process = $empty_categories + $categories_used_by_formats;
-
-            if (!empty($categories_to_process)){
-
-                foreach ($get_response_table_data['catalogue']['modified'] as $keyCat => $category) {
-
-                    if (!isset($categories_to_process[$category[$this->category_field_id]])){
-
-                        unset($get_response_table_data['catalogue']['modified'][$keyCat]);
-
-                    }
-
-                }
-
-            }
-
-            $this->sl_data_schema = json_encode($data_schema);
         }
+
     }
 
     /**
@@ -11914,22 +12144,25 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
      * @param  string $nombre_tabla         type of items to delete
      * @return array $arrayReturn           data with counters to return
      */
-    private function processDeleted($deleted_data, $sync_params, $arrayReturn, $nombre_tabla){
+    private function processDeleted($deleted_data, $sync_params, $nombre_tabla){
 
             $time_ini_delete = microtime(1);
-
+            
             switch ($nombre_tabla) {
                 case 'catalogue':
 
-                    $arrayReturn['categories_to_delete'] = $this->storeDeletedItems('category', $deleted_data, $sync_params);
+                    if (!isset($this->return_response['categories_to_delete'])) $this->return_response['categories_to_delete'] = 0;
+                    $this->return_response['categories_to_delete'] += $this->storeDeletedItems('category', $deleted_data, $sync_params);
                     break;
                 case 'products':
 
-                    $arrayReturn['products_to_delete'] = $this->storeDeletedItems('product', $deleted_data, $sync_params);
+                    if (!isset($this->return_response['products_to_delete'])) $this->return_response['products_to_delete'] = 0;
+                    $this->return_response['products_to_delete'] += $this->storeDeletedItems('product', $deleted_data, $sync_params);
                     break;
                 case 'product_formats':
 
-                    $arrayReturn['product_formats_to_delete'] = $this->storeDeletedItems('product_format', $deleted_data, $sync_params);
+                    if (!isset($this->return_response['product_formats_to_delete'])) $this->return_response['product_formats_to_delete'] = 0;
+                    $this->return_response['product_formats_to_delete'] += $this->storeDeletedItems('product_format', $deleted_data, $sync_params);
                     break;
                 default:
 
@@ -11941,7 +12174,6 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
             $this->insert_syncdata_sql(true);
 
-            return $arrayReturn;
     }
 
     /**
@@ -11970,22 +12202,26 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
      * @param  string $nombre_tabla         type of items to update
      * @return array $arrayReturn           data with counters to return
      */
-    private function processModified($modified_data, $sync_params, $arrayReturn, $nombre_tabla){
-
+    private function processModified($modified_data, $sync_params, $nombre_tabla){
+        
         $time_ini_store_items_update = microtime(1);
 
         switch ($nombre_tabla) {
             case 'catalogue':
 
-                $arrayReturn['categories_to_sync'] = $this->storeModifiedCategories($modified_data, $sync_params);
+                if (!isset($this->return_response['categories_to_sync'])) $this->return_response['categories_to_sync'] = 0;
+                $this->return_response['categories_to_sync'] += $this->storeModifiedCategories($modified_data, $sync_params);
+        
                 break;
             case 'products':
 
-                $arrayReturn['products_to_sync'] = $this->storeModifiedProducts($modified_data, $sync_params);
+                if (!isset($this->return_response['products_to_sync'])) $this->return_response['products_to_sync'] = 0;
+                $this->return_response['products_to_sync'] += $this->storeModifiedProducts($modified_data, $sync_params);
                 break;
             case 'product_formats':
                 
-                $arrayReturn['product_formats_to_sync'] = $this->storeModifiedFormats($modified_data, $sync_params);
+                if (!isset($this->return_response['product_formats_to_sync'])) $this->return_response['product_formats_to_sync'] = 0;
+                $this->return_response['product_formats_to_sync'] += $this->storeModifiedFormats($modified_data, $sync_params);
                 break;
             default:
 
@@ -11997,8 +12233,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         $this->insert_syncdata_sql(true);
 
         if ($this->sl_DEBBUG > 1) $this->debbug('#### time_store_items_update - '.$nombre_tabla.': ', 'timer', (microtime(1) - $time_ini_store_items_update));
-        return $arrayReturn;
-
+        
     }
 
     /**
@@ -12019,20 +12254,15 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         if ($categories_to_sync_count > 0){
 
-            $category_data_to_store = $this->prepare_category_data_to_store($modified_data);
-            if ($category_data_to_store === false) return 0;
-
+            $categories_to_sync = $this->prepare_category_data_to_store($modified_data);
             unset($modified_data);
+            
+            if (!empty($categories_to_sync)){
 
-            if (isset($category_data_to_store['category_data']) && !empty($category_data_to_store['category_data'])){
-
-                $categories_to_sync = $category_data_to_store['category_data'];
-                unset($category_data_to_store['category_data']);
-
-                $category_params = array_merge($category_data_to_store, $sync_params);
+                $category_params = array_merge($this->category_sync_params_to_store, $sync_params);
 
                 $this->createSQLs($categories_to_sync, 'update', 'category', $category_params);
-                
+
             }
 
         }
@@ -12064,34 +12294,21 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         if ($product_to_sync_count > 0){
 
             $time_ini_prepare_product_data_to_store = microtime(1);
-            $product_data_to_store = $this->prepare_product_data_to_store($modified_data);
+            $products_to_sync = $this->prepare_product_data_to_store($modified_data);
             if ($this->sl_DEBBUG > 1) $this->debbug('## time_prepare_product_data_to_store: ', 'timer', (microtime(1) - $time_ini_prepare_product_data_to_store));
-            if ($product_data_to_store === false) return 0;
-
             unset($modified_data);
+            
+            if ($products_to_sync === false) return 0;
 
-            if (isset($product_data_to_store['product_data']) && !empty($product_data_to_store['product_data'])){
+            $product_params = array_merge($this->product_sync_params_to_store, $sync_params);
 
-                $product_to_sync_count = count($product_data_to_store['product_data']);
+            $time_ini_insert_products_into_db = microtime(1);
 
-                $products_to_sync = $product_data_to_store['product_data'];
-                unset($product_data_to_store['product_data']);
-                $product_params = array_merge($product_data_to_store, $sync_params);
+            $this->createSQLs($products_to_sync, 'update', 'product', $product_params);
 
-                $time_ini_insert_products_into_db = microtime(1);
-
-                $this->createSQLs($products_to_sync, 'update', 'product', $product_params);
-
-                if ($this->sl_DEBBUG > 1) $this->debbug('## time_insert_products: ', 'timer', (microtime(1) - $time_ini_insert_products_into_db));
+            if ($this->sl_DEBBUG > 1) $this->debbug('## time_insert_products: ', 'timer', (microtime(1) - $time_ini_insert_products_into_db));
                 
-            }else{
-
-                $arrayReturn['products_to_sync'] = $product_to_sync_count = 0;
-
-            }
-
         }
-
         
         $this->debbug('Total count of modified products to store: '.count($products_to_sync));
         if ($this->sl_DEBBUG > 1) $this->debbug('Modified products data to store final: '.print_r($products_to_sync,1));
@@ -12122,6 +12339,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                     $this->debbug('## Error. The Format with SL ID '.$format[$this->format_field_id].' has no product parent to synchronize.');
                     unset($modified_data[$keyForm]);
+                    $product_formats_to_sync_count --;
                     
                 }
 
@@ -12134,22 +12352,16 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         
         if ($product_formats_to_sync_count > 0){
 
-            $product_format_data_to_store = $this->prepare_product_format_data_to_store($modified_data);
-            if ($product_format_data_to_store === false) return 0;
-
+            $product_formats_to_sync = $this->prepare_product_format_data_to_store($modified_data);
+            
             unset($modified_data);
+            
+            if ($product_formats_to_sync === false) return 0;
 
-            if (isset($product_format_data_to_store['product_format_data']) && !empty($product_format_data_to_store['product_format_data'])){
+            $product_format_params = array_merge($this->variant_sync_params_to_store, $sync_params);
 
-                $product_formats_to_sync = $product_format_data_to_store['product_format_data'];
-                unset($product_format_data_to_store['product_format_data']);
-
-                $product_format_params = array_merge($product_format_data_to_store, $sync_params);
-
-                $this->createSQLs($product_formats_to_sync, 'update', 'product_format', $product_format_params);
+            $this->createSQLs($product_formats_to_sync, 'update', 'product_format', $product_format_params);
                 
-            }
-
         }
 
         $this->debbug('Total count of modified product formats to store: '.count($product_formats_to_sync));
@@ -12946,7 +13158,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                 } catch(\Exception $e) {
                     
                     $this->debbug('## Error. Updating product attributes with SKU '.$sku.' for store_view_id '.$store_view_id.': '.$e->getMessage());
-                    
+
                 } 
                 
                 $this->debbug(" > In store view id: ".$store_view_id);
@@ -14019,56 +14231,56 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
      * @param  array $sl_data      sl_data to update
      * @return void
      */
-    private function saveConns($sl_data){
+    // private function saveConns($sl_data){
 
-        $sl_multiconn_table_data = $this->connection->fetchAll(" SELECT * FROM ".$this->saleslayer_multiconn_table);
+    //     $sl_multiconn_table_data = $this->connection->fetchAll(" SELECT * FROM ".$this->saleslayer_multiconn_table);
 
-        foreach ($sl_data as $comp_id => $sl_data_regs) {
+    //     foreach ($sl_data as $comp_id => $sl_data_regs) {
 
-            foreach ($sl_data_regs as $item_type => $sl_item_data) {
+    //         foreach ($sl_data_regs as $item_type => $sl_item_data) {
 
-                foreach ($sl_item_data as $item_id => $sl_item_connectors) {
+    //             foreach ($sl_item_data as $item_id => $sl_item_connectors) {
 
-                    $found = false;
+    //                 $found = false;
 
-                    if (!empty($sl_multiconn_table_data)){
+    //                 if (!empty($sl_multiconn_table_data)){
 
-                        foreach ($sl_multiconn_table_data as $sl_multiconn_reg) {
+    //                     foreach ($sl_multiconn_table_data as $sl_multiconn_reg) {
 
-                            if ($this->updateConns($sl_multiconn_reg, $item_type, $comp_id, $item_id, $sl_item_connectors)){
-                                $found = true;
-                            }
+    //                         if ($this->updateConns($sl_multiconn_reg, $item_type, $comp_id, $item_id, $sl_item_connectors)){
+    //                             $found = true;
+    //                         }
                       
-                        }
-                    }
+    //                     }
+    //                 }
 
-                    if (!$found){
+    //                 if (!$found){
 
-                        try{
+    //                     try{
 
-                            $connectors_data = json_encode($sl_item_connectors);
+    //                         $connectors_data = json_encode($sl_item_connectors);
 
-                            $query_insert = " INSERT INTO ".$this->saleslayer_multiconn_table.
-                                "(`item_type`,`sl_id`,`sl_comp_id`,`sl_connectors`) ".
-                                "values ( ? , ? , ? , ? );";
+    //                         $query_insert = " INSERT INTO ".$this->saleslayer_multiconn_table.
+    //                             "(`item_type`,`sl_id`,`sl_comp_id`,`sl_connectors`) ".
+    //                             "values ( ? , ? , ? , ? );";
 
-                            $this->sl_connection_query($query_insert, array($item_type, $item_id, $comp_id, $connectors_data));
+    //                         $this->sl_connection_query($query_insert, array($item_type, $item_id, $comp_id, $connectors_data));
 
-                        }catch(\Exception $e){
+    //                     }catch(\Exception $e){
                         
-                            $this->debbug('## Error. Inserting multiconn table: '.$e->getMessage());
+    //                         $this->debbug('## Error. Inserting multiconn table: '.$e->getMessage());
                         
-                        }
+    //                     }
 
-                    }
+    //                 }
 
-                }
+    //             }
 
-            }
+    //         }
 
-        }
+    //     }
 
-    }
+    // }
 
     /**
      * Function to prepare multiconn info
@@ -14143,62 +14355,62 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
      * @param  array $sl_data                   multiconn data to fill
      * @return array $sl_data                   multiconn data filled
      */
-    private function loadConnItems($connector, $sl_data){
+    // private function loadConnItems($connector, $sl_data){
 
-        $connector_id = $connector['connector_id'];
-        $secret_key = $connector['secret_key'];
+    //     $connector_id = $connector['connector_id'];
+    //     $secret_key = $connector['secret_key'];
 
-        $slconn = new SalesLayerConn ($connector_id, $secret_key);
+    //     $slconn = new SalesLayerConn ($connector_id, $secret_key);
 
-        $slconn->set_API_version(self::sl_API_version);
-        $slconn->set_group_multicategory(true);
-        $slconn->get_info();
+    //     $slconn->set_API_version($this->sl_API_version);
+    //     $slconn->set_group_multicategory(true);
+    //     $slconn->get_info();
 
-        if ($slconn->has_response_error()) { 
-            return; 
-        }
+    //     if ($slconn->has_response_error()) { 
+    //         return; 
+    //     }
 
-        if ($response_connector_schema = $slconn->get_response_connector_schema()) {
+    //     if ($response_connector_schema = $slconn->get_response_connector_schema()) {
 
-            $response_connector_type = $response_connector_schema['connector_type'];
-            if ($response_connector_type != self::sl_connector_type) { 
-                return;
-            }
+    //         $response_connector_type = $response_connector_schema['connector_type'];
+    //         if ($response_connector_type != $this->sl_connector_type) { 
+    //             return;
+    //         }
 
-        }
+    //     }
 
-        $comp_id = $slconn->get_response_company_ID();
+    //     $comp_id = $slconn->get_response_company_ID();
 
-        $get_response_table_data  = $slconn->get_response_table_data();
+    //     $get_response_table_data  = $slconn->get_response_table_data();
 
-        $get_data_schema = self::get_data_schema($slconn);
+    //     $get_data_schema = $this->get_data_schema($slconn);
 
-        if (!$get_data_schema){
-            return;
-        }
+    //     if (!$get_data_schema){
+    //         return;
+    //     }
 
-        $products_schema = $get_data_schema['products'];
+    //     $products_schema = $get_data_schema['products'];
 
-        if (!empty($products_schema['fields'][strtolower($this->product_field_sku)])){
-            $this->product_field_sku = strtolower($this->product_field_sku);
-        }else if (!empty($products_schema['fields'][strtoupper($this->product_field_sku)])){
-            $this->product_field_sku = strtoupper($this->product_field_sku);
-        }
+    //     if (!empty($products_schema['fields'][strtolower($this->product_field_sku)])){
+    //         $this->product_field_sku = strtolower($this->product_field_sku);
+    //     }else if (!empty($products_schema['fields'][strtoupper($this->product_field_sku)])){
+    //         $this->product_field_sku = strtoupper($this->product_field_sku);
+    //     }
 
-        if ($get_response_table_data) {
+    //     if ($get_response_table_data) {
 
-            if (!isset($sl_data[$comp_id])){ $sl_data[$comp_id] = []; }
+    //         if (!isset($sl_data[$comp_id])){ $sl_data[$comp_id] = []; }
 
-            foreach ($get_response_table_data as $nombre_tabla => $data_tabla) {
+    //         foreach ($get_response_table_data as $nombre_tabla => $data_tabla) {
 
-                $sl_data = $this->prepareConnTableData($data_tabla, $nombre_tabla, $sl_data, $comp_id, $connector_id);
+    //             $sl_data = $this->prepareConnTableData($data_tabla, $nombre_tabla, $sl_data, $comp_id, $connector_id);
 
-            }
-        }
+    //         }
+    //     }
 
-        return $sl_data;
+    //     return $sl_data;
 
-    }
+    // }
 
     /**
      * Function to update multiconn category data

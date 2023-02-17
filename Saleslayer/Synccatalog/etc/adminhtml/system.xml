@@ -27,29 +27,39 @@
                     <backend_model>Saleslayer\Synccatalog\Model\Config\SqlInsertLimit\BackendModel</backend_model>
                     <validate>validate-digits</validate>
                 </field>
-                <field id="avoid_images_updates" translate="label comment" type="select" sortOrder="4" showInDefault="1" showInWebsite="1" showInStore="0">
+                <field id="api_version" translate="label comment" type="select" sortOrder="4" showInDefault="1" showInWebsite="1" showInStore="0">
+                    <label>SL Conn API Version</label>
+                    <comment>Pagination will only be usable with API Version 1.18.</comment>
+                    <source_model>Saleslayer\Synccatalog\Model\Config\APIVersion\APIVersion</source_model>
+                </field>
+                <field id="pagination_n_items" translate="label comment" type="select" sortOrder="5" showInDefault="1" showInWebsite="1" showInStore="0">
+                    <label>Number of items for pagination</label>
+                    <comment>When reading data from SL API, máximum of items to read on each call. Data will be inserted into database, and then another call will be made until all data is stored.</comment>
+                    <source_model>Saleslayer\Synccatalog\Model\Config\PaginationNItems\ItemNumber</source_model>
+                </field>
+                <field id="avoid_images_updates" translate="label comment" type="select" sortOrder="6" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>Avoid images updates</label>
                     <comment>Images will not be updated. This will speed up the process and allow only to synchronize the rest of catalogue information. Enable it only when you want to synchronize a big catalogue.</comment>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
-                <field id="sync_data_hour_from" translate="label comment" sortOrder="5" showInDefault="1" showInWebsite="1" showInStore="0">
+                <field id="sync_data_hour_from" translate="label comment" sortOrder="7" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>Synchronize data from this hour</label>
                     <comment>For this hour to work you need to fill in the hour UNTIL. Please enter a value between at least 0 and 23. Empty or set both to 0 to cancel this option.</comment>
                     <backend_model>Saleslayer\Synccatalog\Model\Config\SyncdataHour\BackendModel</backend_model>
                     <validate>validate-digits</validate>
                 </field>
-                <field id="sync_data_hour_until" translate="label comment" sortOrder="6" showInDefault="1" showInWebsite="1" showInStore="0">
+                <field id="sync_data_hour_until" translate="label comment" sortOrder="8" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>Until this hour</label>
                     <comment>For this hour to work you need to fill in the hour FROM. Please enter a value between at least 0 and 23. Empty or set both to 0 to cancel this option.</comment>
                     <backend_model>Saleslayer\Synccatalog\Model\Config\SyncdataHour\BackendModel</backend_model>
                     <validate>validate-digits</validate>
                 </field>
-                <field id="format_type_creation" translate="label comment" type="select" sortOrder="7" showInDefault="1" showInWebsite="1" showInStore="0">
+                <field id="format_type_creation" translate="label comment" type="select" sortOrder="9" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>Product format Type on creation</label>
                     <comment>Products formats will be created with this type</comment>
                     <source_model>Saleslayer\Synccatalog\Model\Config\FormatTypeCreation\TypeCreation</source_model>
                 </field>
-                <field id="delete_sl_logs_since_days" translate="label comment" sortOrder="8" showInDefault="1" showInWebsite="1" showInStore="0">
+                <field id="delete_sl_logs_since_days" translate="label comment" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>Delete SL logs from more than X days ago</label>
                     <comment>Please enter a value between at least 0 and 31. Empty or 0 will not delete SL logs.</comment>
                     <backend_model>Saleslayer\Synccatalog\Model\Config\DeleteSLLogsSinceDays\BackendModel</backend_model>

@@ -10,6 +10,8 @@ class Config extends AbstractHelper
     const CONFIG_SYNCCATALOG_GENERAL_ACTIVATE_DEBUG_LOGS  = 'synccatalog/general/activate_debug_logs';
     const CONFIG_SYNCCATALOG_GENERAL_MANAGE_INDEXERS = 'synccatalog/general/manage_indexers';
     const CONFIG_SYNCCATALOG_GENERAL_SQL_TO_INSERT_LIMIT  = 'synccatalog/general/sql_to_insert_limit';
+    const CONFIG_SYNCCATALOG_GENERAL_API_VERSION  = 'synccatalog/general/api_version';
+    const CONFIG_SYNCCATALOG_GENERAL_PAGINATION_N_ITEMS  = 'synccatalog/general/pagination_n_items';
     const CONFIG_SYNCCATALOG_GENERAL_AVOID_IMAGES_UPDATES = 'synccatalog/general/avoid_images_updates';
     const CONFIG_SYNCCATALOG_GENERAL_SYNC_DATA_HOUR_FROM = 'synccatalog/general/sync_data_hour_from';
     const CONFIG_SYNCCATALOG_GENERAL_SYNC_DATA_HOUR_UNTIL = 'synccatalog/general/sync_data_hour_until';
@@ -24,6 +26,12 @@ class Config extends AbstractHelper
     const ADL_DEBUGER_LEVEL_ENABLED = 1;
     const ADL_DEBUGER_LEVEL_CONF_FIELDS = 2;
     const ADL_DEBUGER_LEVEL_ALL_DATA = 3;
+
+    /**
+     * SL Conn API version
+     */
+    const AV_117 = '1.17';
+    const AV_118 = '1.18';
 
     /**
      * Retrieve debuger level option
@@ -52,6 +60,27 @@ class Config extends AbstractHelper
     public function getSqlToInsertLimit(){
 
         return (int) $this->scopeConfig->getValue(self::CONFIG_SYNCCATALOG_GENERAL_SQL_TO_INSERT_LIMIT);
+    
+    }
+
+        /**
+     * Retrieve API version
+     * @return string
+     */
+    public function getAPIVersion(){
+
+        return $this->scopeConfig->getValue(self::CONFIG_SYNCCATALOG_GENERAL_API_VERSION);
+    
+    }
+
+
+    /**
+     * Retrieve Pagination N items
+     * @return int
+     */
+    public function getPaginationNItems(){
+
+        return (int) $this->scopeConfig->getValue(self::CONFIG_SYNCCATALOG_GENERAL_PAGINATION_N_ITEMS);
     
     }
 

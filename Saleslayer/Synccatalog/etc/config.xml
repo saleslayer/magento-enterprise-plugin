@@ -7,6 +7,8 @@
                 <activate_debug_logs>0</activate_debug_logs>
                 <manage_indexers>1</manage_indexers>
                 <sql_to_insert_limit>1</sql_to_insert_limit>
+                <api_version>1.18</api_version>
+                <pagination_n_items>5000</pagination_n_items>
                 <avoid_images_updates>0</avoid_images_updates>
                 <sync_data_hour_from>0</sync_data_hour_from>
                 <sync_data_hour_until>0</sync_data_hour_until>
