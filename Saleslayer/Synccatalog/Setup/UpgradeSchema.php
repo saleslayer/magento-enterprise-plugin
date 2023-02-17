@@ -2,6 +2,7 @@
 
 namespace Saleslayer\Synccatalog\Setup;
 
+use Magento\Framework\DB\Ddl\Table;
 use Magento\Framework\Setup\UpgradeSchemaInterface;
 use Magento\Framework\Setup\ModuleContextInterface;
 use Magento\Framework\Setup\SchemaSetupInterface;
@@ -25,7 +26,7 @@ class UpgradeSchema implements UpgradeSchemaInterface
                 $setup->getTable('saleslayer_synccatalog_apiconfig'),
                 'store_view_ids',
                 [
-                    'type' => \Magento\Framework\DB\Ddl\Table::TYPE_TEXT,
+                    'type' => Table::TYPE_TEXT,
                     'length' => 255,
                     'nullable' => false,
                     'comment' => 'Magento Store View IDs',
@@ -39,7 +40,7 @@ class UpgradeSchema implements UpgradeSchemaInterface
                 $setup->getTable('saleslayer_synccatalog_apiconfig'),
                 'format_configurable_attributes',
                 [
-                    'type' => \Magento\Framework\DB\Ddl\Table::TYPE_TEXT,
+                    'type' => Table::TYPE_TEXT,
                     'length' => 255,
                     'nullable' => true,
                     'comment' => 'Magento Format Configurable Attributes IDs',
@@ -52,7 +53,7 @@ class UpgradeSchema implements UpgradeSchemaInterface
                 $setup->getTable('saleslayer_synccatalog_apiconfig'),
                 'products_previous_categories',
                 [
-                    'type' => \Magento\Framework\DB\Ddl\Table::TYPE_BOOLEAN,
+                    'type' => Table::TYPE_BOOLEAN,
                     'default' => 1,
                     'nullable' => false,
                     'comment' => 'Magento Connector Products Previous Categories',
@@ -66,7 +67,7 @@ class UpgradeSchema implements UpgradeSchemaInterface
                 $saleslayer_synccatalog_apiconfig_table,
                 'avoid_stock_update',
                 [
-                    'type' => \Magento\Framework\DB\Ddl\Table::TYPE_BOOLEAN,
+                    'type' => Table::TYPE_BOOLEAN,
                     'default' => 0,
                     'nullable' => false,
                     'comment' => 'Connector Avoid Stock Update Option',
@@ -77,7 +78,7 @@ class UpgradeSchema implements UpgradeSchemaInterface
                 $saleslayer_synccatalog_apiconfig_table,
                 'auto_sync',
                 [
-                    'type' => \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
+                    'type' => Table::TYPE_INTEGER,
                     'length' => 3,
                     'nullable' => true,
                     'comment' => 'Connector Auto Sync Option',
@@ -88,7 +89,7 @@ class UpgradeSchema implements UpgradeSchemaInterface
                 $saleslayer_synccatalog_apiconfig_table,
                 'last_sync',
                 [
-                    'type' => \Magento\Framework\DB\Ddl\Table::TYPE_DATETIME,
+                    'type' => Table::TYPE_DATETIME,
                     'nullable' => true,
                     'comment' => 'Connector Last Synchronization Date',
                 ]
@@ -98,31 +99,31 @@ class UpgradeSchema implements UpgradeSchemaInterface
                 $installer->getTable('saleslayer_synccatalog_multiconn')
             )->addColumn(
                 'id',
-                \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
+                Table::TYPE_INTEGER,
                 null,
                 ['identity' => true, 'unsigned' => true, 'nullable' => false, 'primary' => true],
                 'Id'
             )->addColumn(
                 'item_type',
-                \Magento\Framework\DB\Ddl\Table::TYPE_TEXT,
+                Table::TYPE_TEXT,
                 30,
                 ['nullable' => false],
                 'Item Type'
             )->addColumn(
                 'sl_id',
-                \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
+                Table::TYPE_INTEGER,
                 32,
                 ['nullable' => false],
                 'SL ID'
             )->addColumn(
                 'sl_comp_id',
-                \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
+                Table::TYPE_INTEGER,
                 null,
                 ['nullable' => false],
                 'SL Company'
             )->addColumn(
                 'sl_connectors',
-                \Magento\Framework\DB\Ddl\Table::TYPE_TEXT,
+                Table::TYPE_TEXT,
                 '2M',
                 ['nullable' => true],
                 'Sales Layer Connectors'
@@ -148,7 +149,7 @@ class UpgradeSchema implements UpgradeSchemaInterface
                 $saleslayer_synccatalog_apiconfig_table,
                 'category_is_anchor',
                 [
-                    'type' => \Magento\Framework\DB\Ddl\Table::TYPE_BOOLEAN,
+                    'type' => Table::TYPE_BOOLEAN,
                     'default' => 0,
                     'nullable' => false,
                     'comment' => 'Magento Category is anchor',
@@ -159,7 +160,7 @@ class UpgradeSchema implements UpgradeSchemaInterface
                 $saleslayer_synccatalog_apiconfig_table,
                 'category_page_layout',
                 [
-                    'type' => \Magento\Framework\DB\Ddl\Table::TYPE_TEXT,
+                    'type' => Table::TYPE_TEXT,
                     'length' => 255,
                     'default' => '1column',
                     'nullable' => false,
@@ -171,37 +172,37 @@ class UpgradeSchema implements UpgradeSchemaInterface
                 $installer->getTable('saleslayer_synccatalog_syncdata')
             )->addColumn(
                 'id',
-                \Magento\Framework\DB\Ddl\Table::TYPE_BIGINT,
+                Table::TYPE_BIGINT,
                 null,
                 ['identity' => true, 'unsigned' => true, 'nullable' => false, 'primary' => true],
                 'Id'
             )->addColumn(
                 'sync_type',
-                \Magento\Framework\DB\Ddl\Table::TYPE_TEXT,
+                Table::TYPE_TEXT,
                 10,
                 ['nullable' => false],
                 'Sync Type'
             )->addColumn(
                 'item_type',
-                \Magento\Framework\DB\Ddl\Table::TYPE_TEXT,
+                Table::TYPE_TEXT,
                 30,
                 ['nullable' => false],
                 'Item Type'
             )->addColumn(
                 'sync_tries',
-                \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
+                Table::TYPE_INTEGER,
                 null,
                 ['nullable' => false, 'default' => 0],
                 'Sync Tries'
             )->addColumn(
                 'item_data',
-                \Magento\Framework\DB\Ddl\Table::TYPE_TEXT,
+                Table::TYPE_TEXT,
                 '2M',
                 ['nullable' => true],
                 'Item Data'
             )->addColumn(
                 'sync_params',
-                \Magento\Framework\DB\Ddl\Table::TYPE_TEXT,
+                Table::TYPE_TEXT,
                 '2M',
                 ['nullable' => true],
                 'Sync Parameters'
@@ -227,19 +228,19 @@ class UpgradeSchema implements UpgradeSchemaInterface
                 $installer->getTable('saleslayer_synccatalog_syncdata_flag')
             )->addColumn(
                 'id',
-                \Magento\Framework\DB\Ddl\Table::TYPE_BIGINT,
+                Table::TYPE_BIGINT,
                 null,
                 ['identity' => true, 'unsigned' => true, 'nullable' => false, 'primary' => true],
                 'Id'
             )->addColumn(
                 'syncdata_pid',
-                \Magento\Framework\DB\Ddl\Table::TYPE_BIGINT,
+                Table::TYPE_BIGINT,
                 null,
                 ['nullable' => false, 'default' => 0],
                 'Sync Data Pid'
             )->addColumn(
                 'syncdata_last_date',
-                \Magento\Framework\DB\Ddl\Table::TYPE_DATETIME,
+                Table::TYPE_DATETIME,
                 null,
                 ['nullable' => false],
                 'Sync Data Last Update'
@@ -265,7 +266,7 @@ class UpgradeSchema implements UpgradeSchemaInterface
                 $saleslayer_synccatalog_apiconfig_table,
                 'auto_sync_hour',
                 [
-                    'type' => \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
+                    'type' => Table::TYPE_INTEGER,
                     'length' => 2,
                     'nullable' => false,
                     'default'=> '0',
@@ -307,6 +308,19 @@ class UpgradeSchema implements UpgradeSchemaInterface
                 }
 
             }
+
+        }
+
+        if (version_compare($version, '2.6.1') < 0) {
+
+            $connection->modifyColumn(
+                $saleslayer_synccatalog_apiconfig_table,
+                'format_configurable_attributes',
+                [
+                    'type' => Table::TYPE_TEXT,
+                    'length' => '2M'
+                ]
+            );
 
         }
     
