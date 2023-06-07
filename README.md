@@ -1,27 +1,23 @@
-<h1 align="center">
-  <a href="https://support.saleslayer.com">
-    <img src="https://saleslayer.com/assets/images/logo.svg" alt="Magento Enterprise plugin" width="230"></a>
-  </a>
-  <br><br>
-  Sales Layer Magento plugin for Enterprise
-  <br>
-</h1>
+<a href="https://support.saleslayer.com"><p align="center"><img src="https://saleslayer.com/assets/images/logo.svg" alt="Magento Enterprise plugin" width="460"></p></a>
 
-<h4 align="center">This is the official Sales Layer's plugin for Magento Enterprise.</h4>
+# Sales Layer Magento Enterprise plugin
+
+[![Minimum PHP Version](https://img.shields.io/badge/php-%3E%3D%207.2-8892BF.svg?style=flat-square)](https://php.net/) [![Minimum Magento Version](https://img.shields.io/badge/Magento-%3E%3D%202.4.1-AA92BF.svg?style=flat-square)](https://experienceleague.adobe.com/docs/commerce-operations/installation-guide/composer.html?lang=en) [![GitHub release](https://img.shields.io/github/v/release/saleslayer/magento-enterprise-plugin)](https://github.com/saleslayer/magento-enterprise-plugin)
+
+This is the official Sales Layer's plugin for Magento Enterprise.
 
 ## Description
 
-This plugin allows you to easily synchronize your Sales Layer catalogue information with your [Magento Enterprise]("https://business.adobe.com/products/magento/magento-commerce.html"). And you can find more detailed documentation at our [website](https://support.saleslayer.com/category/magento).
+This plugin allows you to easily synchronize your Sales Layer catalogue information with your [Magento Enterprise]. And you can find more detailed documentation at our [website].
 
-## Download [latest plugin version](https://github.com/saleslayer/magento-enterprise-plugin/releases/latest/download/magento-enterprise-plugin.zip)
+## Download 
+
+[Download latest plugin version][latest-release-download].
+Check out the latest changes at our [changelog][changelog-md].
 
 ## Important Notes
 
-Please check the [important notes](https://support.saleslayer.com/magento/important-notes-about-magento-connector) for the installation. (In some cases, a Sales Layer account might be needed to access the documentation).
-
-## Version compatibility
-
-Tested from 2.4.3 to 2.4.5-p1
+Please check the [important notes] for the installation. (In some cases, a Sales Layer account might be needed to access the documentation).
 
 ## Requirements
 
@@ -64,3 +60,17 @@ php bin/magento cache:clean
 
 #### 3.1 Go to Sales Layer -> Import -> Add connector and add the connector id and secret key.
 #### 3.2 Finally, In Sales Layer -> Import -> The connector you created, push Synchronize Connector to import categories, products and variants automatically.
+
+## Version Guidance
+
+| Version         | Status         | Magento Plugin version     | PHP Version    |
+|-----------------|----------------|----------------------------|----------------|
+| 2.5.x           | EOL            | >= 2.4.1, <= 2.4.3         | 7.1, 7.2, 7.3  |
+| 2.6.0           |                | >= 2.4.1, <= 2.4.5-p1      | >= 7.2, <= 8.1 |
+| 2.6.1           | Latest         | >= 2.4.1, <= 2.4.5-p1      | >= 7.2, <= 8.1 |
+
+[Magento Enterprise]: https://business.adobe.com/products/magento/magento-commerce.html
+[website]: https://support.saleslayer.com/category/magento
+[latest-release-download]: https://github.com/saleslayer/magento-enterprise-plugin/releases/latest/download/magento-enterprise-plugin.zip
+[changelog-md]: https://github.com/saleslayer/magento-enterprise-plugin/blob/master/CHANGELOG.md
+[important notes]: https://support.saleslayer.com/magento/important-notes-about-magento-connector
