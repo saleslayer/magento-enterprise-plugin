@@ -63,11 +63,11 @@ php bin/magento cache:clean
 
 ## Version Guidance
 
-| Version         | Status         | Magento Plugin version     | PHP Version    |
-|-----------------|----------------|----------------------------|----------------|
-| 2.5.x           | EOL            | >= 2.4.1, <= 2.4.3         | 7.1, 7.2, 7.3  |
-| 2.6.0           |                | >= 2.4.1, <= 2.4.5-p1      | >= 7.2, <= 8.1 |
-| 2.6.1           | Latest         | >= 2.4.1, <= 2.4.5-p1      | >= 7.2, <= 8.1 |
+| Version         | Status         | Magento Version (Adobe Commerce) | PHP Version    |
+|-----------------|----------------|----------------------------------|----------------|
+| 2.5.x           | EOL            | >= 2.4.1, <= 2.4.3               | 7.1, 7.2, 7.3  |
+| 2.6.0           |                | >= 2.4.1, <= 2.4.5-p1            | >= 7.2, <= 8.1 |
+| 2.6.1           | Latest         | >= 2.4.1, <= 2.4.5-p1            | >= 7.2, <= 8.1 |
 
 [Magento Enterprise]: https://business.adobe.com/products/magento/magento-commerce.html
 [website]: https://support.saleslayer.com/category/magento
