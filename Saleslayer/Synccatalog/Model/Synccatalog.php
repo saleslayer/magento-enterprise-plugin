@@ -4945,7 +4945,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
             if (!$image_value_id) $image_value_id = 1;
 
-            if ($media_gallery_attribute = $this->getAttribute('media_gallery', $this->product_entity_type_id) !== false) {
+            if (($media_gallery_attribute = $this->getAttribute('media_gallery', $this->product_entity_type_id)) !== false) {
 
                 $gallery_table_data = [
                     'value_id'          => $image_value_id,
@@ -9635,7 +9635,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
      * @param int $store_view_id                store view id to search 
      * @return bool
      */
-    private function assignSaleslayerCategoryByUrlKey($category_urlkey, $saleslayer_id, $store_view_id = 0): bool
+    private function assignSLCategoryByUrlKey($category_urlkey, $saleslayer_id, $store_view_id = 0): bool
     {
         if (($url_key_attribute = $this->getAttribute('url_key', $this->category_entity_type_id)) === false) return false;
 
@@ -9672,7 +9672,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                 )
                 ->group('c1.'.$this->tables_identifiers[$category_urlkey_table])
         );
-        
+
         if (!empty($categories_data)){
 
             $category_id_found = $category_id_found_temp = 0;
@@ -9975,10 +9975,8 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
             if (isset($category['data'][$this->category_field_name]) && $category['data'][$this->category_field_name] != ''){
                 
-                $transliterator = \Transliterator::createFromRules(':: Any-Latin; :: Latin-ASCII; :: NFD; :: [:Nonspacing Mark:] Remove; :: Lower(); :: NFC;', \Transliterator::FORWARD);
-                $normalized = $transliterator->transliterate($category['data'][$this->category_field_name]);
-                $url_key = $this->categoryModel->formatUrlKey($normalized);
-                $category_assigned = $this->assignSaleslayerCategoryByUrlKey($url_key, $saleslayer_category_id);
+                $url_key = $this->categoryModel->formatUrlKey($category['data'][$this->category_field_name]);
+                $category_assigned = $this->assignSLCategoryByUrlKey($url_key, $saleslayer_category_id);
 
             }
 

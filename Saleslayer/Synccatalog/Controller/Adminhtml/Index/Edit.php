@@ -68,6 +68,13 @@ class Edit extends \Magento\Backend\App\Action
     public function execute()
     {
 
+        // $model = $this->_objectManager->create('Saleslayer\Synccatalog\Model\Syncdatacron');
+        // $model->sync_data_connectors_db();
+        
+        // $this->messageManager->addWarning(__('Test finalizado.'));
+        // $this->_redirect('*/*/');
+        // return;
+
         // 1. Get ID and create model
         $id = $this->getRequest()->getParam('id');
         $model = $this->_objectManager->create('Saleslayer\Synccatalog\Model\Synccatalog');

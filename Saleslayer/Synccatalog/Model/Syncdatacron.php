@@ -61,6 +61,7 @@ class Syncdatacron extends Synccatalog
     protected       $updated_product_formats            = false;
 
     protected       $test_one_item                      = false;
+    // protected       $test_one_item                      = 28657;
     protected       $multiconn_table_data_loaded        = false;
 
     /**
