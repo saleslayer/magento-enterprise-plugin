@@ -263,7 +263,7 @@ class Autosynccron extends Synccatalog{
                         if ($connector['auto_sync'] > 0){
                             
                             $connector_last_sync = $connector['last_sync'];
-                            $connector_last_sync_unix = strtotime($connector_last_sync);
+                            $connector_last_sync_unix = strtotime($connector_last_sync ?? 0);
                             
                             $unix_to_update = $now - ($connector['auto_sync'] * 3600);
                             
