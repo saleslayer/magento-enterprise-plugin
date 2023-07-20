@@ -524,12 +524,17 @@ class Syncdatacron extends Synccatalog
         
         do{
 
-            $items_to_update = $this->connection->fetchAll(" SELECT * FROM ".$this->saleslayer_syncdata_table." WHERE sync_type = 'update' and item_type = '".$index."' and sync_tries <= 2 ORDER BY item_type ASC, sync_tries ASC, id ASC LIMIT 50");
-
             if ($this->test_one_item !== false && is_numeric($this->test_one_item)){
 
-                $items_to_update = $this->connection->fetchAll(" SELECT * FROM ".$this->saleslayer_syncdata_table." WHERE sync_type = 'update' and item_type = '".$index."' and sync_tries <= 2 and id = ".$this->test_one_item." ORDER BY item_type ASC, sync_tries ASC, id ASC LIMIT 50");
+                $items_to_update = $this->connection->fetchAll("SELECT * FROM ".$this->saleslayer_syncdata_table.
+                                                               " WHERE sync_type = 'update' and id = ".$this->test_one_item.
+                                                               " LIMIT 1");
 
+            }else{
+                $items_to_update = $this->connection->fetchAll("SELECT * FROM ".$this->saleslayer_syncdata_table.
+                                                               " WHERE sync_type = 'update' and item_type = '".$index.
+                                                               "' and sync_tries <= 2 ".
+                                                               " ORDER BY sync_tries ASC, id ASC LIMIT 5");
             }
 
             if ($index == 'category' && !$this->cats_to_process){
