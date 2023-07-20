@@ -278,7 +278,8 @@ class Autosynccron extends Synccatalog{
                                     
                                     $unix_to_update_hour = mktime($connector['auto_sync_hour'],0,0,date('m', $unix_to_update),date('d', $unix_to_update),date('Y', $unix_to_update));
                                     
-                                    if ($connector_last_sync_unix < $unix_to_update_hour){
+                                    if ($connector_last_sync_unix < $unix_to_update &&
+                                        $unix_to_update_hour <= $now){
                                     
                                         $connector['unix_to_update'] = $unix_to_update_hour;
                                         $connectors_to_check[] = $connector;
@@ -307,6 +308,8 @@ class Autosynccron extends Synccatalog{
                             if ($connector['auto_sync'] >= 24){
 
                                 $last_sync_time = mktime($connector['auto_sync_hour'],0,0,date('m', $now),date('d', $now),date('Y', $now));
+                                if ($last_sync_time > $now) $last_sync_time -= ($connector['auto_sync'] * 3600);
+
                                 $last_sync = date('Y-m-d H:i:s', $last_sync_time);
                             
                             }else{
@@ -442,8 +445,6 @@ class Autosynccron extends Synccatalog{
             }
 
         }
-
-        // $this->debbug('##### time_delete_sl_logs: '.(microtime(1) - $time_ini_delete_sl_logs).' seconds');
 
     }
 
