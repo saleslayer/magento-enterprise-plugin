@@ -400,8 +400,6 @@ class Autosynccron extends Synccatalog{
     private function delete_sl_logs_since_days(){
 
         if (in_array($this->delete_sl_logs_since_days, array('', null, 0))) return false;
-
-        $time_ini_delete_sl_logs = microtime(1);
         
         $log_folder_files = scandir($this->sl_logs_path);
 

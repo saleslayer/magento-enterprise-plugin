@@ -79,9 +79,8 @@ class Parameters extends \Magento\Backend\Block\Widget\Form\Generic implements \
 
         if(!empty($modelData['last_sync'])){
             $last_sync_timezoned = $this->timezone->date($modelData['last_sync'])->format('M d, Y, H:i:s A');
-            $time_lapsed = '<br><small>Since last sync of this connector step: '.$this->elapsed_time(strtotime($last_sync_timezoned)).'</small>';
-        }else{
-            $time_lapsed = '';
+            $datetime_last_sync = "<br><small>Connector's last auto-synchronization: ".$last_sync_timezoned."</small>";
+            $datetime_last_sync .= "<br><small><strong>*Note: This synchronization will be executed according to the server time.</strong></small>";
         }
 
         $fieldset->addField(
@@ -95,7 +94,7 @@ class Parameters extends \Magento\Backend\Block\Widget\Form\Generic implements \
                 'required' => false,
                 'values' => $auto_sync_options,
                 'disabled' => false,
-                'after_element_html' =>$time_lapsed,
+                'after_element_html' => $datetime_last_sync,
                 'class' => 'conn_field'
             ]
         );
@@ -162,35 +161,6 @@ class Parameters extends \Magento\Backend\Block\Widget\Form\Generic implements \
         $this->setForm($form);
 
         return parent::_prepareForm();
-    }
-
-    private function elapsed_time($timestamp, $precision = 2) {
-
-        $time = time() - $timestamp;
-        $result = '';
-
-        $a = [
-            'decade' => 315576000,
-            'year' => 31557600,
-            'month' => 2629800,
-            'week' => 604800,
-            'day' => 86400,
-            'hour' => 3600,
-            'min' => 60,
-            'sec' => 1
-        ];
-
-        $i = 0;
-        foreach($a as $k => $v) {
-            $$k = floor($time/$v);
-            if ($$k) $i++;
-            $time = $i >= $precision ? 0 : $time - $$k * $v;
-            $s = $$k > 1 ? 's' : '';
-            $$k = $$k ? $$k.' '.$k.$s.' ' : '';
-            $result .= $$k;
-        }
-
-        return $result ? $result.'ago' : '1 sec to go';
     }
 
     /**
