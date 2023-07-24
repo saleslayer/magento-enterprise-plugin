@@ -4,7 +4,7 @@
 
 [![Minimum PHP Version](https://img.shields.io/badge/php-%3E%3D%207.2-8892BF.svg?style=flat-square)](https://php.net/) [![Minimum Magento Version](https://img.shields.io/badge/Magento-%3E%3D%202.4.1-AA92BF.svg?style=flat-square)](https://experienceleague.adobe.com/docs/commerce-operations/installation-guide/composer.html?lang=en) [![GitHub release](https://img.shields.io/github/v/release/saleslayer/magento-enterprise-plugin)](https://github.com/saleslayer/magento-enterprise-plugin)
 
-This is the official Sales Layer's plugin for Magento Enterprise.
+This is the official Sales Layer's plugin for Magento Enterprise (Adobe Commerce).
 
 ## Description
 
@@ -63,14 +63,22 @@ php bin/magento cache:clean
 
 ## Version Guidance
 
-| Version         | Status         | Magento Plugin version     | PHP Version    |
-|-----------------|----------------|----------------------------|----------------|
-| 2.5.x           | EOL            | >= 2.4.1, <= 2.4.3         | 7.1, 7.2, 7.3  |
-| 2.6.0           |                | >= 2.4.1, <= 2.4.5-p1      | >= 7.2, <= 8.1 |
-| 2.6.1           | Latest         | >= 2.4.1, <= 2.4.5-p1      | >= 7.2, <= 8.1 |
+| Version | Status         | Magento Version (Adobe Commerce) | Recommended Configuration  |
+|---------|----------------|----------------------------------|----------------------------|
+| 2.5.x   | EOL            | >= 2.4.1, <= 2.4.3               | Magento 2.4.3 / PHP 7.4    |
+| 2.6.0   | Stable         | >= 2.4.3, <= 2.4.5               | Magento 2.4.5-p1 / PHP 8.1 |
+| 2.6.1   | Latest         | >= 2.4.3, <= 2.4.5               | Magento 2.4.5-p1 / PHP 8.1 |
+
+> **Warning**.
+> Adobe releases frequently new Magento Open Source versions, fixing bugs and/or adding new functionallity. Some of this versions could be in conflict with this plugin. We highly encourage you to set up the configuration recommended in the guidance table for running correctly this extension.
+
+> **Note**. 
+> See also [Magento system requirements][magento-system-requirements] for the right environment choice.
+
 
 [Magento Enterprise]: https://business.adobe.com/products/magento/magento-commerce.html
 [website]: https://support.saleslayer.com/category/magento
 [latest-release-download]: https://github.com/saleslayer/magento-enterprise-plugin/releases/latest/download/magento-enterprise-plugin.zip
 [changelog-md]: https://github.com/saleslayer/magento-enterprise-plugin/blob/master/CHANGELOG.md
 [important notes]: https://support.saleslayer.com/magento/important-notes-about-magento-connector
+[magento-system-requirements]: https://experienceleague.adobe.com/docs/commerce-operations/installation-guide/system-requirements.html

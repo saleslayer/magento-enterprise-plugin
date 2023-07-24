@@ -1,6 +1,8 @@
 <?php
 namespace Saleslayer\Synccatalog\Block\Adminhtml\Synccatalog\Edit\Tab;
 
+use Magento\Framework\Stdlib\DateTime\TimezoneInterface;
+
 // use \Magento\Catalog\Model\Category as categoryModel;
 
 /**
@@ -25,10 +27,12 @@ class Parameters extends \Magento\Backend\Block\Widget\Form\Generic implements \
         \Magento\Framework\Registry $registry,
         \Magento\Framework\Data\FormFactory $formFactory,
         \Magento\Store\Model\System\Store $systemStore,
+        TimezoneInterface $timezone,
         array $data = []
     ) {
         parent::__construct($context, $registry, $formFactory, $data);
         $this->_systemStore = $systemStore;
+        $this->timezone = $timezone;
     }
 
     /**
@@ -55,25 +59,28 @@ class Parameters extends \Magento\Backend\Block\Widget\Form\Generic implements \
         $modelData = $model->getData();
 
         if (empty($modelData)){
-            $modelData['store_view_ids'] = array('0') ;
+            $modelData['store_view_ids'] = ['0'] ;
         }else{
             $modelData['store_view_ids'] = json_decode($modelData['store_view_ids'],1);
         }
 
-        $auto_sync_options = array();
-        $auto_sync_values = array(0, 1, 3, 6, 8, 12, 15, 24, 48, 72);
+        $auto_sync_options = [];
+        $auto_sync_values = [0, 1, 3, 6, 8, 12, 15, 24, 48, 72];
+
         foreach ($auto_sync_values as $auto_sync_value) {
             if ($auto_sync_value == 0){
-                array_push($auto_sync_options, array('label' => ' ', 'value' => $auto_sync_value));
+                array_push($auto_sync_options, ['label' => ' ', 'value' => $auto_sync_value]);
             }else{
-                array_push($auto_sync_options, array('label' => $auto_sync_value.'H', 'value' => $auto_sync_value));
+                array_push($auto_sync_options, ['label' => $auto_sync_value.'H', 'value' => $auto_sync_value]);
             }
         }
 
+        $datetime_last_sync = '';
+
         if(!empty($modelData['last_sync'])){
-            $time_lapsed = '<br><small>Since last sync of this connector step: '.$this->elapsed_time(strtotime( $modelData['last_sync'])).'</small>';
-        }else{
-            $time_lapsed = '';
+            $last_sync_timezoned = $this->timezone->date($modelData['last_sync'])->format('M d, Y, H:i:s A');
+            $datetime_last_sync = "<br><small>Connector's last auto-synchronization: ".$last_sync_timezoned."</small>";
+            $datetime_last_sync .= "<br><small><strong>*Note: This synchronization will be executed according to the server time.</strong></small>";
         }
 
         $fieldset->addField(
@@ -87,21 +94,24 @@ class Parameters extends \Magento\Backend\Block\Widget\Form\Generic implements \
                 'required' => false,
                 'values' => $auto_sync_options,
                 'disabled' => false,
-                'after_element_html' =>$time_lapsed,
+                'after_element_html' => $datetime_last_sync,
                 'class' => 'conn_field'
             ]
         );
         
-        if(!empty($modelData) && isset($modelData['auto_sync']) && $modelData['auto_sync']>= 24){
+        if (!empty($modelData) && isset($modelData['auto_sync']) && $modelData['auto_sync'] >= 24){
             $hour_input_disabled = false;
         }else{
             $hour_input_disabled = true;
         }
 
-        $auto_sync_hour_options = array();
+        $auto_sync_hour_options = [];
         $hours_range = range(0, 23);
-        foreach($hours_range as $hour){
-            $auto_sync_hour_options[$hour] = array('label' => (strlen($hour) == 1 ? '0'.$hour : $hour).':00', 'value' => $hour);
+        foreach ($hours_range as $hour){
+            $auto_sync_hour_options[$hour] = [
+                'label' => (strlen($hour) == 1 ? '0'.$hour : $hour).':00',
+                'value' => $hour
+            ];
         }
 
         $fieldset->addField(
@@ -151,21 +161,6 @@ class Parameters extends \Magento\Backend\Block\Widget\Form\Generic implements \
         $this->setForm($form);
 
         return parent::_prepareForm();
-    }
-    private function elapsed_time($timestamp, $precision = 2) {
-        $time = time() - $timestamp;
-        $result = '';
-        $a = array('decade' => 315576000, 'year' => 31557600, 'month' => 2629800, 'week' => 604800, 'day' => 86400, 'hour' => 3600, 'min' => 60, 'sec' => 1);
-        $i = 0;
-        foreach($a as $k => $v) {
-            $$k = floor($time/$v);
-            if ($$k) $i++;
-            $time = $i >= $precision ? 0 : $time - $$k * $v;
-            $s = $$k > 1 ? 's' : '';
-            $$k = $$k ? $$k.' '.$k.$s.' ' : '';
-            $result .= $$k;
-        }
-        return $result ? $result.'ago' : '1 sec to go';
     }
 
     /**

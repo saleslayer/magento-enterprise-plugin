@@ -51,9 +51,6 @@ class Syncdatacron extends Synccatalog
     protected       $category_fields                    = array();
     protected       $product_fields                     = array();
     protected       $product_format_fields              = array();
-    // protected       $indexers_status                    = 'default';
-    // protected       $indexer_collection_ids             = array();
-    // protected       $indexers_info                      = array();
     protected       $syncdata_pid;
     protected       $processed_items                    = array();
     protected       $cats_to_process                    = false;
@@ -524,12 +521,17 @@ class Syncdatacron extends Synccatalog
         
         do{
 
-            $items_to_update = $this->connection->fetchAll(" SELECT * FROM ".$this->saleslayer_syncdata_table." WHERE sync_type = 'update' and item_type = '".$index."' and sync_tries <= 2 ORDER BY item_type ASC, sync_tries ASC, id ASC LIMIT 50");
-
             if ($this->test_one_item !== false && is_numeric($this->test_one_item)){
 
-                $items_to_update = $this->connection->fetchAll(" SELECT * FROM ".$this->saleslayer_syncdata_table." WHERE sync_type = 'update' and item_type = '".$index."' and sync_tries <= 2 and id = ".$this->test_one_item." ORDER BY item_type ASC, sync_tries ASC, id ASC LIMIT 50");
+                $items_to_update = $this->connection->fetchAll("SELECT * FROM ".$this->saleslayer_syncdata_table.
+                                                               " WHERE sync_type = 'update' and id = ".$this->test_one_item.
+                                                               " LIMIT 1");
 
+            }else{
+                $items_to_update = $this->connection->fetchAll("SELECT * FROM ".$this->saleslayer_syncdata_table.
+                                                               " WHERE sync_type = 'update' and item_type = '".$index.
+                                                               "' and sync_tries <= 2 ".
+                                                               " ORDER BY sync_tries ASC, level ASC, id ASC LIMIT 5");
             }
 
             if ($index == 'category' && !$this->cats_to_process){
@@ -636,13 +638,6 @@ class Syncdatacron extends Synccatalog
         $sync_params = json_decode(stripslashes($item_to_delete['sync_params']),1);
         $this->processing_connector_id = $sync_params['conn_params']['connector_id'];
 
-        // if (null === $this->comp_id || $this->comp_id == ''){
-
-        //     $this->debbug('cargamos load_sl_multiconn_table_data debido a diferencia de comp_id');
-        //     $this->load_sl_multiconn_table_data(); 
-
-        // }
-
         $this->comp_id = $sync_params['conn_params']['comp_id'];
 
         if ($this->comp_id != $sync_params['conn_params']['comp_id'] || !$this->multiconn_table_data_loaded){
@@ -678,14 +673,18 @@ class Syncdatacron extends Synccatalog
 
         }
 
-        if( $result_delete == 'item_not_deleted'){
+        if ($result_delete == 'item_not_deleted'){
+        
             $sync_tries++;
 
             $sql_update = " UPDATE ".$this->saleslayer_syncdata_table." SET sync_tries = ".$sync_tries." WHERE id = ".$item_to_delete['id'];
 
             $this->sl_connection_query($sql_update);
+        
         }else{
+            
             $this->sql_items_delete[] = $item_to_delete['id'];
+        
         }
 
     }

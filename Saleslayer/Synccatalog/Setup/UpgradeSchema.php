@@ -323,6 +323,21 @@ class UpgradeSchema implements UpgradeSchemaInterface
             );
 
         }
+
+        if (version_compare($version, '2.6.2') < 0) {
+
+            $connection->addColumn(
+                $setup->getTable('saleslayer_synccatalog_syncdata'),
+                'level',
+                [
+                    'type' => Table::TYPE_INTEGER,
+                    'length' => 3,
+                    ['nullable' => false, 'default' => 0],
+                    'comment' => 'Item level',
+                ]
+            );
+            
+        }
     
         $setup->endSetup();
 
