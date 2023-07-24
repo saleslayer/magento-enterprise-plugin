@@ -1010,6 +1010,26 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
     }
 
     /**
+     * Function to check the MG version
+     * @param string $edition_to_check          version to check and compare with mg_edition parameter
+     * @return boolean                          true if the version compared is the same, false otherwise
+     */
+    private function checkMGEdition($edition_to_check = 'enterprise'){
+
+        if ($edition_to_check == 'enterprise' &&
+            ($this->mg_edition == 'enterprise' ||
+            $this->mg_edition == 'b2b')){
+
+            return true;
+
+        }else{
+
+            return false;
+        }
+
+    }
+
+    /**
      * Function to login into Sales Layer with the connector credentials.
      * @param string $connector_id             Sales Layer connector id
      * @param string $secretKey                Sales Layer connector secret key
@@ -2319,7 +2339,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
             }
 
-            if ($this->mg_edition == 'enterprise'){
+            if ($this->checkMGEdition('enterprise')) {
 
                 $category_data = array('url_key' => $mg_category_fields['url_key'],
                                         'store_id' => $store_view_id,
@@ -3196,7 +3216,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         $table_status = $this->connection->showTableStatus($product_table);
         if ($this->sl_DEBBUG > 2) $this->debbug('# time_read_table_status_create_product: ', 'timer', (microtime(1) - $time_ini_read_table_status_create_product));
         
-        if ($this->mg_edition == 'enterprise'){
+        if ($this->checkMGEdition('enterprise')) {
 
             $row_id = $table_status['Auto_increment'];
 
@@ -3284,7 +3304,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         if ($result_create){
 
-            if ($this->mg_edition == 'enterprise'){
+            if ($this->checkMGEdition('enterprise')) {
 
                 $this->mg_product_row_ids = array($row_id);
                 $this->mg_product_current_row_id = $row_id;
@@ -5574,7 +5594,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
             $type_creation = $this->format_type_creation;
         }
 
-        if ($this->mg_edition == 'enterprise'){
+        if ($this->checkMGEdition('enterprise')) {
 
             $row_id = $table_status['Auto_increment'];
 
@@ -5647,7 +5667,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         if ($result_create){
 
-            if ($this->mg_edition == 'enterprise'){
+            if ($this->checkMGEdition('enterprise')) {
 
                 $this->mg_format_row_ids = array($row_id);
                 $this->mg_format_current_row_id = $row_id;
@@ -6161,7 +6181,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         if (isset($format['parent_product_attributes_ids']) && !empty($format['parent_product_attributes_ids'])){
 
             //hacemos check de atributos y set_id, eliminamos sobrantes y añadimos los que vienen, con etiquetas
-            if ($this->mg_edition == 'enterprise') {
+            if ($this->checkMGEdition('enterprise')) {
                 $mg_product_super_attributes = $this->connection->fetchAll(
                     $this->connection->select()
                     ->from($catalog_product_super_attribute_table)
@@ -6189,7 +6209,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                 }
 
-                if ($this->mg_edition == 'enterprise') {
+                if ($this->checkMGEdition('enterprise')) {
                     $product_super_attribute_id = $this->connection->fetchOne(
                         $this->connection->select()
                         ->from($catalog_product_super_attribute_table)
@@ -6207,7 +6227,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                 if (!$product_super_attribute_id){
 
-                    if ($this->mg_edition == 'enterprise') {
+                    if ($this->checkMGEdition('enterprise')) {
                         $position = $this->connection->fetchOne(
                             $this->connection->select()
                                 ->from(
@@ -6235,7 +6255,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                     
                     $query_insert = " INSERT INTO ".$catalog_product_super_attribute_table."(`product_id`,`attribute_id`,`position`) values (?,?,?);";
 
-                    if ($this->mg_edition == 'enterprise') {
+                    if ($this->checkMGEdition('enterprise')) {
                         $this->sl_connection_query($query_insert,array($this->mg_product_current_row_id, $format_parent_product_attribute_id, $position));
 
                         $product_super_attribute_id = $this->connection->fetchOne(
@@ -6321,7 +6341,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         if (empty($format_parent_product_attribute_ids)){
 
-            if ($this->mg_edition == 'enterprise') {
+            if ($this->checkMGEdition('enterprise')) {
                 $this->connection->delete(
                     $catalog_product_relation_table,
                     ['parent_id = ?' => $this->mg_product_current_row_id]
@@ -6346,7 +6366,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
             }
 
             //leemos filtro ids
-            if ($this->mg_edition == 'enterprise') {
+            if ($this->checkMGEdition('enterprise')) {
                 $product_super_attribute_ids_filter = $this->connection->fetchOne(
                     $this->connection->select()
                         ->from(
@@ -6372,7 +6392,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
             }else{
 
-                if ($this->mg_edition == 'enterprise') {
+                if ($this->checkMGEdition('enterprise')) {
                     $this->connection->delete(
                         $catalog_product_super_attribute_table,
                         ['product_id = ?' => $this->mg_product_current_row_id]
@@ -6397,7 +6417,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
             }
 
             //cambiamos producto a simple
-            if ($this->mg_edition == 'enterprise') {
+            if ($this->checkMGEdition('enterprise')) {
                 $this->connection->update($product_table, [
                     'type_id' => $this->product_type_simple,
                     'has_options' => 0,
@@ -6421,7 +6441,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
             if ($parent_product_data['type_id'] != $this->product_type_configurable || $parent_product_data['has_options'] != 1 || $parent_product_data['required_options'] != 1){
 
-                if ($this->mg_edition == 'enterprise') {
+                if ($this->checkMGEdition('enterprise')) {
                     $this->connection->update($product_table, array('type_id' => $this->product_type_configurable, 'has_options' => 1, 'required_options' => 1), $this->tables_identifiers[$product_table].' = ' . $this->mg_product_current_row_id);
                 } else {
                     $this->connection->update($product_table, array('type_id' => $this->product_type_configurable, 'has_options' => 1, 'required_options' => 1), $this->tables_identifiers[$product_table].' = ' . $this->mg_product_id);
@@ -6432,7 +6452,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
             }
 
             //procesamos relation
-            if ($this->mg_edition == 'enterprise') {
+            if ($this->checkMGEdition('enterprise')) {
                 $relation_exist = $this->connection->fetchOne(
                     $this->connection->select()
                     ->from($catalog_product_relation_table, [new Expr('COUNT(*)')])
@@ -6452,7 +6472,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                 $query_insert = " INSERT INTO ".$catalog_product_relation_table."(`parent_id`,`child_id`) values (?,?);";
 
-                if ($this->mg_edition == 'enterprise') {
+                if ($this->checkMGEdition('enterprise')) {
                     $this->sl_connection_query($query_insert,array($this->mg_product_current_row_id, $this->mg_format_id));
                 } else {
                     $this->sl_connection_query($query_insert,array($this->mg_product_id, $this->mg_format_id));
@@ -6461,7 +6481,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
             }
 
             //procesamos super_link 
-            if ($this->mg_edition == 'enterprise') {
+            if ($this->checkMGEdition('enterprise')) {
                 $super_link_exist = $this->connection->fetchOne(
                     $this->connection->select()
                     ->from($catalog_product_super_link_table, [new Expr('COUNT(*)')])
@@ -6481,7 +6501,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                 $query_insert = " INSERT INTO ".$catalog_product_super_link_table."(`parent_id`,`product_id`) values (?,?);";
                 
-                if ($this->mg_edition == 'enterprise') {
+                if ($this->checkMGEdition('enterprise')) {
                     $this->sl_connection_query($query_insert,array($this->mg_product_current_row_id, $this->mg_format_id));
                 } else {
                     $this->sl_connection_query($query_insert,array($this->mg_product_id, $this->mg_format_id));
@@ -6758,7 +6778,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                 $product_id = $product_id_temp;
 
-                if ($this->mg_edition == 'enterprise'){
+                if ($this->checkMGEdition('enterprise')) {
                 
                     $this->mg_product_row_ids = $this->getEntityRowIds($product_id, 'product');
                     $this->mg_product_current_row_id = $this->getEntityCurrentRowId($product_id, 'product');
@@ -6782,7 +6802,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                 $this->mg_product_id = $product_id;
 
-                if ($this->mg_edition == 'enterprise'){
+                if ($this->checkMGEdition('enterprise')) {
 
                     $this->mg_product_row_ids = $this->getEntityRowIds($product_id, 'product');
                     $this->mg_product_current_row_id = $this->getEntityCurrentRowId($product_id, 'product');
@@ -6898,7 +6918,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                 $format_id = $format_id_temp;
 
-                if ($this->mg_edition == 'enterprise'){
+                if ($this->checkMGEdition('enterprise')) {
                 
                     $this->mg_format_row_ids = $this->getEntityRowIds($format_id, 'product');
                     $this->mg_format_current_row_id = $this->getEntityCurrentRowId($format_id, 'product');
@@ -6923,7 +6943,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                 $this->mg_format_id = $format_id;
 
-                if ($this->mg_edition == 'enterprise'){
+                if ($this->checkMGEdition('enterprise')) {
 
                     $this->mg_format_row_ids = $this->getEntityRowIds($format_id, 'product');
                     $this->mg_format_current_row_id = $this->getEntityCurrentRowId($format_id, 'product');
@@ -7716,7 +7736,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                 $this->mg_product_id = $product_data['entity_id'];
                 
-                if ($this->mg_edition == 'enterprise'){
+                if ($this->checkMGEdition('enterprise')) {
 
                     $this->mg_product_row_ids = $this->getEntityRowIds($this->mg_product_id, 'product');
                     $this->mg_product_current_row_id = $this->getEntityCurrentRowId($this->mg_product_id, 'product');
@@ -7727,7 +7747,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                 $this->mg_format_id = $product_data['entity_id'];
 
-                if ($this->mg_edition == 'enterprise'){
+                if ($this->checkMGEdition('enterprise')) {
 
                     $this->mg_format_row_ids = $this->getEntityRowIds($this->mg_format_id, 'product');
                     $this->mg_format_current_row_id = $this->getEntityCurrentRowId($this->mg_format_id, 'product');
@@ -7744,7 +7764,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         
             $this->mg_product_id = null;
 
-            if ($this->mg_edition == 'enterprise'){
+            if ($this->checkMGEdition('enterprise')) {
 
                 $this->mg_product_row_ids = null;
                 $this->mg_product_current_row_id = null;
@@ -7755,7 +7775,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
             $this->mg_format_id = null;
 
-            if ($this->mg_edition == 'enterprise'){
+            if ($this->checkMGEdition('enterprise')) {
 
                 $this->mg_format_row_ids = null;
                 $this->mg_format_current_row_id = null;
@@ -9121,7 +9141,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                 if ($category_type == 'parent'){
 
-                    if ($this->mg_edition == 'enterprise'){
+                    if ($this->checkMGEdition('enterprise')) {
                     
                         $this->mg_parent_category_row_ids = $this->getEntityRowIds($category_id, 'category');
 
@@ -9142,7 +9162,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                 }else{
 
-                    if ($this->mg_edition == 'enterprise'){
+                    if ($this->checkMGEdition('enterprise')) {
                     
                         $this->mg_category_row_ids = $this->getEntityRowIds($category_id, 'category');
 
@@ -9172,7 +9192,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                     $this->mg_parent_category_id = $category_id;
 
-                    if ($this->mg_edition == 'enterprise'){
+                    if ($this->checkMGEdition('enterprise')) {
 
                         $this->mg_parent_category_row_ids = $this->getEntityRowIds($category_id, 'category');
                         $this->mg_parent_category_current_row_id = $this->getEntityCurrentRowId($category_id, 'category');
@@ -9183,7 +9203,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                     $this->mg_category_id = $category_id;
 
-                    if ($this->mg_edition == 'enterprise'){
+                    if ($this->checkMGEdition('enterprise')) {
 
                         $this->mg_category_row_ids = $this->getEntityRowIds($category_id, 'category');
                         $this->mg_category_current_row_id = $this->getEntityCurrentRowId($category_id, 'category');
@@ -9302,7 +9322,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
             
             if ($category_id_found !== 0){
 
-                if ($this->mg_edition == 'enterprise'){
+                if ($this->checkMGEdition('enterprise')) {
                     
                     $this->mg_category_row_ids = $this->getEntityRowIds($category_id_found, 'category');
                     $this->mg_category_current_row_id = $this->getEntityCurrentRowId($category_id_found, 'category');
@@ -9417,7 +9437,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         $category_table = $this->getTable('catalog_category_entity');
         $table_status = $this->connection->showTableStatus($category_table);
         
-        if ($this->mg_edition == 'enterprise'){
+        if ($this->checkMGEdition('enterprise')) {
 
             $row_id = $table_status['Auto_increment'];
 
@@ -9490,7 +9510,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         if ($result_create){
 
-            if ($this->mg_edition == 'enterprise'){
+            if ($this->checkMGEdition('enterprise')) {
 
                 $this->mg_category_row_ids = array($row_id);
                 $this->mg_category_current_row_id = $row_id;
