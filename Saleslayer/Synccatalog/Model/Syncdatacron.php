@@ -531,7 +531,7 @@ class Syncdatacron extends Synccatalog
                 $items_to_update = $this->connection->fetchAll("SELECT * FROM ".$this->saleslayer_syncdata_table.
                                                                " WHERE sync_type = 'update' and item_type = '".$index.
                                                                "' and sync_tries <= 2 ".
-                                                               " ORDER BY sync_tries ASC, id ASC LIMIT 5");
+                                                               " ORDER BY sync_tries ASC, level ASC, id ASC LIMIT 5");
             }
 
             if ($index == 'category' && !$this->cats_to_process){

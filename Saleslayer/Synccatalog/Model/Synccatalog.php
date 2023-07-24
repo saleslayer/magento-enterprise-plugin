@@ -1516,7 +1516,6 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
             }
 
-            // @note Study applicate this on Enterprise (applied on Community)
             $arrayCatalogue = $this->reorganizeCategories($arrayCatalogue);            
             
             if ($this->format_as_products_schema === true){
@@ -12095,6 +12094,12 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         foreach ($items as $keyItem => $item) {
 
+            $item_level = 0;
+            if ($item_type == 'category' && $sync_type == 'update' && isset($item['sl_category_level'])){
+                $item_level = $item['sl_category_level'];
+                unset($item['sl_category_level']);
+            }
+
             $item_encoded = json_encode($item);
             $params_encoded = json_encode($params);
 
@@ -12104,7 +12109,8 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                     'sync_type' => $sync_type,
                     'item_type' => $item_type, 
                     'item_data' => $item_encoded,
-                    'sync_params' => $params_encoded
+                    'sync_params' => $params_encoded,
+                    'level' => $item_level
                 ];
             
                 $this->insert_syncdata_sql();
