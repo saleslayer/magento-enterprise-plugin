@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.6.2] - 2023-07-24
+
+### Added
+
+- Function to obtain a non-used category URL Key when synchronizing category data on each store.
+
+### Changed
+
+- Auto Sync correction for connectors configured with 24h or more.
+- Pagination improvements.
+- Minor fixes.
+
 ## [2.6.1] - 2023-02-17
 
 ### Added

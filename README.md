@@ -63,11 +63,11 @@ php bin/magento cache:clean
 
 ## Version Guidance
 
-| Version | Status         | Magento Version (Adobe Commerce) | Recommended Configuration  |
-|---------|----------------|----------------------------------|----------------------------|
-| 2.5.x   | EOL            | >= 2.4.1, <= 2.4.3               | Magento 2.4.3 / PHP 7.4    |
-| 2.6.0   | Stable         | >= 2.4.3, <= 2.4.5               | Magento 2.4.5-p1 / PHP 8.1 |
-| 2.6.1   | Latest         | >= 2.4.3, <= 2.4.5               | Magento 2.4.5-p1 / PHP 8.1 |
+| Version         | Status         | Magento Version (Adobe Commerce) | Recommended Configuration  |
+|-----------------|----------------|----------------------------------|----------------------------|
+| 2.5.x           | EOL            | >= 2.4.1, <= 2.4.3               | Magento 2.4.3 / PHP 7.4    |
+| 2.6.0 - 2.6.1   | Stable         | >= 2.4.3, <= 2.4.5               | Magento 2.4.5-p1 / PHP 8.1 |
+| 2.6.2           | Latest         | >= 2.4.3, <= 2.4.5               | Magento 2.4.5-p1 / PHP 8.1 |
 
 > **Warning**.
 > Adobe releases frequently new Magento Open Source versions, fixing bugs and/or adding new functionallity. Some of this versions could be in conflict with this plugin. We highly encourage you to set up the configuration recommended in the guidance table for running correctly this extension.
