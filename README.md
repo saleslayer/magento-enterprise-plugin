@@ -39,6 +39,9 @@ Please check the [important notes] for the installation. (In some cases, a Sales
 
 #### 1.1 Install the package in your Magento
 
+> **Warning**.
+> Install the plugin only automatically or manually. If you try to install it with both methods at the same time, in step 1.2 Magento will return an error.
+
 ##### 1.1.1 Automatically, from composer. In your Magento root folder, execute command:
 
 ```
