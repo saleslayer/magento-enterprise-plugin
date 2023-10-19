@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.7.0] - 2023-10-18
+
+## Changed
+
+- Folder structure to be compatible with composer.
+
 ## [2.6.2] - 2023-07-24
 
 ### Added

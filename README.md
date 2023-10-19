@@ -35,9 +35,17 @@ Please check the [important notes] for the installation. (In some cases, a Sales
 
 ## How To Start
 
-### 1. Install the package your Magento 
+### 1. Module package install process
 
-#### 1.1 Uncompress module into Magento root folder 'app/code'
+#### 1.1 Install the package in your Magento
+
+##### 1.1.1 Automatically, from composer. In your Magento root folder, execute command:
+
+```
+composer require saleslayer/magento-enterprise-plugin
+```
+
+##### 1.1.2 Manually. Download the latest version zip and uncompress it into your Magento root folder 'app/code'
 
 #### 1.2 From Magento root folder execute commands:
 
@@ -66,8 +74,8 @@ php bin/magento cache:clean
 | Version         | Status         | Magento Version (Adobe Commerce) | Recommended Configuration  |
 |-----------------|----------------|----------------------------------|----------------------------|
 | 2.5.x           | EOL            | >= 2.4.1, <= 2.4.3               | Magento 2.4.3 / PHP 7.4    |
-| 2.6.0 - 2.6.1   | Stable         | >= 2.4.3, <= 2.4.5               | Magento 2.4.5-p1 / PHP 8.1 |
-| 2.6.2           | Latest         | >= 2.4.3, <= 2.4.5               | Magento 2.4.5-p1 / PHP 8.1 |
+| 2.6.0 - 2.6.2   | Stable         | >= 2.4.3, <= 2.4.5               | Magento 2.4.5-p1 / PHP 8.1 |
+| 2.7.0           | Latest         | >= 2.4.3, <= 2.4.5               | Magento 2.4.5-p1 / PHP 8.1 |
 
 > **Warning**.
 > Adobe releases frequently new Magento Open Source versions, fixing bugs and/or adding new functionallity. Some of this versions could be in conflict with this plugin. We highly encourage you to set up the configuration recommended in the guidance table for running correctly this extension.
