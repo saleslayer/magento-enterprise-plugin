@@ -1,0 +1,34 @@
+{
+    "name": "saleslayer/magento-enterprise-plugin",
+    "description": "Adobe commerce extension for Sales Layer PIM",
+    "type": "magento2-module",
+    "version": "2.6.2",
+    "license": [
+      "GPL-3.0-or-later"
+    ],
+    "require": {
+      "php": ">=7.3 || <8.2"
+    },
+    "autoload": {
+      "files": [ "registration.php" ],
+      "psr-4": {
+        "Saleslayer\\Synccatalog\\": ""
+      }
+    },
+    "authors": [{
+        "name": "Pedro Moreno",
+        "email": "pedro.moreno@saleslayer.com",
+        "homepage": "https://www.saleslayer.com/",
+        "role": "Developer"
+    },
+    {
+      "name": "Jose Ángel Luis",
+        "email": "jose.luis@saleslayer.com",
+        "homepage": "https://www.saleslayer.com/",
+        "role": "Developer"
+    }],
+    "support": {
+        "email": "connectors@saleslayer.com"
+    }
+  }
+  
