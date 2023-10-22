@@ -34,7 +34,7 @@ class PostDataProcessor
      */
     public function filter($data)
     {
-        $inputFilter = new \Zend_Filter_Input(
+        $inputFilter = new FilterInput(
             ['last_update' => $this->dateFilter],
             [],
             $data
