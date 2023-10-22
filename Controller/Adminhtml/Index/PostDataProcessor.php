@@ -35,7 +35,7 @@ class PostDataProcessor
     public function filter($data)
     {
         if(class_exists('\Magento\Framework\Filter\FilterInput')){
-            $inputFilter = new Magento\Framework\Filter\FilterInput(
+            $inputFilter = new \Magento\Framework\Filter\FilterInput(
                 ['last_update' => $this->dateFilter],
                 [],
                 $data
