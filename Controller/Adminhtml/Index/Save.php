@@ -128,7 +128,7 @@ class Save extends \Magento\Backend\App\Action
 
                 }
 
-            }else{
+            } elseif ($data !== false){
                 
                 $model->load($data['connector_id'], 'connector_id');
                 
