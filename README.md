@@ -47,6 +47,7 @@ Please check the [important notes] for the installation. (In some cases, a Sales
 ```
 composer require saleslayer/magento-enterprise-plugin
 ```
+See [manage extensions on Adobe Commerce][magento-manage-extensions] for more info.
 
 ##### 1.1.2 Manually. Download the latest version zip and uncompress it into your Magento root folder 'app/code'
 
@@ -93,3 +94,4 @@ php bin/magento cache:clean
 [changelog-md]: https://github.com/saleslayer/magento-enterprise-plugin/blob/master/CHANGELOG.md
 [important notes]: https://support.saleslayer.com/magento/important-notes-about-magento-connector
 [magento-system-requirements]: https://experienceleague.adobe.com/docs/commerce-operations/installation-guide/system-requirements.html
+[magento-manage-extensions]: https://experienceleague.adobe.com/docs/commerce-cloud-service/user-guide/configure-store/extensions.html
