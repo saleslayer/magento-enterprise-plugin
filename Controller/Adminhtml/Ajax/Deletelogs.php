@@ -6,6 +6,8 @@ use Magento\Framework\Controller\ResultFactory;
 class Deletelogs extends \Magento\Framework\App\Action\Action
 {
     protected $modelo;
+    protected $jsonHelper;
+    protected $resultFactory;
     /**
      * @var \Magento\Framework\UrlInterface
      */

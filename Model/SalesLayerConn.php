@@ -60,6 +60,7 @@ class SalesLayerConn
     public $response_input_status;
     public $response_input_errors;
     public $response_input_results;
+    public $response_tables_schema;
 
     public  $response_input_tracking          = '';
     public  $response_input_tracking_status   = '';

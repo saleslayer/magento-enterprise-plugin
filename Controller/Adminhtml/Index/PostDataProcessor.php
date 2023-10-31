@@ -2,6 +2,8 @@
 
 namespace Saleslayer\Synccatalog\Controller\Adminhtml\Index;
 
+use Magento\Framework\Filter\FilterInput;
+
 class PostDataProcessor
 {
     /**
