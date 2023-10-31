@@ -34,22 +34,12 @@ class PostDataProcessor
      */
     public function filter($data)
     {
-        if(class_exists('\Magento\Framework\Filter\FilterInput')){
-            $inputFilter = new \Magento\Framework\Filter\FilterInput(
-                ['last_update' => $this->dateFilter],
-                [],
-                $data
-            );
-        } elseif(class_exists('\Zend_Filter_Input')) {
-            $inputFilter = new \Zend_Filter_Input(
-                ['last_update' => $this->dateFilter],
-                [],
-                $data
-            );
-        } else {
-            $inputFilter = false;
-        }
-        $data = $inputFilter !== false ? $inputFilter->getUnescaped() : false;
+        $inputFilter = new FilterInput(
+            ['last_update' => $this->dateFilter],
+            [],
+            $data
+        );
+        $data = $inputFilter->getUnescaped();
         return $data;
     }
 
