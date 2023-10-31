@@ -6,6 +6,8 @@ use Magento\Framework\Controller\ResultFactory;
 class Updateconnfield extends \Magento\Framework\App\Action\Action
 {
     protected $modelo;
+    protected $jsonHelper;
+    protected $resultFactory;
 
     public function __construct(
         \Magento\Framework\App\Action\Context $context,

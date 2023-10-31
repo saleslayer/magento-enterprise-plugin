@@ -2,6 +2,8 @@
 
 namespace Saleslayer\Synccatalog\Controller\Adminhtml\Index;
 
+use Magento\Framework\Filter\FilterInput;
+
 class PostDataProcessor
 {
     /**
@@ -34,7 +36,7 @@ class PostDataProcessor
      */
     public function filter($data)
     {
-        $inputFilter = new \Zend_Filter_Input(
+        $inputFilter = new FilterInput(
             ['last_update' => $this->dateFilter],
             [],
             $data

@@ -60,6 +60,21 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
      * @var \Magento\Swatches\Model\ResourceModel\Swatch\CollectionFactory
      */
     protected $swatchCollectionFactory;
+    
+    /**
+     * @var \Magento\Eav\Api\Data\AttributeOptionLabelInterfaceFactory
+     */
+    protected $optionLabelFactory;
+    
+    /**
+     * @var \Magento\Eav\Api\Data\AttributeOptionInterfaceFactory
+     */
+    protected $optionFactory;
+    
+    /**
+     * @var \Magento\Eav\Api\AttributeOptionManagementInterface
+     */
+    protected $attributeOptionManagement;
 
     /**
      * Data constructor.

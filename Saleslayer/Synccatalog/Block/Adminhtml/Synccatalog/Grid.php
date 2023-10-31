@@ -15,6 +15,7 @@ class Grid extends \Magento\Backend\Block\Widget\Grid\Extended
      * @var \Saleslayer\Synccatalog\Model\Synccatalog
      */
     protected $_synccatalog;
+    protected $_systemStore;
 
     /**
      * @param \Magento\Backend\Block\Template\Context $context

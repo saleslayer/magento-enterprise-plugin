@@ -16,6 +16,7 @@ class View extends \Magento\Framework\View\Element\Template
 
     /** @var \Saleslayer\Synccatalog\Helper\Data */
     protected $_dataHelper;
+    protected $httpContext;
     
     /**
      * @param \Magento\Framework\View\Element\Template\Context $context

@@ -5,6 +5,8 @@ use Magento\Framework\Controller\ResultFactory;
 
 class Showdebbug extends \Magento\Framework\App\Action\Action
 {
+    protected $jsonHelper;
+    protected $resultFactory;
     protected $modelo;
     /**
      * @var \Magento\Framework\UrlInterface
