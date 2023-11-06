@@ -7,8 +7,8 @@
       "GPL-3.0-or-later"
     ],
     "require": {
-      "php": ">=7.3 <8.2",
-      "magento/product-enterprise-edition": ">=2.4.5 <2.4.7"
+      "php": ">=7.3 <8.3",
+      "magento/product-enterprise-edition": ">=2.4.4 <2.4.7"
     },
     "autoload": {
       "files": [ "registration.php" ],
