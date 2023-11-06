@@ -2,7 +2,7 @@
 
 # Sales Layer Magento Enterprise plugin
 
-[![Minimum PHP Version](https://img.shields.io/badge/php-%3E%3D%207.2-8892BF.svg?style=flat-square)](https://php.net/) [![Minimum Magento Version](https://img.shields.io/badge/Magento-%3E%3D%202.4.1-AA92BF.svg?style=flat-square)](https://experienceleague.adobe.com/docs/commerce-operations/installation-guide/composer.html?lang=en) [![GitHub release](https://img.shields.io/github/v/release/saleslayer/magento-enterprise-plugin)](https://github.com/saleslayer/magento-enterprise-plugin)
+[![PHP Version](https://img.shields.io/badge/php-8.1%2C%208.2-8892BF.svg?style=flat-square)](https://php.net/) [![Magento Version](https://img.shields.io/badge/Magento-%3E%3D2.4.4%2C%20%3C%3D2.4.6-AA92BF.svg?style=flat-squar)](https://experienceleague.adobe.com/docs/commerce-operations/installation-guide/composer.html?lang=en) [![GitHub release](https://img.shields.io/github/v/release/saleslayer/magento-enterprise-plugin)](https://github.com/saleslayer/magento-enterprise-plugin)
 
 This is the official Sales Layer's plugin for Magento Enterprise (Adobe Commerce).
 
@@ -110,7 +110,7 @@ php bin/magento cache:clean
 | 2.5.x         | EOL    | >= 2.4.1, <= 2.4.3               | 7.3       | Magento 2.4.3    / PHP 7.4 |
 | 2.6.0 - 2.6.1 | EOL    | >= 2.4.3, <= 2.4.5               | 7.3 - 8.1 | Magento 2.4.5-p1 / PHP 8.1 |
 | 2.6.2         | Stable | >= 2.4.3, <= 2.4.5               | 7.3 - 8.1 | Magento 2.4.5-p1 / PHP 8.1 |
-| 2.7.0         | Latest | >= 2.4.5, < 2.4.6                | 8.1       | Magento 2.4.5-p1 / PHP 8.1 |
+| 2.7.0         | Latest | >= 2.4.4, <= 2.4.6               | 8.1 - 8.2 | Magento 2.4.6-p3 / PHP 8.1 |
 
 > **Warning**.
 > Adobe releases frequently new Magento Open Source versions, fixing bugs and/or adding new functionallity. Some of this versions could be in conflict with this plugin. We highly encourage you to set up the configuration recommended in the guidance table for running correctly this extension.
