@@ -2234,7 +2234,11 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                 }else if ($mg_category_field == 'image'){
 
-                    $sl_category_image_data_to_sync[$mg_category_field] = $category['data'][$sl_category_field];
+                    if (!empty($category['data'][$sl_category_field])){
+
+                        $sl_category_image_data_to_sync[$mg_category_field] = $category['data'][$sl_category_field];
+                    
+                    }
 
                 }else if ($mg_category_field == 'page_layout'){
 
