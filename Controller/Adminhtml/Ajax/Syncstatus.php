@@ -11,7 +11,6 @@ class Syncstatuscommands extends \Magento\Framework\App\Action\Action
     /**
      * @var \Magento\Framework\UrlInterface
      */
-    protected $resultFactory;
 
     public function __construct(
         \Magento\Framework\App\Action\Context $context,
