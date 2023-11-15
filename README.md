@@ -1,8 +1,8 @@
-<a href="https://support.saleslayer.com"><p align="center"><img src="https://saleslayer.com/assets/images/logo.svg" alt="Magento Enterprise plugin" width="460"></p></a>
+<a href="https://support.saleslayer.com"><p align="center"><img src="https://saleslayer.com/assets/images/logo.svg" alt="Magento Enterprise plugin" width="230"></p></a>
 
 # Sales Layer Magento Enterprise plugin
 
-[![PHP Version](https://img.shields.io/badge/php-8.1%2C%208.2-8892BF.svg?style=flat-square)](https://php.net/) [![Magento Version](https://img.shields.io/badge/Magento-%3E%3D2.4.4%2C%20%3C%3D2.4.6-AA92BF.svg?style=flat-squar)](https://experienceleague.adobe.com/docs/commerce-operations/installation-guide/composer.html?lang=en) [![GitHub release](https://img.shields.io/github/v/release/saleslayer/magento-enterprise-plugin)](https://github.com/saleslayer/magento-enterprise-plugin)
+[![PHP Version](https://img.shields.io/badge/php-8.1%2C%208.2-8892BF.svg?style=flat-square&logo=php)](https://php.net/) [![Magento Version](https://img.shields.io/badge/Magento-%3E%3D2.4.4%2C%20%3C%3D2.4.6-AA92BF.svg?style=flat-square&logo=magento)](https://experienceleague.adobe.com/docs/commerce-operations/installation-guide/composer.html?lang=en) [![GitHub release](https://img.shields.io/badge/release-2.7.0-green.svg?&color=%238cdb90&logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAGgSURBVHgB7ZdvTsIwGIfbd4sxAcluANzAz8bMOi/gTYwncNxgV+ECswFj/AY3UG9gIksMsM2+05llafenK8IHni/Q0b6/JyNr31GiyZnnpsXxZzijRAMge+YwBXrs4nzguQ/EEIMb9w5rkiYCOBHAfhR/sG9CAmukKQmwpkwCZOHiq4PjrhJZuKjxO3RkEqU7YLE8PEdXohSe41Cwb5UCEZ8HYtGkXKythCIc60xW4cxXCiA4oYtEm3CpQBeJtuGIRRSsX9/5yXhIxfbGSj+x0/Ew+yxexGttw5Ha7bPvub6YpPUk1IUjFqmh4k50Dm8koCPRNByh5VPtvzmehnsXaNzFqDaZnISk91E4D8guBOrCkZ21ZE3CuwA64bJzoozD2KhX0QnVCugcLMXwGJIF/HRCi6oDDEyHIxuIselwCuuUpyiYDkdoki4l66USYDocWfEnruon+uySKQXiZDsVsz66hP9JqJoaoCOlQMSfl0m6vc4ldMOVEqJunGx4cY5088geHbBY1c7W5t0wq2fZV3G8nn7xl7dagSYcX05N8Q1kOvEudFJMkgAAAABJRU5ErkJggg==)](https://github.com/saleslayer/magento-enterprise-plugin)
 
 This is the official Sales Layer's plugin for Magento Enterprise (Adobe Commerce).
 
@@ -10,9 +10,8 @@ This is the official Sales Layer's plugin for Magento Enterprise (Adobe Commerce
 
 This plugin allows you to easily synchronize your Sales Layer catalogue information with your [Magento Enterprise]. And you can find more detailed documentation at our [website].
 
-## Download 
+## Latest changes 
 
-[Download latest plugin version][latest-release-download].
 Check out the latest changes at our [changelog][changelog-md].
 
 ## Important Notes
@@ -108,8 +107,7 @@ php bin/magento cache:clean
 | Version       | Status | Magento Version (Adobe Commerce) | PHP       | Recommended Configuration  |
 |---------------|--------|----------------------------------|-----------|----------------------------|
 | 2.5.x         | EOL    | >= 2.4.1, <= 2.4.3               | 7.3       | Magento 2.4.3    / PHP 7.4 |
-| 2.6.0 - 2.6.1 | EOL    | >= 2.4.3, <= 2.4.5               | 7.3 - 8.1 | Magento 2.4.5-p1 / PHP 8.1 |
-| 2.6.2         | Stable | >= 2.4.3, <= 2.4.5               | 7.3 - 8.1 | Magento 2.4.5-p1 / PHP 8.1 |
+| 2.6.x         | EOL    | >= 2.4.3, <= 2.4.5               | 7.3 - 8.1 | Magento 2.4.5-p1 / PHP 8.1 |
 | 2.7.0         | Latest | >= 2.4.4, <= 2.4.6               | 8.1 - 8.2 | Magento 2.4.6-p3 / PHP 8.1 |
 
 > **Warning**.
@@ -121,7 +119,6 @@ php bin/magento cache:clean
 
 [Magento Enterprise]: https://business.adobe.com/products/magento/magento-commerce.html
 [website]: https://support.saleslayer.com/category/magento
-[latest-release-download]: https://github.com/saleslayer/magento-enterprise-plugin/releases/latest/download/magento-enterprise-plugin.zip
 [changelog-md]: https://github.com/saleslayer/magento-enterprise-plugin/blob/master/CHANGELOG.md
 [important notes]: https://support.saleslayer.com/magento/important-notes-about-magento-connector
 [magento-system-requirements]: https://experienceleague.adobe.com/docs/commerce-operations/installation-guide/system-requirements.html
