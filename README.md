@@ -12,7 +12,7 @@ This plugin allows you to easily synchronize your Sales Layer catalogue informat
 
 ## Latest changes 
 
-Check out the latest changes at our [changelog][changelog-md].
+Read our [Changelog].
 
 ## Important Notes
 
@@ -53,7 +53,7 @@ See [manage extensions on Adobe Commerce][magento-manage-extensions] for more in
 Once executed and installed, the plugin will be found in your Magento installation root path, inside the folder 'vendor/saleslayer/magento-enterprise-plugin/
 
 ##### 1.1.1.1 Composer command examples
-To install the latest latest valid version of the main branch: 
+To install the latest valid version of the main branch: 
 ```
 composer require saleslayer/magento-enterprise-plugin
 ```
@@ -107,8 +107,8 @@ php bin/magento cache:clean
 | Version       | Status | Magento Version (Adobe Commerce) | PHP       | Recommended Configuration  |
 |---------------|--------|----------------------------------|-----------|----------------------------|
 | 2.5.x         | EOL    | >= 2.4.1, <= 2.4.3               | 7.3       | Magento 2.4.3    / PHP 7.4 |
-| 2.6.x         | EOL    | >= 2.4.3, <= 2.4.5               | 7.3 - 8.1 | Magento 2.4.5-p1 / PHP 8.1 |
-| 2.7.0         | Latest | >= 2.4.4, <= 2.4.6               | 8.1 - 8.2 | Magento 2.4.6-p3 / PHP 8.1 |
+| [2.6.x]       | EOL    | >= 2.4.3, <= 2.4.5               | 7.3 - 8.1 | Magento 2.4.5-p1 / PHP 8.1 |
+| [2.7.0]       | Latest | >= 2.4.4, <= 2.4.6               | 8.1 - 8.2 | Magento 2.4.6-p3 / PHP 8.1 |
 
 > **Warning**.
 > Adobe releases frequently new Magento Open Source versions, fixing bugs and/or adding new functionallity. Some of this versions could be in conflict with this plugin. We highly encourage you to set up the configuration recommended in the guidance table for running correctly this extension.
@@ -119,7 +119,9 @@ php bin/magento cache:clean
 
 [Magento Enterprise]: https://business.adobe.com/products/magento/magento-commerce.html
 [website]: https://support.saleslayer.com/category/magento
-[changelog-md]: https://github.com/saleslayer/magento-enterprise-plugin/blob/master/CHANGELOG.md
+[Changelog]: ./CHANGELOG.md
 [important notes]: https://support.saleslayer.com/magento/important-notes-about-magento-connector
 [magento-system-requirements]: https://experienceleague.adobe.com/docs/commerce-operations/installation-guide/system-requirements.html
 [magento-manage-extensions]: https://experienceleague.adobe.com/docs/commerce-cloud-service/user-guide/configure-store/extensions.html
+[2.6.x]:https://github.com/saleslayer/magento-enterprise-plugin/tree/2.6.x
+[2.7.0]:https://github.com/saleslayer/magento-enterprise-plugin/releases/tag/2.7.0
