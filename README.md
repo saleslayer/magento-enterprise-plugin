@@ -80,6 +80,6 @@ php bin/magento cache:clean
 [Magento Enterprise]: https://business.adobe.com/products/magento/magento-commerce.html
 [website]: https://support.saleslayer.com/category/magento
 [latest-release-download]: https://github.com/saleslayer/magento-enterprise-plugin/releases/download/2.6.2/magento-enterprise-plugin.zip
-[changelog-md]: https://github.com/saleslayer/magento-enterprise-plugin/blob/master/CHANGELOG.md
+[changelog-md]: https://github.com/saleslayer/magento-enterprise-plugin/tree/2.6.2/CHANGELOG.md
 [important notes]: https://support.saleslayer.com/magento/important-notes-about-magento-connector
 [magento-system-requirements]: https://experienceleague.adobe.com/docs/commerce-operations/installation-guide/system-requirements.html
