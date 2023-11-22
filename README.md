@@ -12,7 +12,8 @@ This plugin allows you to easily synchronize your Sales Layer catalogue informat
 
 ## Download 
 
-[Download latest plugin version][latest-release-download].
+Download [Sales Layer Adobe Commerce extension 2.6.2](https://github.com/saleslayer/magento-enterprise-plugin/releases/download/2.6.2/magento-enterprise-plugin.zip) compatible with Adobe Commerce (Magento Enterprise) 2.4.3 up to 2.4.5
+
 Check out the latest changes at our [changelog][changelog-md].
 
 ## Important Notes
@@ -61,13 +62,14 @@ php bin/magento cache:clean
 #### 3.1 Go to Sales Layer -> Import -> Add connector and add the connector id and secret key.
 #### 3.2 Finally, In Sales Layer -> Import -> The connector you created, push Synchronize Connector to import categories, products and variants automatically.
 
-## Version Guidance
+## Branch 2.6.x Release recommended configuration
 
-| Version       | Status | Magento Version (Adobe Commerce) | PHP       | Recommended Configuration  |
-|---------------|--------|----------------------------------|-----------|----------------------------|
-| 2.5.x         | EOL    | >= 2.4.1, <= 2.4.3               | 7.3       | Magento 2.4.3    / PHP 7.4 |
-| 2.6.0 - 2.6.1 | Stable | >= 2.4.3, <= 2.4.5               | 7.3 - 8.1 | Magento 2.4.5-p1 / PHP 8.1 |
-| 2.6.2         | Latest | >= 2.4.3, <= 2.4.5               | 7.3 - 8.1 | Magento 2.4.5-p1 / PHP 8.1 |
+
+| Release        | Adobe Commerce Version        | PHP     | Web Server | 
+|----------------|-------------------------------|---------|------------|
+| [2.6.0][2.6.0] |  Adobe Commerce 2.4.5-p1      | PHP 8.1 | Apache2.4  |
+| [2.6.1][2.6.1] |  Adobe Commerce 2.4.5-p1      | PHP 8.1 | Apache2.4  |
+| [2.6.2][2.6.2] |  Adobe Commerce 2.4.5-p1      | PHP 8.1 | Apache2.4  |
 
 
 > **Warning**.
@@ -79,7 +81,9 @@ php bin/magento cache:clean
 
 [Magento Enterprise]: https://business.adobe.com/products/magento/magento-commerce.html
 [website]: https://support.saleslayer.com/category/magento
-[latest-release-download]: https://github.com/saleslayer/magento-enterprise-plugin/releases/download/2.6.2/magento-enterprise-plugin.zip
-[changelog-md]: https://github.com/saleslayer/magento-enterprise-plugin/tree/2.6.2/CHANGELOG.md
+[changelog-md]: ./CHANGELOG.md
 [important notes]: https://support.saleslayer.com/magento/important-notes-about-magento-connector
 [magento-system-requirements]: https://experienceleague.adobe.com/docs/commerce-operations/installation-guide/system-requirements.html
+[2.6.0]:https://github.com/saleslayer/magento-enterprise-plugin/releases/tag/2.6.0
+[2.6.1]:https://github.com/saleslayer/magento-enterprise-plugin/releases/tag/2.6.1
+[2.6.2]:https://github.com/saleslayer/magento-enterprise-plugin/releases/tag/2.6.2
