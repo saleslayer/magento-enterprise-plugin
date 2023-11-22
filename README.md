@@ -1,27 +1,24 @@
-<h1 align="center">
-  <a href="https://support.saleslayer.com">
-    <img src="https://saleslayer.com/assets/images/logo.svg" alt="Magento Enteprise plugin" width="230"></a>
-  </a>
-  <br><br>
-  Sales Layer Magento plugin for Enteprise
-  <br>
-</h1>
+<a href="https://support.saleslayer.com"><p align="center"><img src="https://saleslayer.com/assets/images/logo.svg" alt="Magento Enterprise plugin" width="230"></p></a>
 
-<h4 align="center">This is the official Sales Layer's plugin for Magento Enterprise.</h4>
+# Sales Layer Adobe Commerce extension
+
+[![PHP Version](https://img.shields.io/badge/php-7.3-8892BF.svg?style=flat-square&logo=php)](https://php.net/) [![Magento Version](https://img.shields.io/badge/Adobe%20Commerce-4.3-AA92BF.svg?style=flat-square&logo=magento)](https://experienceleague.adobe.com/docs/commerce-operations/installation-guide/composer.html?lang=en) [![GitHub release](https://img.shields.io/badge/release-2.5.5-green.svg?&color=%238cdb90&logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAGgSURBVHgB7ZdvTsIwGIfbd4sxAcluANzAz8bMOi/gTYwncNxgV+ECswFj/AY3UG9gIksMsM2+05llafenK8IHni/Q0b6/JyNr31GiyZnnpsXxZzijRAMge+YwBXrs4nzguQ/EEIMb9w5rkiYCOBHAfhR/sG9CAmukKQmwpkwCZOHiq4PjrhJZuKjxO3RkEqU7YLE8PEdXohSe41Cwb5UCEZ8HYtGkXKythCIc60xW4cxXCiA4oYtEm3CpQBeJtuGIRRSsX9/5yXhIxfbGSj+x0/Ew+yxexGttw5Ha7bPvub6YpPUk1IUjFqmh4k50Dm8koCPRNByh5VPtvzmehnsXaNzFqDaZnISk91E4D8guBOrCkZ21ZE3CuwA64bJzoozD2KhX0QnVCugcLMXwGJIF/HRCi6oDDEyHIxuIselwCuuUpyiYDkdoki4l66USYDocWfEnruon+uySKQXiZDsVsz66hP9JqJoaoCOlQMSfl0m6vc4ldMOVEqJunGx4cY5088geHbBY1c7W5t0wq2fZV3G8nn7xl7dagSYcX05N8Q1kOvEudFJMkgAAAABJRU5ErkJggg==)](https://github.com/saleslayer/magento-enterprise-plugin)
+
+This is the official Sales Layer's plugin for Adobe Commerce (formerly Magento Enterprise).
 
 ## Description
 
-This plugin allows you to easily synchronize your Sales Layer catalogue information with your [Magento Enterprise]("https://business.adobe.com/products/magento/magento-commerce.html"). And you can find more detailed documentation at our [website](https://support.saleslayer.com/category/magento).
+This plugin allows you to easily synchronize your Sales Layer catalogue information with your [Adobe Commerce] store. You can find more detailed documentation at our [website].
 
-## Download [latest plugin version](https://github.com/saleslayer/magento-enterprise-plugin/releases/latest/download/magento-enterprise-plugin.zip)
+## Download 
+
+Download [Sales Layer Adobe Commerce extension 2.5.5](https://github.com/saleslayer/magento-enterprise-plugin/releases/download/2.5.5/magento-enterprise-plugin.zip) compatible with Adobe Commerce (Magento Enterprise) 2.4.3
+
+Check out the latest changes at our [changelog][changelog-md].
 
 ## Important Notes
 
-Please check the [important notes](https://support.saleslayer.com/magento/important-notes-about-magento-connector) for the installation. (In some cases, a Sales Layer account might be needed to access the documentation).
-
-## Version compatibility
-
-Tested on: 2.4.3
+Please check the [important notes] for the installation. (In some cases, a Sales Layer account might be needed to access the documentation).
 
 ## Requirements
 
@@ -64,3 +61,37 @@ php bin/magento cache:clean
 
 #### 3.1 Go to Sales Layer -> Import -> Add connector and add the connector id and secret key.
 #### 3.2 Finally, In Sales Layer -> Import -> The connector you created, push Synchronize Connector to import categories, products and variants automatically.
+
+## Branch 2.5.x Release recommended configuration
+
+
+| Release        | Adobe Commerce Version        | PHP     | Web Server | 
+|----------------|-------------------------------|---------|------------|
+| [2.5.0][2.5.0] |  Adobe Commerce 2.4.3         | PHP 7.3 | Apache2.4  |
+| [2.5.1][2.5.1] |  Adobe Commerce 2.4.3         | PHP 7.3 | Apache2.4  |
+| [2.5.2][2.5.2] |  Adobe Commerce 2.4.3         | PHP 7.3 | Apache2.4  |
+| [2.5.3][2.5.3] |  Adobe Commerce 2.4.3         | PHP 7.3 | Apache2.4  |
+| [2.5.4][2.5.4] |  Adobe Commerce 2.4.3         | PHP 7.3 | Apache2.4  |
+| [2.5.5][2.5.5] |  Adobe Commerce 2.4.3         | PHP 7.3 | Apache2.4  |
+
+
+> **Warning**.
+> Adobe releases frequently new Magento Open Source versions, fixing bugs and/or adding new functionallity. Some of this versions could be in conflict with this plugin. We highly encourage you to set up the configuration recommended in the guidance table for running correctly this extension.
+
+> **Note**. 
+> See also [Magento system requirements][magento-system-requirements] for the right environment choice.
+
+
+[Adobe Commerce]: https://business.adobe.com/products/magento/magento-commerce.html
+[website]: https://support.saleslayer.com/category/magento
+[latest-release-download]: https://github.com/saleslayer/magento-enterprise-plugin/releases/download/2.6.2/magento-enterprise-plugin.zip
+[changelog-md]: ./CHANGELOG.md
+[important notes]: https://support.saleslayer.com/magento/important-notes-about-magento-connector
+[magento-system-requirements]: https://experienceleague.adobe.com/docs/commerce-operations/installation-guide/system-requirements.html
+[2.5.0]:https://github.com/saleslayer/magento-enterprise-plugin/releases/tag/2.5.0
+[2.5.1]:https://github.com/saleslayer/magento-enterprise-plugin/releases/tag/2.5.1
+[2.5.2]:https://github.com/saleslayer/magento-enterprise-plugin/releases/tag/2.5.2
+[2.5.3]:https://github.com/saleslayer/magento-enterprise-plugin/releases/tag/2.5.3
+[2.5.4]:https://github.com/saleslayer/magento-enterprise-plugin/releases/tag/2.5.4
+[2.5.5]:https://github.com/saleslayer/magento-enterprise-plugin/releases/tag/2.5.5
+
