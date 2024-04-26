@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.7.1] - 2024-04-26
+
+### Added
+
+- Configuration option to choose if variant ID are added to their name.
+- Column in connector's grid to show items to sync recount and if it has happened, the last cron error.
+
+### Changed
+
+- Attributes read by attribute set id and stored in memory for validation process.
+- Minor changes.
+
 ## [2.7.0] - 2023-10-18
 
 ## Changed

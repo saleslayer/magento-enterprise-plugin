@@ -13,6 +13,7 @@
                 <sync_data_hour_from>0</sync_data_hour_from>
                 <sync_data_hour_until>0</sync_data_hour_until>
                 <format_type_creation>simple</format_type_creation>
+                <add_sl_id_to_format_name>1</add_sl_id_to_format_name>
                 <delete_sl_logs_since_days>0</delete_sl_logs_since_days>
             </general>
         </synccatalog>

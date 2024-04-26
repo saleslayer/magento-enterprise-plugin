@@ -59,7 +59,12 @@
                     <comment>Products formats will be created with this type</comment>
                     <source_model>Saleslayer\Synccatalog\Model\Config\FormatTypeCreation\TypeCreation</source_model>
                 </field>
-                <field id="delete_sl_logs_since_days" translate="label comment" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="0">
+                <field id="add_sl_id_to_format_name" translate="label comment" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="0">
+                    <label>Add SL ID to Product format Name</label>
+                    <comment>This will help to avoid duplicate names between Products and Product formats. We suggest to have it enabled.</comment>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                </field>
+                <field id="delete_sl_logs_since_days" translate="label comment" sortOrder="11" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>Delete SL logs from more than X days ago</label>
                     <comment>Please enter a value between at least 0 and 31. Empty or 0 will not delete SL logs.</comment>
                     <backend_model>Saleslayer\Synccatalog\Model\Config\DeleteSLLogsSinceDays\BackendModel</backend_model>

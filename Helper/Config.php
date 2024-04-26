@@ -16,6 +16,7 @@ class Config extends AbstractHelper
     const CONFIG_SYNCCATALOG_GENERAL_SYNC_DATA_HOUR_FROM = 'synccatalog/general/sync_data_hour_from';
     const CONFIG_SYNCCATALOG_GENERAL_SYNC_DATA_HOUR_UNTIL = 'synccatalog/general/sync_data_hour_until';
     const CONFIG_SYNCCATALOG_GENERAL_FORMAT_TYPE_CREATION  = 'synccatalog/general/format_type_creation';
+    const CONFIG_SYNCCATALOG_GENERAL_ADD_SL_ID_TO_FORMAT_NAME  = 'synccatalog/general/add_sl_id_to_format_name';
     const CONFIG_SYNCCATALOG_GENERAL_DELETE_SL_LOGS_SINCE_DAYS = 'synccatalog/general/delete_sl_logs_since_days';
 
     /**
@@ -121,6 +122,18 @@ class Config extends AbstractHelper
     public function getFormatTypeCreation(){
 
         return (string) $this->scopeConfig->getValue(self::CONFIG_SYNCCATALOG_GENERAL_FORMAT_TYPE_CREATION);
+    
+    }
+
+    /**
+     * Retrieve add SL ID to format name option
+     *
+     * @return int
+     */
+    public function getAddSLIDToFormatName()
+    {
+
+        return (int) $this->scopeConfig->getValue(self::CONFIG_SYNCCATALOG_GENERAL_ADD_SL_ID_TO_FORMAT_NAME);
     
     }
 

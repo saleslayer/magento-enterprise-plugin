@@ -848,7 +848,7 @@ class SalesLayerConn
                         }
                     }
 
-                    if (isset($this->data_returned['data_schema'])) {
+                    if (isset($this->data_returned['data_schema']) && is_array($this->data_returned['data_schema'])) {
 
                         $this->response_tables_schema = $this->data_returned['data_schema'];
 

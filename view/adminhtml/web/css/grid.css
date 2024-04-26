@@ -1,0 +1,16 @@
+.grid-header-class {
+    height: 50px; /* Ajusta según tus necesidades */
+}
+
+.grid-col-id-class{
+    width: 10%;
+}
+
+.grid-col-conn-class,
+.grid-col-update-class{
+    width:20%;
+}
+
+.grid-col-status-class{
+    width:50%;
+}

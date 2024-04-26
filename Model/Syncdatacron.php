@@ -932,6 +932,9 @@ class Syncdatacron extends Synccatalog
 
         $this->avoid_stock_update = $sync_params['avoid_stock_update'];
         $this->format_configurable_attributes = $sync_params['format_configurable_attributes'];
+        if (isset($sync_params['add_sl_id_to_format_name'])){
+            $this->add_sl_id_to_format_name = $sync_params['add_sl_id_to_format_name'];
+        }
 
         foreach ($this->product_format_fields as $product_format_field) {
             
