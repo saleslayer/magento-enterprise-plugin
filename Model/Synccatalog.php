@@ -12716,7 +12716,10 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         if (isset($attribute[\Magento\Catalog\Api\Data\EavAttributeInterface::IS_WYSIWYG_ENABLED]) && $attribute[\Magento\Catalog\Api\Data\EavAttributeInterface::IS_WYSIWYG_ENABLED] == 1){ 
         
-            if (trim(strip_tags($db_value)) === trim(strip_tags($value))){
+            if ($db_value !== null) $db_value = trim(strip_tags($db_value));
+            if ($value !== null) $value = trim(strip_tags($value));
+            
+            if ($db_value === $value) {
 
                 return true;
 

@@ -63,6 +63,11 @@ Branch feature-295 will be installed (the branch name can be changed to any bran
 composer require saleslayer/magento-enterprise-plugin:dev-feature_295
 ```
 
+To install the latest dev version:
+```
+composer require saleslayer/magento-enterprise-plugin:2.7.x-dev
+```
+
 #### 1.1.2 Composer requirements
 Following Version guidance, check the plugin version to check which PHP and Magento version are required to install the plugin.
 
