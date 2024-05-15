@@ -1,0 +1,6 @@
+.admin__menu .level-0.item-synccatalog > a:before {
+    content: url('../images/icono.svg');
+}
+li#menu-saleslayer_synccatalog > a > span {
+    display: none;
+}
