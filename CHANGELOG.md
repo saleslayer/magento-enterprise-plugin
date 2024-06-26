@@ -2,6 +2,10 @@
 
 ## [Dev version]
 
+### Added
+
+- Added categories and products URL Key field to process.
+
 ### Changed
 
 - Fix for strip_tags with null values

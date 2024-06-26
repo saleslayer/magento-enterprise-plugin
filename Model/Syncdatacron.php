@@ -176,6 +176,7 @@ class Syncdatacron extends Synccatalog
 
             $this->product_fields = [
                 'product_field_name',
+                'product_field_url_key',
                 'product_field_description',
                 'product_field_description_short',
                 'product_field_price',
@@ -699,7 +700,7 @@ class Syncdatacron extends Synccatalog
 
             foreach ($this->processed_items as $processed_item_type => $processed_item_type_count) {
                 
-                $this->debbug('- Processed_items - type: '.$processed_item_type.' count: '.$processed_item_type_count, 'syncdata');
+                $this->debbug('Processed items - type: '.$processed_item_type.' count: '.$processed_item_type_count, 'syncdata');
 
             }
 
@@ -717,7 +718,8 @@ class Syncdatacron extends Synccatalog
 
         $types = [
             \Magento\Framework\App\Cache\Type\Block::TYPE_IDENTIFIER,
-            \Magento\PageCache\Model\Cache\Type::TYPE_IDENTIFIER
+            \Magento\PageCache\Model\Cache\Type::TYPE_IDENTIFIER,
+            \Magento\Eav\Model\Cache\Type::TYPE_IDENTIFIER,
         ];
 
         foreach ($types as $type) {

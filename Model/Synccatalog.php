@@ -120,6 +120,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
     protected $product_field_id                     = 'ID';
     protected $product_field_catalogue_id           = 'ID_catalogue';
     protected $product_field_name                   = 'product_name';
+    protected $product_field_url_key                = 'product_url_key';
     protected $product_field_description            = 'product_description';
     protected $product_field_description_short      = 'product_description_short';
     protected $product_field_price                  = 'product_price';
@@ -2265,7 +2266,9 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         }
 
-        if (!isset($sl_category_data_to_sync['url_key']) && isset($sl_category_data_to_sync['name'])){
+        if ((!isset($sl_category_data_to_sync['url_key']) || 
+            trim($sl_category_data_to_sync['url_key']) == '') && 
+            isset($sl_category_data_to_sync['name'])) {
 
             $sl_category_data_to_sync['url_key'] = $sl_category_data_to_sync['name'];
 
@@ -2593,8 +2596,6 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
             $this->mg_parent_category_id = $this->default_category_id;
             $this->mg_parent_category_row_ids = $this->getEntityRowIds($this->mg_parent_category_id, 'category');
             $this->mg_parent_category_current_row_id = $this->getEntityCurrentRowId($this->mg_parent_category_id, 'category');
-            // $mg_parent_category_path = '1/'.$this->mg_parent_category_id;
-            // $mg_parent_category_level = 0;
             $mg_parent_category_path = $mg_parent_category_core_data['path'];
             $mg_parent_category_level = $mg_parent_category_core_data['level'];
 
@@ -2846,7 +2847,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         if ($this->config_catalog_category_flat == 1){
             
             $time_ini_manage_indexes = microtime(1);
-            $this->manageIndexes(array('catalog_category_flat'));
+            $this->manageIndexes(['catalog_category_flat']);
             $this->debbug('## time_manage_indexes: ', 'timer', (microtime(1) - $time_ini_manage_indexes));
 
         }
@@ -4071,6 +4072,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         $mg_product_fields = [
             $this->product_field_name => 'name',
+            $this->product_field_url_key => 'url_key',
             $this->product_field_description => 'description',
             $this->product_field_description_short => 'short_description',
             $this->product_field_meta_title => 'meta_title',
@@ -9380,7 +9382,10 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
      */
     private function getValidCategoryUrlKey($original_url_key, $store_view_id = 0){
 
-        if (($url_key_attribute = $this->getAttribute('url_key', $this->category_entity_type_id)) === false) return $original_url_key;
+        if (($url_key_attribute = $this->getAttribute('url_key', $this->category_entity_type_id)) === false) { 
+            return $original_url_key;
+        }
+
 
         $category_table = $this->getTable('catalog_category_entity');
         $category_url_key_table = $this->getTable('catalog_category_entity_' . $url_key_attribute[\Magento\Eav\Api\Data\AttributeInterface::BACKEND_TYPE]);
@@ -9413,8 +9418,6 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
             );
 
             if (!empty($categories_data)){
-
-                $category_found = false;
 
                 foreach ($categories_data as $category_data) {
             
@@ -9935,6 +9938,78 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         return $return_array;
 
+    }
+
+        /**
+     * Function to get a valid product URL Key.
+     *
+     * @param  string $original_url_key original product URL Key
+     * @param  int    $store_view_id    store view id to search 
+     * @return string                           non duplicated URL Key
+     */
+    private function getValidProductUrlKey($original_url_key, $store_view_id = 0)
+    {
+
+        if (($url_key_attribute = $this->getAttribute('url_key', $this->product_entity_type_id)) === false) { 
+            return $original_url_key;
+        }
+
+        $product_url_key_table = $this->getTable('catalog_product_entity_' . $url_key_attribute[\Magento\Eav\Api\Data\AttributeInterface::BACKEND_TYPE]);
+        
+        $new_url_key = $original_url_key;
+        $valid_url_key = false;
+        $increment = 1;
+
+        do{
+
+            $products_data = $this->connection->fetchAll(
+                $this->connection->select()
+                    ->from(
+                        ['p1' => $product_url_key_table],
+                        [$this->tables_identifiers[$product_url_key_table] => 'p1.'.$this->tables_identifiers[$product_url_key_table],
+                        'url_key' => 'p1.value']
+                    )
+                    ->where('p1.attribute_id' . ' = ?', $url_key_attribute[\Magento\Eav\Api\Data\AttributeInterface::ATTRIBUTE_ID])
+                    ->where('p1.value' . ' = ?', $new_url_key)
+                    ->where('p1.store_id' . ' = ?', $store_view_id)
+                    ->group('p1.'.$this->tables_identifiers[$product_url_key_table])
+            );
+
+            if (!empty($products_data)) {
+
+                foreach ($products_data as $product_data) {
+            
+                    if ($this->mg_product_id == $product_data[$this->tables_identifiers[$product_url_key_table]]) {
+
+                        //Url Key is in the same product
+                        return $new_url_key;
+
+                    }else{
+
+                        //Url key is on another linked product
+                        break;
+
+                    }
+    
+                }
+                
+                if (!$valid_url_key) {
+    
+                    $new_url_key = $original_url_key.'-sl-'.$increment;
+                    $increment++;
+                    
+                }
+
+            }else{
+
+                $valid_url_key = true;
+
+            }
+
+        }while(!$valid_url_key);
+
+        return $new_url_key;
+        
     }
 
     /**
@@ -11659,6 +11734,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                 'product_inventory_min_sale_qty'    => 'format_inventory_min_sale_qty',
                 'product_inventory_max_sale_qty'    => 'format_inventory_max_sale_qty',
                 'attribute_set_id'                  => 'format_attribute_set_id',
+                'product_url_key'                   => 'format_url_key',            
                 'product_meta_title'                => 'format_meta_title',
                 'product_meta_keywords'             => 'format_meta_keywords',
                 'product_meta_description'          => 'format_meta_description',
@@ -12854,6 +12930,19 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                 continue;
             }
 
+            if ($attrK === 'url_key'){
+
+                $time_ini_get_valid_url_key = microtime(1);
+                $attrV = $this->getValidProductUrlKey($attrV, $storeViewId);
+                if ($this->sl_DEBBUG > 2) { 
+                    $this->debbug('# time_get_valid_url_key: ', 'timer', (microtime(1) - $time_ini_get_valid_url_key));
+                }
+                $entity->setDataUsingMethod($attrK, $attrV);
+                $entity->getResource()->saveAttribute($entity, $attrK);
+                continue;
+                
+            }
+
             $attribute = $entity->getResource()->getAttribute($attrK);
 
             if ($attribute !== false) {
@@ -12891,10 +12980,13 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
     {
         foreach ($store_view_ids as $store_view_id) {
 
+            $this->debbug(" > In store view id: ".$store_view_id);
+
             $time_ini_all_data = microtime(1);
 
             try {
                 $product = $this->_productRepository->get($sku, true, $store_view_id);
+                // $product->setStoreId($store_view_id);
             } catch (NoSuchEntityException $e) {
                 $product = null;
                 if ($this->sl_DEBBUG > 2) $this->debbug('## Error.' . $e->getMessage() . ' (SKU: ' . $sku, '), timer', (microtime(1) - $time_ini_all_data));
@@ -12954,6 +13046,8 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
     {
 
         foreach ($store_view_ids as $store_view_id) {
+
+            $this->debbug(" > In store view id: ".$store_view_id);
 
             $time_ini_all_data = microtime(1);
 
@@ -13138,12 +13232,17 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                     case 'name':
 
-                        $time_ini_format_url_key = microtime(1);
-                        $sl_product_data_to_sync['url_key'] = $this->productModel->formatUrlKey($product['data'][$sl_product_field].'-'.$mg_product_core_data['sku']);
-                        if ($this->sl_DEBBUG > 2) $this->debbug('# time_format_url_key: ', 'timer', (microtime(1) - $time_ini_format_url_key));
                         $sl_product_data_to_sync[$mg_product_field] = $product['data'][$sl_product_field];
-
+                        
                         break;
+                            
+                    case 'url_key':
+    
+                        $time_ini_format_url_key = microtime(1);
+                        $sl_product_data_to_sync[$mg_product_field] = $this->productModel->formatUrlKey($product['data'][$sl_product_field]);
+                        if ($this->sl_DEBBUG > 2) $this->debbug('# time_format_url_key: ', 'timer', (microtime(1) - $time_ini_format_url_key));
+    
+                        break;    
 
                     case 'status':
                         
@@ -13328,6 +13427,18 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
             if ($this->sl_DEBBUG > 2) $this->debbug('# time_prepare_field: ', 'timer', (microtime(1) - $time_ini_prepare_field));
         }
+
+        if ((!isset($sl_product_data_to_sync['url_key']) || 
+            trim($sl_product_data_to_sync['url_key']) == '') && 
+            isset($sl_product_data_to_sync['name'])) {
+
+            $time_ini_format_url_key = microtime(1);
+            $sl_product_data_to_sync['url_key'] = $this->productModel->formatUrlKey($sl_product_data_to_sync['name'].'-'.$mg_product_core_data['sku']);
+            if ($this->sl_DEBBUG > 2) { $this->debbug('# time_format_url_key: ', 'timer', (microtime(1) - $time_ini_format_url_key));
+            }        
+    
+        }
+
         if ($this->sl_DEBBUG > 1) $this->debbug('# time_prepare_all_fields: ', 'timer', (microtime(1) - $time_ini_prepare_all_fields));
 
         return $sl_product_data_to_sync;
