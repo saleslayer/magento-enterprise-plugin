@@ -5,10 +5,12 @@
 ### Added
 
 - Added categories and products URL Key field to process.
+- Added categories position field to process.
 
 ### Changed
 
 - Fix for strip_tags with null values
+- SL Logs Helper class added.
 
 ## [2.7.1] - 2024-04-26
 

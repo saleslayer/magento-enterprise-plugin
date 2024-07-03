@@ -37,12 +37,14 @@ use Magento\Catalog\Model\Product\Attribute\Source\Countryofmanufacture as count
 use Magento\Catalog\Model\Category\Attribute\Source\Layout as layoutSource;
 use Saleslayer\Synccatalog\Model\SalesLayerConn as SalesLayerConn;
 use Saleslayer\Synccatalog\Helper\Data as synccatalogDataHelper;
+use Saleslayer\Synccatalog\Helper\slDebuger as slDebuger;
 use Saleslayer\Synccatalog\Helper\Config as synccatalogConfigHelper;
 use \Zend_Db_Expr as Expr;
 
 class Synccatalog extends \Magento\Framework\Model\AbstractModel
 {    
     protected $synccatalogDataHelper;
+    protected $slDebuger;
     protected $synccatalogConfigHelper;
     protected $categoryModel;
     protected $productModel;
@@ -102,6 +104,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
     protected $category_field_active                = 'section_active';
     protected $category_field_page_layout           = 'section_page_layout';
     protected $category_field_is_anchor             = 'section_is_anchor';
+    protected $category_field_position              = 'section_position';
     protected $category_path_base                   = BP.'/pub/media/catalog/category/';
     protected $category_images_sizes                = [];
     protected $category_is_anchor                   = 0;
@@ -309,6 +312,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
      * @param registry                            $registry                            \Magento\Framework\Registry
      * @param SalesLayerConn                      $salesLayerConn                      Saleslayer\Synccatalog\Model\SalesLayerConn
      * @param synccatalogDataHelper               $synccatalogDataHelper               Saleslayer\Synccatalog\Helper\Data
+     * @param slDebuger                           $slDebuger                           Saleslayer\Synccatalog\Helper\slDebuger
      * @param directoryListFilesystem             $directoryListFilesystem             \Magento\Framework\Filesystem\DirectoryList
      * @param categoryModel                       $categoryModel                       \Magento\Catalog\Model\Category
      * @param productModel                        $productModel                        \Magento\Catalog\Model\Product
@@ -340,6 +344,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         registry $registry,
         SalesLayerConn $salesLayerConn,
         synccatalogDataHelper $synccatalogDataHelper,
+        slDebuger $slDebuger,
         synccatalogConfigHelper $synccatalogConfigHelper,
         directoryListFilesystem  $directoryListFilesystem,
         categoryModel $categoryModel,
@@ -370,6 +375,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         $this->salesLayerConn                           = $salesLayerConn;
         $this->synccatalogDataHelper                    = $synccatalogDataHelper;
+        $this->slDebuger                                = $slDebuger;
         $this->synccatalogConfigHelper                  = $synccatalogConfigHelper;
         $this->directoryListFilesystem                  = $directoryListFilesystem;
         $this->categoryModel                            = $categoryModel;
@@ -435,121 +441,6 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
     }
 
     /**
-     * Function to debbug into a Sales Layer log.
-     * @param string $msg       message to save
-     * @param string $type      type of message to save
-     * @param int $seconds      seconds for timer debbug
-     * @return void
-     */
-    public function debbug($msg, $type = '', $seconds = null){
-        
-        if (!$this->sl_logs_folder_checked){
-
-            $this->sl_logs_path = $this->directoryListFilesystem->getPath('log').'/sl_logs/';
-
-            if (!file_exists($this->sl_logs_path)) {
-                
-                mkdir($this->sl_logs_path, 0777, true);
-            
-            }
-
-            $this->sl_logs_folder_checked = true;
-
-        }
-
-        if ($this->sl_DEBBUG > 0){
-
-            $error_write = false;
-            if (strpos($msg, '## Error.') !== false){
-                $error_write = true;
-                $error_file = $this->sl_logs_path.'_error_debbug_log_saleslayer_'.date('Y-m-d').'.dat';
-            }
-
-            switch ($type) {
-                case 'timer':
-                    $file = $this->sl_logs_path.'_debbug_log_saleslayer_timers_'.date('Y-m-d').'.dat';
-
-                    if (null !== $seconds){
-
-                        // if ($seconds > 0.10) $msg = 'Notice Time - '.$msg;
-                        // if ($seconds > 0.50) $msg = 'Warning Time! - '.$msg;
-                        // if ($seconds > 1) $msg = 'ALERT TIME!! - '.$msg;
-                        // if ($seconds > 3) $msg = 'CRITICAL TIME!!! - '.$msg;
-
-                        $msg .= $seconds.' seconds.';
-
-                    }else{
-
-                        $msg = 'ERROR - NULL SECONDS on timer debug!!! - '.$msg;
-
-                    }
-
-                    break;
-
-                case 'autosync':
-                    $file = $this->sl_logs_path.'_debbug_log_saleslayer_auto_sync_'.date('Y-m-d').'.dat';
-                    break;
-
-                case 'syncdata':
-                    $file = $this->sl_logs_path.'_debbug_log_saleslayer_sync_data_'.date('Y-m-d').'.dat';
-                    break;
-
-                default:
-                    $file = $this->sl_logs_path.'_debbug_log_saleslayer_'.date('Y-m-d').'.dat';
-                    break;
-            }
-
-            $new_file = false;
-            if (!file_exists($file)){ $new_file = true; }
-
-            if ($this->sl_DEBBUG > 1){
-
-                $mem = sprintf("%05.2f", (memory_get_usage(true)/1024)/1024);
-
-                $pid = getmypid();
-
-                $time_end_process = round(microtime(true) - $this->sl_time_ini_process);
-
-                $srv = 'NonEx';
-
-                if (function_exists('sys_getloadavg')) {
-                    
-                    $srv = sys_getloadavg();
-                    
-                    if (is_array($srv) && isset($srv[0])){
-
-                        $srv = $srv[0];
-
-                    }
-                    
-                }
-               
-                $msg = "pid:{$pid} - mem:{$mem} - time:{$time_end_process} - srv:{$srv} - $msg";
-            
-            }
-
-            file_put_contents($file, "$msg\r\n", FILE_APPEND);
-
-            if ($new_file){ chmod($file, 0777); }
-
-            if ($error_write){
-
-                $new_error_file = false;
-                
-                if (!file_exists($error_file)){ $new_error_file = true; }
-
-                file_put_contents($error_file, "$msg\r\n", FILE_APPEND);
-
-                if ($new_error_file){ chmod($error_file, 0777); }
-
-            }
-
-        }
-
-        
-    }
-
-    /**
      * Function to update a connector's field value.
      * @param string   $connector_id                   Sales Layer connector id
      * @param string   $field_name                     connector field name
@@ -559,7 +450,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         if (null === $connector_id || $connector_id === '') {
         
-            $this->debbug('## Error. Invalid Sales Layer Connector ID.');
+            $this->slDebuger->debug('## Error. Invalid Sales Layer Connector ID.');
             throw new \InvalidArgumentException('Invalid Sales Layer Connector ID.');
             
         }else{
@@ -568,7 +459,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
             if (!$config_record) {
         
-                $this->debbug('## Error. Sales Layer master data corrupted.');
+                $this->slDebuger->debug('## Error. Sales Layer master data corrupted.');
                 throw new \InvalidArgumentException('Sales Layer master data corrupted.');
         
             }
@@ -624,7 +515,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                     if (null === $field_value || $field_value == ''){                
 
-                        $this->debbug('## Error. Sales Layer master data corrupted. No default category.');
+                        $this->slDebuger->debug('## Error. Sales Layer master data corrupted. No default category.');
                         throw new \InvalidArgumentException('Sales Layer master data corrupted. No default category.');
 
                     }
@@ -637,7 +528,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
             }
 
-            if ($this->sl_DEBBUG > 1) $this->debbug('Connector field: '.$field_name.' - field_value: '.$field_value);
+            if ($this->sl_DEBBUG > 1) $this->slDebuger->debug('Connector field: '.$field_name.' - field_value: '.$field_value);
             return $field_value;
         
         }
@@ -682,7 +573,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         if (isset($mandatory_fields[$field_name]) && (($field_name == 'auto_sync' && (null === $field_value || $field_value === '')) || ($field_name != 'auto_sync' && (null === $field_value || $field_value == '')))){
             
-            $this->debbug('## Error. Updating connector: $connector_id field: $field_name field_value: $field_value - Empty value for mandatory field.');
+            $this->slDebuger->debug('## Error. Updating connector: $connector_id field: $field_name field_value: $field_value - Empty value for mandatory field.');
             return false;
 
         }
@@ -693,11 +584,11 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                 $config_record->setData($field_name, $field_value);
                 $config_record->save();
-                if ($this->sl_DEBBUG > 1) $this->debbug('Connector field: $field_name updated to: $field_value');
+                if ($this->sl_DEBBUG > 1) $this->slDebuger->debug('Connector field: $field_name updated to: $field_value');
 
             }catch(\Exception $e){
             
-                $this->debbug('## Error. Updating connector: $connector_id field: $field_name to: $field_value - '.$e->getMessage());
+                $this->slDebuger->debug('## Error. Updating connector: $connector_id field: $field_name to: $field_value - '.$e->getMessage());
                 return false;
 
             }
@@ -761,11 +652,11 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
             //$this->website_ids = array_keys($this->website_ids);
 
             if ($this->sl_DEBBUG > 1) {
-                $this->debbug("Configuration store view ids: ".print_r($this->store_view_ids,1));
+                $this->slDebuger->debug("Configuration store view ids: ".print_r($this->store_view_ids,1));
             }
 
             if ($this->sl_DEBBUG > 1) {
-                $this->debbug("Configuration website ids: ".print_r($this->website_ids,1));
+                $this->slDebuger->debug("Configuration website ids: ".print_r($this->website_ids,1));
             }
 
         }
@@ -923,7 +814,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         
             $this->format_configurable_attributes = json_decode($format_configurable_attributes,1);
             
-            if ($this->sl_DEBBUG > 1) $this->debbug("Format configurable attributes ids: ".print_r($this->format_configurable_attributes,1));
+            if ($this->sl_DEBBUG > 1) $this->slDebuger->debug("Format configurable attributes ids: ".print_r($this->format_configurable_attributes,1));
         
         }
 
@@ -946,7 +837,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         $this->products_previous_categories = $products_previous_categories;
         
-        if ($this->sl_DEBBUG > 1) $this->debbug("Products previous categories option: ".print_r($this->products_previous_categories,1));
+        if ($this->sl_DEBBUG > 1) $this->slDebuger->debug("Products previous categories option: ".print_r($this->products_previous_categories,1));
 
     }
 
@@ -1042,7 +933,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
      */
     public function login_saleslayer ($connector_id, $secretKey) {
 
-        $this->debbug('Process login...');
+        $this->slDebuger->debug('Process login...');
 
         $this->loadSaleslayerRootCategory();
         $this->load_magento_variables();
@@ -1094,8 +985,8 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
      */
     private function updateConn($connector_id, $slconn, $last_update = null){
 
-        if ($this->sl_DEBBUG > 1) $this->debbug("Updating connector...");
-        if ($this->sl_DEBBUG > 1) $this->debbug("Last update...".$last_update);
+        if ($this->sl_DEBBUG > 1) $this->slDebuger->debug("Updating connector...");
+        if ($this->sl_DEBBUG > 1) $this->slDebuger->debug("Last update...".$last_update);
         
         $configRecord = $this->load($connector_id, 'connector_id');
         
@@ -1181,7 +1072,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
             }
 
-            if ($this->sl_DEBBUG > 2) $this->debbug('Schema: '.print_r($schema,1));
+            if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('Schema: '.print_r($schema,1));
             
             return $schema;
         
@@ -1215,7 +1106,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         $last_date_update = $this->get_conn_field($connector_id, 'last_update') ?? '';
         
-        $this->debbug('Connecting with API... (last update: '.$last_date_update.') API Version: '.$this->sl_API_version.$debug_pagination_text);
+        $this->slDebuger->debug('Connecting with API... (last update: '.$last_date_update.') API Version: '.$this->sl_API_version.$debug_pagination_text);
 
         if ($last_date_update !== null && preg_match('/^\d{4}-/', $last_date_update)) $last_date_update = strtotime($last_date_update);
         
@@ -1261,11 +1152,11 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         if ($this->clean_main_debug_file === true) file_put_contents($this->sl_logs_path.'_debbug_log_saleslayer_'.date('Y-m-d').'.dat', "");
 
         if( $items_processing = $this->isProcessing() ){
-            $this->debbug('### time_store_sync_data: ', 'timer', (microtime(1) - $time_ini_data));
+            $this->slDebuger->debug('### time_store_sync_data: ', 'timer', (microtime(1) - $time_ini_data));
             return "There are still ".$items_processing['count']." items processing, wait until is finished and synchronize again.";
         }
         
-        $this->debbug("\r\n==== Store Sync Data INIT ====\r\n");
+        $this->slDebuger->debug("\r\n==== Store Sync Data INIT ====\r\n");
         
         $this->updateLastSync($last_sync, $connector_id);
 
@@ -1273,7 +1164,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         if (!is_object($slconn)){
 
-            $this->debbug("\r\n==== Store Sync Data END ====\r\n");
+            $this->slDebuger->debug("\r\n==== Store Sync Data END ====\r\n");
 
             return $slconn;
 
@@ -1293,7 +1184,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         if (!$get_data_schema){
 
-            $this->debbug("\r\n==== Store Sync Data END ====\r\n");
+            $this->slDebuger->debug("\r\n==== Store Sync Data END ====\r\n");
 
             return "The information is being prepared by the API. Please try again in a few minutes.";
 
@@ -1311,7 +1202,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         }
         unset($get_data_schema);
 
-        $this->debbug('Update new date: '.$get_response_time.' ('.date('Y-m-d H:i:s', $get_response_time).')');
+        $this->slDebuger->debug('Update new date: '.$get_response_time.' ('.date('Y-m-d H:i:s', $get_response_time).')');
 
         $this->return_response = [];
         $info_processed = false;
@@ -1372,8 +1263,8 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         if ($info_processed && $this->format_as_products_schema) $this->cleanFormatAsProductsUnusedCategories();
         
-        $this->debbug('### time_store_sync_data: ', 'timer', (microtime(1) - $time_ini_data));
-        $this->debbug("\r\n==== Store Sync Data END ====\r\n");
+        $this->slDebuger->debug('### time_store_sync_data: ', 'timer', (microtime(1) - $time_ini_data));
+        $this->slDebuger->debug("\r\n==== Store Sync Data END ====\r\n");
 
         return $this->return_response;
     
@@ -1417,8 +1308,8 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
             }catch(\Exception $e){
 
-                $this->debbug('## Error. Insert syncdata SQL message: '.$e->getMessage());
-                $this->debbug('## Error. Insert syncdata SQL items: '.print_r($this->sql_to_insert,1));
+                $this->slDebuger->debug('## Error. Insert syncdata SQL message: '.$e->getMessage());
+                $this->slDebuger->debug('## Error. Insert syncdata SQL items: '.print_r($this->sql_to_insert,1));
 
             }
 
@@ -1455,7 +1346,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         if (!isset($schema['fields'][$this->category_field_name])){
 
             $error_message = 'Category name field must be defined in order to synchronize information.';
-            $this->debbug('## Error. '.$error_message);
+            $this->slDebuger->debug('## Error. '.$error_message);
             $this->storage_process_errors[$this->category_field_name] = $error_message;
             return false;
 
@@ -1704,7 +1595,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
             foreach ($this->storage_process_errors as $error_message){
 
-                $this->debbug('## Error. '.$error_message);
+                $this->slDebuger->debug('## Error. '.$error_message);
 
             }
 
@@ -1765,7 +1656,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         if ($this->sl_DEBBUG > 1 and isset($this->product_sync_params_to_store['product_additional_fields']) && 
             count($this->product_sync_params_to_store['product_additional_fields'])){
 
-            $this->debbug("Product additional fields:\n".print_r($this->product_sync_params_to_store['product_additional_fields'],1));
+            $this->slDebuger->debug("Product additional fields:\n".print_r($this->product_sync_params_to_store['product_additional_fields'],1));
 
         }
 
@@ -1932,7 +1823,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
             foreach ($this->storage_process_errors as $error_message){
 
-                $this->debbug('## Error. '.$error_message);
+                $this->slDebuger->debug('## Error. '.$error_message);
 
             }
 
@@ -1943,7 +1834,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         if ($this->sl_DEBBUG > 1 and isset($this->variant_sync_params_to_store['format_additional_fields']) && 
             count($this->variant_sync_params_to_store['format_additional_fields'])){
 
-            $this->debbug("Product format additional fields:\n".print_r($this->variant_sync_params_to_store['format_additional_fields'],1));
+            $this->slDebuger->debug("Product format additional fields:\n".print_r($this->variant_sync_params_to_store['format_additional_fields'],1));
 
         }
 
@@ -2039,7 +1930,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                 }
 
-                $this->debbug("## Error. The product format with ".$format_index." doesn't has a parent product to get information from. Cannot convert.");
+                $this->slDebuger->debug("## Error. The product format with ".$format_index." doesn't has a parent product to get information from. Cannot convert.");
                 
             }else{
 
@@ -2111,11 +2002,11 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         $this->cleanMGVars();
 
-        if ($this->sl_DEBBUG > 2) $this->debbug('Synchronizing stored category: '.print_r($category,1));
+        if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('Synchronizing stored category: '.print_r($category,1));
 
         $time_ini_check_category = microtime(1);
         if ($this->check_category_db($category)){
-            $this->debbug('### check_category: ', 'timer', (microtime(1) - $time_ini_check_category));
+            $this->slDebuger->debug('### check_category: ', 'timer', (microtime(1) - $time_ini_check_category));
 
             $syncCat = true;
 
@@ -2123,7 +2014,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
             if (!$this->sync_category_core_data_db($category)){
                 $syncCat = false;
             }
-            $this->debbug('### sync_category_core_data: ', 'timer', (microtime(1) - $time_ini_sync_category_core_data));
+            $this->slDebuger->debug('### sync_category_core_data: ', 'timer', (microtime(1) - $time_ini_sync_category_core_data));
 
             if (empty($this->store_view_ids)){
 
@@ -2143,14 +2034,14 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                     $time_ini_sync_category_data_global = microtime(1);
                     $this->sync_category_data_db($category, $store_view_ids);
-                    $this->debbug('### time_sync_category_data_global: ', 'timer', (microtime(1) - $time_ini_sync_category_data_global));
+                    $this->slDebuger->debug('### time_sync_category_data_global: ', 'timer', (microtime(1) - $time_ini_sync_category_data_global));
                     $this->category_created = false;
 
                 }else{
 
                     $time_ini_sync_category_data_global = microtime(1);
                     $this->sync_category_data_db($category, $this->store_view_ids);
-                    $this->debbug('### time_sync_category_data_global: ', 'timer', (microtime(1) - $time_ini_sync_category_data_global));
+                    $this->slDebuger->debug('### time_sync_category_data_global: ', 'timer', (microtime(1) - $time_ini_sync_category_data_global));
 
                 }
 
@@ -2186,9 +2077,9 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         
         }
 
-        $this->debbug(" > Updating category data ID: $sl_id");
+        $this->slDebuger->debug(" > Updating category data ID: $sl_id");
         
-        if ($this->sl_DEBBUG > 1 && isset($category['data'][$this->category_field_name])) $this->debbug(" Name ({$this->category_field_name}): ".$category['data'][$this->category_field_name]);
+        if ($this->sl_DEBBUG > 1 && isset($category['data'][$this->category_field_name])) $this->slDebuger->debug(" Name ({$this->category_field_name}): ".$category['data'][$this->category_field_name]);
 
         $mg_category_fields = [
             $this->category_field_name => 'name',
@@ -2221,7 +2112,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                     $time_ini_check_html_text = microtime(1);
                     $sl_category_data_to_sync[$mg_category_field] = $this->sl_check_html_text($category['data'][$sl_category_field]);
-                    if ($this->sl_DEBBUG > 2) $this->debbug('# time_check_html_text: ', 'timer', (microtime(1) - $time_ini_check_html_text));
+                    if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_check_html_text: ', 'timer', (microtime(1) - $time_ini_check_html_text));
 
                 }else if ($mg_category_field == 'is_active' || $mg_category_field == 'is_anchor'){
 
@@ -2262,7 +2153,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
             }
 
-            if ($this->sl_DEBBUG > 2) $this->debbug('# time_prepare_field: ', 'timer', (microtime(1) - $time_ini_prepare_field));
+            if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_prepare_field: ', 'timer', (microtime(1) - $time_ini_prepare_field));
 
         }
 
@@ -2276,22 +2167,22 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         $time_ini_format_url_key = microtime(1);
         $sl_category_original_url_key = $this->categoryModel->formatUrlKey($sl_category_data_to_sync['url_key']);
-        if ($this->sl_DEBBUG > 2) $this->debbug('# time_format_url_key: ', 'timer', (microtime(1) - $time_ini_format_url_key));
+        if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_format_url_key: ', 'timer', (microtime(1) - $time_ini_format_url_key));
 
-        if ($this->sl_DEBBUG > 1) $this->debbug('## sync_category_prepare_data: ', 'timer', (microtime(1) - $time_ini_sync_category_prepare_data));
+        if ($this->sl_DEBBUG > 1) $this->slDebuger->debug('## sync_category_prepare_data: ', 'timer', (microtime(1) - $time_ini_sync_category_prepare_data));
 
-        $this->debbug(" > SL category data to sync: ".print_r($sl_category_data_to_sync,1));
+        $this->slDebuger->debug(" > SL category data to sync: ".print_r($sl_category_data_to_sync,1));
 
         foreach ($store_view_ids as $store_view_id) {
             
-            $this->debbug(" > In store view id: ".$store_view_id);
+            $this->slDebuger->debug(" > In store view id: ".$store_view_id);
 
             $time_ini_get_valid_url_key = microtime(1);
             $sl_category_data_to_sync['url_key'] = $this->getValidCategoryUrlKey($sl_category_original_url_key, $store_view_id);
             if ($sl_category_data_to_sync['url_key'] !== $sl_category_original_url_key){
-                $this->debbug(" > SL category url key to sync: ".$sl_category_data_to_sync['url_key'].' in store view id: '.$store_view_id);
+                $this->slDebuger->debug(" > SL category url key to sync: ".$sl_category_data_to_sync['url_key'].' in store view id: '.$store_view_id);
             }
-            if ($this->sl_DEBBUG > 2) $this->debbug('# time_get_valid_url_key: ', 'timer', (microtime(1) - $time_ini_get_valid_url_key));
+            if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_get_valid_url_key: ', 'timer', (microtime(1) - $time_ini_get_valid_url_key));
 
             $time_ini_sync_category_store_data = microtime(1);
 
@@ -2301,7 +2192,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
             }
 
-            if ($this->sl_DEBBUG > 1) $this->debbug('## sync_category_data store_view_id: '.$store_view_id.': ', 'timer', (microtime(1) - $time_ini_sync_category_store_data));
+            if ($this->sl_DEBBUG > 1) $this->slDebuger->debug('## sync_category_data store_view_id: '.$store_view_id.': ', 'timer', (microtime(1) - $time_ini_sync_category_store_data));
 
         }
 
@@ -2313,11 +2204,11 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         }
 
-        if ($this->sl_DEBBUG > 1) $this->debbug('## sync_category_image_data store_view_id 0: ', 'timer', (microtime(1) - $time_ini_sync_category_image_store_data));
+        if ($this->sl_DEBBUG > 1) $this->slDebuger->debug('## sync_category_image_data store_view_id 0: ', 'timer', (microtime(1) - $time_ini_sync_category_image_store_data));
 
         $time_ini_sync_category_url_rewrite = microtime(1);
         $this->setCategoryUrlRewrite($store_view_ids);
-        if ($this->sl_DEBBUG > 1) $this->debbug('### sync_category_url_rewrite: ', 'timer', (microtime(1) - $time_ini_sync_category_url_rewrite));
+        if ($this->sl_DEBBUG > 1) $this->slDebuger->debug('### sync_category_url_rewrite: ', 'timer', (microtime(1) - $time_ini_sync_category_url_rewrite));
         
         return true;
 
@@ -2344,7 +2235,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                 $mg_category_fields = $this->getValues($this->mg_category_current_row_id, 'catalog_category_entity', ['url_key' => '', 'url_path' => ''], $this->category_entity_type_id, 0);
                 if (!isset($mg_category_fields['url_key']) || isset($mg_category_fields['url_key']) && $mg_category_fields['url_key'] == ''){
                  
-                    $this->debbug('## Error. Url Key not found in store: '.$store_view_id.' for category with MG ID: '.$this->mg_category_current_row_id.'. Skipping category url rewrite update.');
+                    $this->slDebuger->debug('## Error. Url Key not found in store: '.$store_view_id.' for category with MG ID: '.$this->mg_category_current_row_id.'. Skipping category url rewrite update.');
                     continue;
                 
                 }
@@ -2373,7 +2264,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                 }else{
 
-                    $this->debbug('## Error. Entity ID not found in store: '.$store_view_id.' for category with MG row ID: '.$this->mg_category_current_row_id.'. Skipping category url rewrite update.');
+                    $this->slDebuger->debug('## Error. Entity ID not found in store: '.$store_view_id.' for category with MG row ID: '.$this->mg_category_current_row_id.'. Skipping category url rewrite update.');
                     continue;
 
                 }
@@ -2394,7 +2285,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                 }else{
 
-                    $this->debbug('## Error. Parent entity ID not found in store: '.$store_view_id.' for category parent with MG row ID: '.$this->mg_parent_category_current_row_id.'. Skipping category url rewrite update.');
+                    $this->slDebuger->debug('## Error. Parent entity ID not found in store: '.$store_view_id.' for category parent with MG row ID: '.$this->mg_parent_category_current_row_id.'. Skipping category url rewrite update.');
                     continue;
 
                 }
@@ -2426,7 +2317,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
             if (!$urlPath) {
                 
-                $this->debbug("## Error. Couldn't generate category url path: ".print_r($category->getData(),1));
+                $this->slDebuger->debug("## Error. Couldn't generate category url path: ".print_r($category->getData(),1));
                 continue;
 
             }else{
@@ -2520,7 +2411,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                 }catch(\Exception $e){
 
-                    $this->debbug('## Error. Updating category url rewrite. Url path: '.$requestPath.' already exists on a different category: '.$e->getMessage());
+                    $this->slDebuger->debug('## Error. Updating category url rewrite. Url path: '.$requestPath.' already exists on a different category: '.$e->getMessage());
                     continue;
 
                 }
@@ -2547,18 +2438,18 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                 
                 }catch(\Exception $e){
 
-                    $this->debbug('## Error. Inserting category url rewrite. Url path: '.$requestPath.' already exists on a different category: '.$e->getMessage());
+                    $this->slDebuger->debug('## Error. Inserting category url rewrite. Url path: '.$requestPath.' already exists on a different category: '.$e->getMessage());
                     continue;
 
                 }
 
             }
 
-            if ($this->sl_DEBBUG > 2) $this->debbug('### time_category_url_rewrite_store: ', 'timer', (microtime(1) - $time_ini_category_url_rewrite_store));
+            if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('### time_category_url_rewrite_store: ', 'timer', (microtime(1) - $time_ini_category_url_rewrite_store));
 
         }
 
-        if ($this->sl_DEBBUG > 2) $this->debbug('### time_category_url_rewrite: ', 'timer', (microtime(1) - $time_ini_category_url_rewrite));
+        if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('### time_category_url_rewrite: ', 'timer', (microtime(1) - $time_ini_category_url_rewrite));
 
     }
 
@@ -2605,6 +2496,16 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
             $this->find_saleslayer_category_id_db($sl_id);
         }
 
+        $sl_category_position = null;
+        
+        if (isset($category['data'][$this->category_field_position]) &&
+            is_numeric($category['data'][$this->category_field_position]) &&
+            $category['data'][$this->category_field_position] >= 0) {
+            
+            $sl_category_position = intval($category['data'][$this->category_field_position]);
+        
+	    }
+
         if (null !== $this->mg_category_id) {
 
             try{
@@ -2614,9 +2515,9 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                 $mg_parent_category_path .= '/'.$mg_category_core_data['entity_id'];
                 $this->mg_category_level = $mg_category_core_data['level'];
 
-                if ($this->category_created){
+                if ($this->category_created && !is_numeric($sl_category_position)){
 
-                    $position = $this->connection->fetchOne(
+                    $sl_category_position = $this->connection->fetchOne(
                         $this->connection->select()
                             ->from(
                                 $category_table,
@@ -2626,25 +2527,33 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                             ->group('parent_id')
                     );
 
-                    if (!$position) $position = 0;
-
-                    foreach ($this->mg_category_row_ids as $mg_category_row_id) {
-
-                        $this->connection->update($category_table, ['position' => $position], $this->tables_identifiers[$category_table].' = ' . $mg_category_row_id);
+                    if (!$sl_category_position){
+                        
+                        $sl_category_position = 0;
 
                     }
 
                 }
 
-                $this->debbug(" > Updating category core data ID: $sl_id (parent: $sl_parent_id: $mg_parent_category_path)");
+                if (is_numeric($sl_category_position)){
+
+                    foreach ($this->mg_category_row_ids as $mg_category_row_id) {
+    
+                        $this->connection->update($category_table, ['position' => $sl_category_position], $this->tables_identifiers[$category_table].' = ' . $mg_category_row_id);
+    
+                    }
+
+                }
+
+                $this->slDebuger->debug(" > Updating category core data ID: $sl_id (parent: $sl_parent_id: $mg_parent_category_path)");
 
                 $refresh_stats = true;
 
                 if ($mg_category_core_data['parent_id'] != $mg_parent_category_core_data['entity_id'] || $mg_category_core_data['path'] != $mg_parent_category_path){ 
 
-                    if (!$this->category_created){
+                    if (!$this->category_created && !is_numeric($sl_category_position)){
 
-                        $position = $this->connection->fetchOne(
+                        $sl_category_position = $this->connection->fetchOne(
                             $this->connection->select()
                                 ->from(
                                     $category_table,
@@ -2654,11 +2563,15 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                                 ->group('parent_id')
                         );
 
-                        if (!$position) $position = 0;
+                        if (!$sl_category_position){
+                            
+                            $sl_category_position = 0;
+
+                        }
 
                         foreach ($this->mg_category_row_ids as $mg_category_row_id) {
 
-                            $this->connection->update($category_table, ['position' => $position], $this->tables_identifiers[$category_table].' = ' . $mg_category_row_id);
+                            $this->connection->update($category_table, ['position' => $sl_category_position], $this->tables_identifiers[$category_table].' = ' . $mg_category_row_id);
 
                         }
 
@@ -2676,7 +2589,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                     }catch(\Exception $e){
 
-                        $this->debbug('## Error. Reorganizing the category: '.$e->getMessage());
+                        $this->slDebuger->debug('## Error. Reorganizing the category: '.$e->getMessage());
 
                     }
 
@@ -2708,7 +2621,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                                         }catch(\Exception $e){
 
-                                            $this->debbug('## Error. Correcting category children path: '.print_r($e->getMessage(),1));
+                                            $this->slDebuger->debug('## Error. Correcting category children path: '.print_r($e->getMessage(),1));
 
                                         }
 
@@ -2753,7 +2666,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                         }catch(\Exception $e){
 
-                            $this->debbug('## Error. Correcting parent category level: '.print_r($e->getMessage(),1));
+                            $this->slDebuger->debug('## Error. Correcting parent category level: '.print_r($e->getMessage(),1));
 
                         }
 
@@ -2781,7 +2694,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                         }catch(\Exception $e){
 
-                            $this->debbug('## Error. Correcting category level: '.print_r($e->getMessage(),1));
+                            $this->slDebuger->debug('## Error. Correcting category level: '.print_r($e->getMessage(),1));
 
                         }
 
@@ -2802,7 +2715,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                             }catch(\Exception $e){
 
-                                $this->debbug('## Error. Correcting category level: '.print_r($e->getMessage(),1));
+                                $this->slDebuger->debug('## Error. Correcting category level: '.print_r($e->getMessage(),1));
 
                             }
 
@@ -2814,7 +2727,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
             } catch (\Exception $e) {
                 
-                $this->debbug("## Error. Updating core category ".$sl_category_name." with SL ID: ".$sl_id." path data: ".$e->getMessage());
+                $this->slDebuger->debug("## Error. Updating core category ".$sl_category_name." with SL ID: ".$sl_id." path data: ".$e->getMessage());
                 return false;
 
             }
@@ -2838,7 +2751,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         if ($this->clean_main_debug_file) file_put_contents($this->sl_logs_path.'_debbug_log_saleslayer_'.date('Y-m-d').'.dat', "");
         
-        $this->debbug('exec time: '.print_r(date('Y-m-d H:i:s'),1));
+        $this->slDebuger->debug('exec time: '.print_r(date('Y-m-d H:i:s'),1));
 
         $this->execute_slyr_load_functions();
 
@@ -2848,7 +2761,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
             
             $time_ini_manage_indexes = microtime(1);
             $this->manageIndexes(['catalog_category_flat']);
-            $this->debbug('## time_manage_indexes: ', 'timer', (microtime(1) - $time_ini_manage_indexes));
+            $this->slDebuger->debug('## time_manage_indexes: ', 'timer', (microtime(1) - $time_ini_manage_indexes));
 
         }
 
@@ -2908,7 +2821,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                             }catch(\Exception $e){
 
-                                $this->debbug('## Error. Correcting category children path: '.print_r($e->getMessage(),1));
+                                $this->slDebuger->debug('## Error. Correcting category children path: '.print_r($e->getMessage(),1));
 
                             }
 
@@ -2958,7 +2871,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                 }catch(\Exception $e){
 
-                    $this->debbug('## Error. Correcting category children: '.print_r($e->getMessage(),1));
+                    $this->slDebuger->debug('## Error. Correcting category children: '.print_r($e->getMessage(),1));
 
                 }
 
@@ -2982,7 +2895,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                 }catch(\Exception $e){
 
-                    $this->debbug('## Error. Correcting category level: '.print_r($e->getMessage(),1));
+                    $this->slDebuger->debug('## Error. Correcting category level: '.print_r($e->getMessage(),1));
 
                 }
 
@@ -2990,7 +2903,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         }
 
-        $this->debbug('#### time_correct_categories: ', 'timer', (microtime(1) - $time_ini_correct_categories));
+        $this->slDebuger->debug('#### time_correct_categories: ', 'timer', (microtime(1) - $time_ini_correct_categories));
 
     }
 
@@ -3043,11 +2956,11 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         $this->cleanMGVars();
 
-        if ($this->sl_DEBBUG > 2) $this->debbug('Synchronizing stored product: '.print_r($product,1));
+        if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('Synchronizing stored product: '.print_r($product,1));
 
         $time_ini_check_product = microtime(1);
         if ($this->check_product_db($product)){
-            $this->debbug('### check_product: ', 'timer', (microtime(1) - $time_ini_check_product));
+            $this->slDebuger->debug('### check_product: ', 'timer', (microtime(1) - $time_ini_check_product));
             
             $syncProd = true;
 
@@ -3055,7 +2968,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
             if (!$this->sync_product_core_data_db($product)){
                 $syncProd = false;
             }
-            $this->debbug('### sync_product_core_data: ', 'timer', (microtime(1) - $time_ini_sync_product_core_data));
+            $this->slDebuger->debug('### sync_product_core_data: ', 'timer', (microtime(1) - $time_ini_sync_product_core_data));
 
             if (empty($this->store_view_ids)){
 
@@ -3075,26 +2988,26 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                     $time_ini_sync_product_data_global = microtime(1);
                     $this->sync_product_data_db($product, $store_view_ids);
-                    $this->debbug('### time_sync_product_data_global: ', 'timer', (microtime(1) - $time_ini_sync_product_data_global));
+                    $this->slDebuger->debug('### time_sync_product_data_global: ', 'timer', (microtime(1) - $time_ini_sync_product_data_global));
                     $this->product_created = false;
 
                 }else{
 
                     $time_ini_sync_product_data_global = microtime(1);
                     $this->sync_product_data_db($product, $this->store_view_ids);
-                    $this->debbug('### time_sync_product_data_global: ', 'timer', (microtime(1) - $time_ini_sync_product_data_global));
+                    $this->slDebuger->debug('### time_sync_product_data_global: ', 'timer', (microtime(1) - $time_ini_sync_product_data_global));
 
                 }
 
                 if ($this->avoid_images_updates){
 
-                    $this->debbug(" > Avoiding update of product images. Option checked.");
+                    $this->slDebuger->debug(" > Avoiding update of product images. Option checked.");
 
                 }else{
 
                     $time_ini_sync_product_images = microtime(1);
                     $this->prepare_product_images_to_store_db($this->mg_product_id, $product, 'product');
-                    $this->debbug('### sync_product_images: ', 'timer', (microtime(1) - $time_ini_sync_product_images));
+                    $this->slDebuger->debug('### sync_product_images: ', 'timer', (microtime(1) - $time_ini_sync_product_images));
                 
                 }   
 
@@ -3122,7 +3035,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         $hasFailed = [];
 
         $sl_id = $product[$this->product_field_id];
-        $this->debbug(" > Checking product with SL ID: $sl_id");
+        $this->slDebuger->debug(" > Checking product with SL ID: $sl_id");
 
         if (($product['data'][$this->product_field_name] ?? '') === '') {
             $hasFailed[$this->product_field_name] = '## Error. Product with SL ID: '.$sl_id.' has no name.';
@@ -3144,7 +3057,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         if (! empty($hasFailed)) {
             foreach ($hasFailed as $debugStr) {
-                $this->debbug($debugStr);
+                $this->slDebuger->debug($debugStr);
             }
             return false;
         }
@@ -3153,11 +3066,11 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         
         $time_ini_find_saleslayer_product_id = microtime(1);
         $this->find_saleslayer_product_id_db($sl_id);
-        if ($this->sl_DEBBUG > 2) $this->debbug('# time_find_saleslayer_product_id: ', 'timer', (microtime(1) - $time_ini_find_saleslayer_product_id));
+        if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_find_saleslayer_product_id: ', 'timer', (microtime(1) - $time_ini_find_saleslayer_product_id));
         
         $time_ini_check_duplicated_sku = microtime(1);
         if (!$this->check_duplicated_sku_db('product', $sl_sku, $sl_id)){
-            if ($this->sl_DEBBUG > 1) $this->debbug('# time_check_duplicated_sku: ', 'timer', (microtime(1) - $time_ini_check_duplicated_sku));
+            if ($this->sl_DEBBUG > 1) $this->slDebuger->debug('# time_check_duplicated_sku: ', 'timer', (microtime(1) - $time_ini_check_duplicated_sku));
 
             $product_already_assigned = false;
             
@@ -3169,7 +3082,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                 
                 $time_ini_get_product_id_by_sku = microtime(1);
                 $this->get_product_id_by_sku_db($sl_sku, 'product');
-                if ($this->sl_DEBBUG > 2) $this->debbug('# time_get_product_id_by_sku: ', 'timer', (microtime(1) - $time_ini_get_product_id_by_sku));
+                if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_get_product_id_by_sku: ', 'timer', (microtime(1) - $time_ini_get_product_id_by_sku));
             
             }
             
@@ -3185,7 +3098,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                         $this->setValues($mg_product_row_id, 'catalog_product_entity', $sl_credentials, $this->product_entity_type_id, 0, false, false, $this->mg_product_row_ids);
 
                     }
-                    if ($this->sl_DEBBUG > 2) $this->debbug('# time_set_credentials: ', 'timer', (microtime(1) - $time_ini_set_credentials));
+                    if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_set_credentials: ', 'timer', (microtime(1) - $time_ini_set_credentials));
 
                 }
 
@@ -3224,7 +3137,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         $product_table = $this->getTable('catalog_product_entity');
         $time_ini_read_table_status_create_product = microtime(1);
         $table_status = $this->connection->showTableStatus($product_table);
-        if ($this->sl_DEBBUG > 2) $this->debbug('# time_read_table_status_create_product: ', 'timer', (microtime(1) - $time_ini_read_table_status_create_product));
+        if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_read_table_status_create_product: ', 'timer', (microtime(1) - $time_ini_read_table_status_create_product));
         
         if ($this->checkMGEdition('enterprise')) {
 
@@ -3305,10 +3218,10 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                 
             }catch(\Exception $e){
 
-                $this->debbug('## Error. Creating product: '.print_r($e->getMessage(),1));
+                $this->slDebuger->debug('## Error. Creating product: '.print_r($e->getMessage(),1));
 
             }
-            if ($this->sl_DEBBUG > 2) $this->debbug('# time_insert_create_product: ', 'timer', (microtime(1) - $time_ini_insert_create_product));
+            if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_insert_create_product: ', 'timer', (microtime(1) - $time_ini_insert_create_product));
         
         }
 
@@ -3337,15 +3250,15 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                 $this->setValues($mg_product_row_id, 'catalog_product_entity', $sl_credentials, $this->product_entity_type_id, 0, false, false, $this->mg_product_row_ids);
 
             }
-            if ($this->sl_DEBBUG > 2) $this->debbug('# time_set_credentials: ', 'timer', (microtime(1) - $time_ini_set_credentials));
+            if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_set_credentials: ', 'timer', (microtime(1) - $time_ini_set_credentials));
 
-            if ($this->sl_DEBBUG > 2) $this->debbug('# time_create_product: ', 'timer', (microtime(1) - $time_ini_create_product));
+            if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_create_product: ', 'timer', (microtime(1) - $time_ini_create_product));
             
             return true;
 
         }
 
-        if ($this->sl_DEBBUG > 2) $this->debbug('# time_create_product: ', 'timer', (microtime(1) - $time_ini_create_product));
+        if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_create_product: ', 'timer', (microtime(1) - $time_ini_create_product));
         return false;
 
     }
@@ -3359,7 +3272,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         
         $sl_data = $product['data'];
 
-        $this->debbug(" > Updating product core data ID: ".$product[$this->product_field_id]." (parent IDs: ".print_r($this->sl_product_mg_category_ids,1).')');
+        $this->slDebuger->debug(" > Updating product core data ID: ".$product[$this->product_field_id]." (parent IDs: ".print_r($this->sl_product_mg_category_ids,1).')');
         
         if (null === $this->mg_product_id) {
 
@@ -3713,7 +3626,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                 $mg_product_fields = $this->getValues($this->mg_product_current_row_id, 'catalog_product_entity', ['url_key' => '', 'url_path' => ''], $this->product_entity_type_id, 0);
                 if (!isset($mg_product_fields['url_key']) || isset($mg_product_fields['url_key']) && $mg_product_fields['url_key'] == ''){
                  
-                    $this->debbug('## Error. Url Key not found in store: '.$store_view_id.' for product with MG ID: '.$this->mg_product_current_row_id.'. Skipping product url rewrite update.');
+                    $this->slDebuger->debug('## Error. Url Key not found in store: '.$store_view_id.' for product with MG ID: '.$this->mg_product_current_row_id.'. Skipping product url rewrite update.');
                     continue;
                 
                 }
@@ -3728,7 +3641,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
             $product = $this->productModel;
             $product->setData($product_data);
 
-            if ($this->sl_DEBBUG > 2) $this->debbug('# time_set_product_model_data: ', 'timer', (microtime(1) - $time_ini_product_url_rewrite_store));
+            if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_set_product_model_data: ', 'timer', (microtime(1) - $time_ini_product_url_rewrite_store));
 
             $time_ini_update_url_path = microtime(1);
 
@@ -3746,7 +3659,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
             if (!$urlPath) {
                 
-                $this->debbug("## Error. Couldn't generate product url path: ".print_r($product->getData(),1));
+                $this->slDebuger->debug("## Error. Couldn't generate product url path: ".print_r($product->getData(),1));
                 continue;
 
             }else{
@@ -3759,7 +3672,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
             }
             
-            if ($this->sl_DEBBUG > 2) $this->debbug('# time_update_url_path: ', 'timer', (microtime(1) - $time_ini_update_url_path));
+            if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_update_url_path: ', 'timer', (microtime(1) - $time_ini_update_url_path));
 
             if ($store_view_id == 0){
 
@@ -3834,7 +3747,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                 
             }
             
-            if ($this->sl_DEBBUG > 2) $this->debbug('# time_categories: ', 'timer', (microtime(1) - $time_ini_categories));
+            if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_categories: ', 'timer', (microtime(1) - $time_ini_categories));
 
             foreach ($paths as $path) {
 
@@ -3871,7 +3784,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                     }catch(\Exception $e){
 
-                        $this->debbug('## Error. Updating product path url rewrite. Url path: '.$requestPath.' already exists on a different product path: '.$e->getMessage());
+                        $this->slDebuger->debug('## Error. Updating product path url rewrite. Url path: '.$requestPath.' already exists on a different product path: '.$e->getMessage());
                         continue;
 
                     }
@@ -3899,7 +3812,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                     
                     }catch(\Exception $e){
 
-                        $this->debbug('## Error. Inserting product path url rewrite. Url path: '.$requestPath.' already exists on a different product path: '.$e->getMessage());
+                        $this->slDebuger->debug('## Error. Inserting product path url rewrite. Url path: '.$requestPath.' already exists on a different product path: '.$e->getMessage());
                         continue;
 
                     }
@@ -3920,7 +3833,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                 }
             
-                if ($this->sl_DEBBUG > 2) $this->debbug('# time_rewrite_id: ', 'timer', (microtime(1) - $time_ini_rewrite_id));
+                if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_rewrite_id: ', 'timer', (microtime(1) - $time_ini_rewrite_id));
 
                 if ($rewriteId && $path['category_id']) {
 
@@ -3937,7 +3850,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                         ['url_rewrite_id = ?' => $rewriteId]
                     );
 
-                    if ($this->sl_DEBBUG > 2) $this->debbug('# time_delete_path: ', 'timer', (microtime(1) - $time_ini_delete_path));
+                    if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_delete_path: ', 'timer', (microtime(1) - $time_ini_delete_path));
 
                     $time_ini_insert_path = microtime(1);
 
@@ -3951,24 +3864,24 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                     }catch(\Exception $e){
 
-                        $this->debbug('## Error. Inserting catalog product category url rewrite id: '.$e->getMessage());
+                        $this->slDebuger->debug('## Error. Inserting catalog product category url rewrite id: '.$e->getMessage());
                         continue;
 
                     }
 
-                    if ($this->sl_DEBBUG > 2) $this->debbug('# time_insert_path: ', 'timer', (microtime(1) - $time_ini_insert_path));
+                    if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_insert_path: ', 'timer', (microtime(1) - $time_ini_insert_path));
 
                 }
 
-                if ($this->sl_DEBBUG > 2) $this->debbug('# time_product_url_rewrite_path: ', 'timer', (microtime(1) - $time_ini_product_url_rewrite_path));
+                if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_product_url_rewrite_path: ', 'timer', (microtime(1) - $time_ini_product_url_rewrite_path));
 
             }
 
-            if ($this->sl_DEBBUG > 2) $this->debbug('# time_product_url_rewrite_store: '.$store_view_id.': ', 'timer', (microtime(1) - $time_ini_product_url_rewrite_store));
+            if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_product_url_rewrite_store: '.$store_view_id.': ', 'timer', (microtime(1) - $time_ini_product_url_rewrite_store));
 
         }
 
-        if ($this->sl_DEBBUG > 1) $this->debbug('## time_product_url_rewrite: ', 'timer', (microtime(1) - $time_ini_product_url_rewrite));
+        if ($this->sl_DEBBUG > 1) $this->slDebuger->debug('## time_product_url_rewrite: ', 'timer', (microtime(1) - $time_ini_product_url_rewrite));
 
     }
 
@@ -4043,7 +3956,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         }
 
-        if ($this->sl_DEBBUG > 2) $this->debbug('# time_generate_url_path: ', 'timer', (microtime(1) - $time_ini_generate_url_path));
+        if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_generate_url_path: ', 'timer', (microtime(1) - $time_ini_generate_url_path));
         return array('product' => $product, 'requestPath' => $requestPath);
 
     }
@@ -4064,10 +3977,10 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
             $this->find_saleslayer_product_id_db($sl_id);
         }
 
-        $this->debbug(" > Updating product data ID: $sl_id");
+        $this->slDebuger->debug(" > Updating product data ID: $sl_id");
 
         if ($this->sl_DEBBUG > 1 && isset($product['data'][$this->product_field_name])) {
-            $this->debbug(" Name ({$this->product_field_name}): ".$product['data'][$this->product_field_name]);
+            $this->slDebuger->debug(" Name ({$this->product_field_name}): ".$product['data'][$this->product_field_name]);
         }
 
         $mg_product_fields = [
@@ -4104,21 +4017,21 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         $time_ini_get_product_core_data = microtime(1);
         $mg_product_core_data = $this->get_product_core_data($this->mg_product_id);
         $this->mg_product_attribute_set_id = $mg_product_core_data['attribute_set_id'];
-        if ($this->sl_DEBBUG > 2) $this->debbug('# time_get_product_core_data: ', 'timer', (microtime(1) - $time_ini_get_product_core_data));
+        if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_get_product_core_data: ', 'timer', (microtime(1) - $time_ini_get_product_core_data));
 
         $sl_product_data_to_sync = $this->prepareAllFields($mg_product_fields, $product, $sl_product_data_to_sync, $mg_product_core_data);
                 
         $sl_product_additional_data_to_sync = $this->prepareAllAdditionalFields($product);
 
-        if ($this->sl_DEBBUG > 1) $this->debbug('## time_sync_product_prepare_data: ', 'timer', (microtime(1) - $time_ini_sync_product_prepare_data));
+        if ($this->sl_DEBBUG > 1) $this->slDebuger->debug('## time_sync_product_prepare_data: ', 'timer', (microtime(1) - $time_ini_sync_product_prepare_data));
 
         $time_sync_product_all_data = microtime(1);
         $this->syncProdStoreAllData($store_view_ids, $sl_product_data_to_sync, $sl_product_additional_data_to_sync, $product['data'][$this->product_field_sku]);
-        if ($this->sl_DEBBUG > 1) $this->debbug('## time_sync_product_store_all_data: ', 'timer', (microtime(1) - $time_sync_product_all_data));
+        if ($this->sl_DEBBUG > 1) $this->slDebuger->debug('## time_sync_product_store_all_data: ', 'timer', (microtime(1) - $time_sync_product_all_data));
 
         $time_ini_url_rewrite = microtime(1);
         $this->setProductUrlRewrite($store_view_ids);
-        if ($this->sl_DEBBUG > 1) $this->debbug('## time_sync_product_url_rewrite: ', 'timer', (microtime(1) - $time_ini_url_rewrite));
+        if ($this->sl_DEBBUG > 1) $this->slDebuger->debug('## time_sync_product_url_rewrite: ', 'timer', (microtime(1) - $time_ini_url_rewrite));
 
         $time_ini_manage_indexes = microtime(1);
         $indexLists = array('catalog_product_category', 'catalog_product_attribute', 'catalog_product_price', 'catalogrule_product');
@@ -4126,7 +4039,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
             $indexLists[] = 'catalog_product_flat'; 
         }
         $this->manageIndexes($indexLists, $this->mg_product_id);
-        $this->debbug('## time_manage_indexes: ', 'timer', (microtime(1) - $time_ini_manage_indexes));
+        $this->slDebuger->debug('## time_manage_indexes: ', 'timer', (microtime(1) - $time_ini_manage_indexes));
         
         return true;
 
@@ -4144,13 +4057,13 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         $sl_product_images = [];
         if ($type == 'format'){
 
-            $this->debbug(" > Storing product format images SL ID: ".$item_data[$this->format_field_id]);
+            $this->slDebuger->debug(" > Storing product format images SL ID: ".$item_data[$this->format_field_id]);
             $item_field_image = $this->format_field_image;
             $this->item_image_type = 'format';
 
         }else{
 
-            $this->debbug(" > Storing product images SL ID: ".$item_data[$this->product_field_id]);
+            $this->slDebuger->debug(" > Storing product images SL ID: ".$item_data[$this->product_field_id]);
             $item_field_image = $this->product_field_image;            
             $this->item_image_type = 'product';
 
@@ -4224,7 +4137,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         }
 
-        if ($this->sl_DEBBUG > 2) $this->debbug('# time_load_sl_images: ', 'timer', (microtime(1) - $time_ini_load_sl_images));
+        if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_load_sl_images: ', 'timer', (microtime(1) - $time_ini_load_sl_images));
         
         $time_load_additional_images = microtime(1);
 
@@ -4260,7 +4173,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         }
      
-        if ($this->sl_DEBBUG > 2) $this->debbug('# time_load_additional_images: ', 'timer', (microtime(1) - $time_load_additional_images));
+        if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_load_additional_images: ', 'timer', (microtime(1) - $time_load_additional_images));
 
         $main_image_processed = false;
 
@@ -4287,7 +4200,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         }
         
-        if ($this->sl_DEBBUG > 2) $this->debbug('# time_check_existing: ', 'timer', (microtime(1) - $time_ini_check_existing));
+        if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_check_existing: ', 'timer', (microtime(1) - $time_ini_check_existing));
 
         if (!$main_image_processed && !empty($main_image_to_process)){
 
@@ -4300,7 +4213,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
             }
 
-            $this->debbug('Processing main image: '.$main_image_to_process['image_name'].' with url: '.$main_image_to_process['url'].(!empty($main_image_to_process['media_attribute']) ? ' with media_attribute: '.print_r($main_image_to_process['media_attribute'],1) : '' ));
+            $this->slDebuger->debug('Processing main image: '.$main_image_to_process['image_name'].' with url: '.$main_image_to_process['url'].(!empty($main_image_to_process['media_attribute']) ? ' with media_attribute: '.print_r($main_image_to_process['media_attribute'],1) : '' ));
             
             if ($this->item_image_type == 'product'){
 
@@ -4322,7 +4235,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
             unset($final_images[$main_image_to_process['image_name']]);
             
-            if ($this->sl_DEBBUG > 2) $this->debbug('# time_save_main_image: ', 'timer', (microtime(1) - $time_ini_save_main_image));
+            if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_save_main_image: ', 'timer', (microtime(1) - $time_ini_save_main_image));
 
         }
         
@@ -4350,8 +4263,8 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
             }catch(\Exception $e){
 
-                $this->debbug('## Error. Insert syncdata SQL query: '.$sql_query_to_insert);
-                $this->debbug('## Error. Insert syncdata SQL message: '.$e->getMessage());
+                $this->slDebuger->debug('## Error. Insert syncdata SQL query: '.$sql_query_to_insert);
+                $this->slDebuger->debug('## Error. Insert syncdata SQL message: '.$e->getMessage());
 
             }
 
@@ -4405,16 +4318,16 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
             $time_ini_item_check = microtime(1);
             if (!is_array($item_data['types'])){ $item_data['types'] = []; }
             if (!empty($item_data['types'])){ asort($item_data['types']); }
-            if ($this->sl_DEBBUG > 2) $this->debbug('# time_item_get_data: ', 'timer', (microtime(1) - $time_ini_item_check));
+            if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_item_get_data: ', 'timer', (microtime(1) - $time_ini_item_check));
         
             $time_ini_item_parse = microtime(1);
             $parse_url_item = pathinfo($item_data['file']);
             $item_url = $this->product_path_base.$item_data['file'];
-            if ($this->sl_DEBBUG > 2) $this->debbug('# time_item_parse: ', 'timer', (microtime(1) - $time_ini_item_parse));
+            if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_item_parse: ', 'timer', (microtime(1) - $time_ini_item_parse));
             
             $time_ini_item_size = microtime(1);
             $item_size = $this->sl_get_file_size($item_url);
-            if ($this->sl_DEBBUG > 2) $this->debbug('# time_item_size: ', 'timer', (microtime(1) - $time_ini_item_size));
+            if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_item_size: ', 'timer', (microtime(1) - $time_ini_item_size));
             $item_filename = $parse_url_item['filename'].'.'.$parse_url_item['extension'];
         
             if ($item_size){
@@ -4423,7 +4336,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         
                     $time_ini_image_size = microtime(1);
                     $image_size = $this->sl_get_file_size($final_images[$item_filename]['url']);
-                    if ($this->sl_DEBBUG > 2) $this->debbug('# time_image_size: ', 'timer', (microtime(1) - $time_ini_image_size));
+                    if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_image_size: ', 'timer', (microtime(1) - $time_ini_image_size));
 
                     if ($image_size){
                         
@@ -4451,8 +4364,8 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                             }
 
-                            if ($this->sl_DEBBUG > 2) $this->debbug('# time_item_check: ', 'timer', (microtime(1) - $time_ini_item_check));
-                            if ($this->sl_DEBBUG > 2) $this->debbug('# time_mod_item: ', 'timer', (microtime(1) - $time_ini_mod_item));
+                            if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_item_check: ', 'timer', (microtime(1) - $time_ini_item_check));
+                            if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_mod_item: ', 'timer', (microtime(1) - $time_ini_mod_item));
                             unset($final_images[$item_filename]);
                             continue;
 
@@ -4480,7 +4393,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
             }
 
-            if ($this->sl_DEBBUG > 2) $this->debbug('# time_item_check: ', 'timer', (microtime(1) - $time_ini_item_check));
+            if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_item_check: ', 'timer', (microtime(1) - $time_ini_item_check));
 
         }
 
@@ -4513,8 +4426,8 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
             }
 
-            if ($this->sl_DEBBUG > 1) $this->debbug('Updating existing item file: '.$mg_item_file.' image types: '.print_r($mg_item_types,1));
-            if ($this->sl_DEBBUG > 1) $this->debbug('With SL image types: '.print_r($sl_item_types,1));
+            if ($this->sl_DEBBUG > 1) $this->slDebuger->debug('Updating existing item file: '.$mg_item_file.' image types: '.print_r($mg_item_types,1));
+            if ($this->sl_DEBBUG > 1) $this->slDebuger->debug('With SL image types: '.print_r($sl_item_types,1));
 
             if ($this->item_image_type == 'product'){
 
@@ -4534,7 +4447,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
             }
 
-            if ($this->sl_DEBBUG > 2) $this->debbug('# time_item_update_types: ', 'timer', (microtime(1) - $time_ini_update_types));
+            if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_item_update_types: ', 'timer', (microtime(1) - $time_ini_update_types));
             
         }
 
@@ -4559,11 +4472,11 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
             }catch(\Exception $e){
 
-                $this->debbug('## Error. Enabling image item with ID: '.$mg_item_id.', message: '.$e->getMessage());
+                $this->slDebuger->debug('## Error. Enabling image item with ID: '.$mg_item_id.', message: '.$e->getMessage());
 
             }
 
-            if ($this->sl_DEBBUG > 2) $this->debbug('# time_item_update_disabled: ', 'timer', (microtime(1) - $time_ini_update_disabled));
+            if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_item_update_disabled: ', 'timer', (microtime(1) - $time_ini_update_disabled));
           
         }
 
@@ -4599,24 +4512,24 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         
         if (null === $item_core_data){
 
-            $this->debbug('## Error. The '.$item_index.' with MG ID: '.$item_id.' does not exist. Cannot update '.$item_index.' additional images.');
+            $this->slDebuger->debug('## Error. The '.$item_index.' with MG ID: '.$item_id.' does not exist. Cannot update '.$item_index.' additional images.');
             return false;
             
         }else if (!isset($item_core_data['attribute_set_id'])){
 
-            $this->debbug('## Error. The '.$item_index.' with MG ID: '.$item_id.' does not have attribute set id. Cannot update '.$item_index.' additional images.');
+            $this->slDebuger->debug('## Error. The '.$item_index.' with MG ID: '.$item_id.' does not have attribute set id. Cannot update '.$item_index.' additional images.');
             return false;
 
         }else if (isset($item_core_data['attribute_set_id']) && in_array($item_core_data['attribute_set_id'], array(null, 0, false))){
 
-            $this->debbug('## Error. The '.$item_index.' with MG ID: '.$item_id.' has an invalid attribute set id. Cannot update '.$item_index.' additional images: '.print_r($item_core_data['attribute_set_id'],1));
+            $this->slDebuger->debug('## Error. The '.$item_index.' with MG ID: '.$item_id.' has an invalid attribute set id. Cannot update '.$item_index.' additional images: '.print_r($item_core_data['attribute_set_id'],1));
             return false;
 
         }
         
         $this->mg_product_attribute_set_id = $item_core_data['attribute_set_id'];
 
-        $this->debbug(" > Updating stored ".$item_index." images ID: ".$item_id);
+        $this->slDebuger->debug(" > Updating stored ".$item_index." images ID: ".$item_id);
         
         $time_ini_delete_images = microtime(1);
 
@@ -4624,7 +4537,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
             foreach ($images_data['existing_images_to_delete'] as $id_image_to_delete => $image_to_delete){
  
-                $this->debbug(" Deleting image: ".$image_to_delete['filename']);
+                $this->slDebuger->debug(" Deleting image: ".$image_to_delete['filename']);
 
                 $galleryEntityTable = $this->getTable('catalog_product_entity_media_gallery_value_to_entity');
                 
@@ -4635,7 +4548,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                 
                 }catch(\Exception $e){
 
-                    $this->debbug('## Error. Deleting image from galleryEntityTable: '.$e->getMessage());
+                    $this->slDebuger->debug('## Error. Deleting image from galleryEntityTable: '.$e->getMessage());
 
                 }
 
@@ -4648,7 +4561,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                     
                 }catch(\Exception $e){
 
-                    $this->debbug('## Error. Deleting image from catalog_product_entity_media_gallery_value_table: '.$e->getMessage());
+                    $this->slDebuger->debug('## Error. Deleting image from catalog_product_entity_media_gallery_value_table: '.$e->getMessage());
 
                 }
 
@@ -4677,9 +4590,9 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                 //         }
 
                 //         $time_ini_image_delete_types = microtime(1);
-                //         $this->debbug('Deleting image types: '.print_r($image_types,1));
+                //         $this->slDebuger->debug('Deleting image types: '.print_r($image_types,1));
                 //         $this->setProductImageTypes($item_id, 'catalog_product_entity', $image_data_to_remove, $this->product_entity_type_id);
-                //         if ($this->sl_DEBBUG > 2) $this->debbug('# time_image_delete_types: ', 'timer', (microtime(1) - $time_ini_image_delete_types));
+                //         if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_image_delete_types: ', 'timer', (microtime(1) - $time_ini_image_delete_types));
 
                 //     }
 
@@ -4694,7 +4607,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                 if ($is_in_other_items > 0){
 
-                    $this->debbug("The image is assigned to another item, we don't eliminate it.");
+                    $this->slDebuger->debug("The image is assigned to another item, we don't eliminate it.");
                 
                 }else{
 
@@ -4705,7 +4618,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                     
                     }catch(\Exception $e){
 
-                        $this->debbug('## Error. Deleting image from galleryTable: '.$e->getMessage());
+                        $this->slDebuger->debug('## Error. Deleting image from galleryTable: '.$e->getMessage());
 
                     }
 
@@ -4723,7 +4636,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         }
 
-        if ($this->sl_DEBBUG > 2) $this->debbug('# time_delete_images: ', 'timer', (microtime(1) - $time_ini_delete_images));
+        if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_delete_images: ', 'timer', (microtime(1) - $time_ini_delete_images));
 
         $time_ini_process_final_images = microtime(1);
 
@@ -4738,7 +4651,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                 }
 
-                $this->debbug('Processing image: '.$image_filename.' with url: '.$image_info['url'].(!empty($image_info['media_attribute']) ? ' and media_attribute: '.print_r($image_info['media_attribute'],1) : '' ));
+                $this->slDebuger->debug('Processing image: '.$image_filename.' with url: '.$image_info['url'].(!empty($image_info['media_attribute']) ? ' and media_attribute: '.print_r($image_info['media_attribute'],1) : '' ));
                 
                 if ($this->item_image_type == 'product'){
 
@@ -4760,7 +4673,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
             }
 
-            if ($this->sl_DEBBUG > 2) $this->debbug('# time_process_final_images: ', 'timer', (microtime(1) - $time_ini_process_final_images));
+            if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_process_final_images: ', 'timer', (microtime(1) - $time_ini_process_final_images));
 
         }
         
@@ -4799,7 +4712,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                             if ($media_attributes[$existing_item_type] != 0){
 
-                                // $this->debbug('## Error. Image type '.$existing_item_type.' is already assigned to another image id in media_attributes: '.print_r($media_attributes,1));
+                                // $this->slDebuger->debug('## Error. Image type '.$existing_item_type.' is already assigned to another image id in media_attributes: '.print_r($media_attributes,1));
 
                             }else{
                                 
@@ -4849,7 +4762,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         }
                 
-        if ($this->sl_DEBBUG > 2) $this->debbug('# time_check_item_media_attributes: ', 'timer', (microtime(1) - $time_ini_check_item_media_attributes));
+        if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_check_item_media_attributes: ', 'timer', (microtime(1) - $time_ini_check_item_media_attributes));
        
     }
 
@@ -4893,7 +4806,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         
             $time_ini_mg_image_size = microtime(1);
             $mg_image_size = $this->sl_get_file_size($image_full_path);
-            if ($this->sl_DEBBUG > 2) $this->debbug('# time_mg_image_size: ', 'timer', (microtime(1) - $time_ini_mg_image_size));
+            if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_mg_image_size: ', 'timer', (microtime(1) - $time_ini_mg_image_size));
 
             $time_ini_sl_image_size = microtime(1);
             if (null !== $image_file_size) {
@@ -4906,7 +4819,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                 
             }
 
-            if ($this->sl_DEBBUG > 2) $this->debbug('# time_sl_image_size: ', 'timer', (microtime(1) - $time_ini_sl_image_size));
+            if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_sl_image_size: ', 'timer', (microtime(1) - $time_ini_sl_image_size));
     
             if ($sl_image_size != $mg_image_size){
 
@@ -4936,21 +4849,21 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
             if (file_exists($image_full_path)){ 
                 unlink($image_full_path); 
             }
-            if ($this->sl_DEBBUG > 2) $this->debbug('# time_check_waste: ', 'timer', (microtime(1) - $time_ini_check_waste));
+            if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_check_waste: ', 'timer', (microtime(1) - $time_ini_check_waste));
 
             $img_filename = $this->prepareImage($image_url, $image_filepath, false);
            
             if (!$img_filename){
 
                 //No se ha podido preparar la imagen por error, devolvemos false
-                $this->debbug('## Error. Downloading image: '.$image_url.' , message: '.$e->getMessage());
+                $this->slDebuger->debug('## Error. Downloading image: '.$image_url.' , message: '.$e->getMessage());
                 return false;
 
             }
 
         }
         
-        if ($this->sl_DEBBUG > 2) $this->debbug('# time_save_image_local: ', 'timer', (microtime(1) - $time_ini_save_image_total));
+        if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_save_image_local: ', 'timer', (microtime(1) - $time_ini_save_image_total));
 
         $time_ini_update_types = microtime(1);
         $image_data_to_update = [];
@@ -4961,9 +4874,9 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         }
 
-        if ($this->sl_DEBBUG > 1) $this->debbug('Setting on image: '.$image_name_to_check.' , types: '.print_r($image_types,1));
+        if ($this->sl_DEBBUG > 1) $this->slDebuger->debug('Setting on image: '.$image_name_to_check.' , types: '.print_r($image_types,1));
         $this->setProductImageTypes($entity_id, 'catalog_product_entity', $image_data_to_update, $this->product_entity_type_id);
-        if ($this->sl_DEBBUG > 2) $this->debbug('# time_item_update_types: ', 'timer', (microtime(1) - $time_ini_update_types));
+        if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_item_update_types: ', 'timer', (microtime(1) - $time_ini_update_types));
 
         $time_ini_set_image_data = microtime(1);
 
@@ -5024,9 +4937,9 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         $this->connection->insertOnDuplicate($galleryEntityTable, $gallery_entity_table_data, array_keys($gallery_entity_table_data));
         
-        if ($this->sl_DEBBUG > 2) $this->debbug('# time_set_image_data: ', 'timer', (microtime(1) - $time_ini_set_image_data));
-        if ($this->sl_DEBBUG > 2) $this->debbug('# time_save_image_total: ', 'timer', (microtime(1) - $time_ini_save_image_total));
-        if ($this->sl_DEBBUG > 1) $this->debbug('# time_process_image: ', 'timer', (microtime(1) - $time_ini_process_image));
+        if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_set_image_data: ', 'timer', (microtime(1) - $time_ini_set_image_data));
+        if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_save_image_total: ', 'timer', (microtime(1) - $time_ini_save_image_total));
+        if ($this->sl_DEBBUG > 1) $this->slDebuger->debug('# time_process_image: ', 'timer', (microtime(1) - $time_ini_process_image));
         
     }
 
@@ -5047,7 +4960,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         $this->connection->update($product_table, ['type_id' => $this->product_type_simple], $this->tables_identifiers[$product_table].' = ' . $this->mg_product_id);
 
-        if ($this->sl_DEBBUG > 2) $this->debbug('# time_clean_associated_product: ', 'timer', (microtime(1) - $time_ini_clean_associated_product));
+        if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_clean_associated_product: ', 'timer', (microtime(1) - $time_ini_clean_associated_product));
 
     }
 
@@ -5091,7 +5004,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         foreach ($all_linked_product_data as $product_id => $linked_product_data) {
            
-            $this->debbug(" > Updating stored product links ID: ".$product_id);
+            $this->slDebuger->debug(" > Updating stored product links ID: ".$product_id);
 
             if('item_not_updated' == $this->processProductLink($product_id, $linked_product_data, $product_link_table, $product_table, $link_attributes_data )){
                 return 'item_not_updated';
@@ -5099,7 +5012,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         }
         
-        if ($this->sl_DEBBUG > 1) $this->debbug('# time_update_links: ', 'timer', (microtime(1) - $time_ini_update_links));
+        if ($this->sl_DEBBUG > 1) $this->slDebuger->debug('# time_update_links: ', 'timer', (microtime(1) - $time_ini_update_links));
         
         return 'item_updated';
 
@@ -5361,7 +5274,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
             }catch(\Exception $e){
 
                 $result_update = false;
-                $this->debbug('## Error. Updating attribute option: '.$e->getMessage());
+                $this->slDebuger->debug('## Error. Updating attribute option: '.$e->getMessage());
 
             }
             
@@ -5394,7 +5307,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         $this->cleanMGVars();
 
-        if ($this->sl_DEBBUG > 2) $this->debbug('Synchronizing stored product format: '.print_r($format,1));
+        if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('Synchronizing stored product format: '.print_r($format,1));
 
         $time_ini_format_process = microtime(1);
 
@@ -5413,7 +5326,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
             $time_ini_check_format = microtime(1);
             if ($this->check_format_db($format)){
-                $this->debbug('### check_format: ', 'timer', (microtime(1) - $time_ini_check_format));
+                $this->slDebuger->debug('### check_format: ', 'timer', (microtime(1) - $time_ini_check_format));
                 
                 $syncForm = true;
 
@@ -5421,7 +5334,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                 if (!$this->sync_format_core_data_db($format)){
                     $syncForm = false;
                 }
-                $this->debbug('### sync_format_core_data: ', 'timer', (microtime(1) - $time_ini_sync_format_core_data));
+                $this->slDebuger->debug('### sync_format_core_data: ', 'timer', (microtime(1) - $time_ini_sync_format_core_data));
 
                 if (empty($this->store_view_ids)){
 
@@ -5441,26 +5354,26 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                
                         $time_ini_sync_format_data_global = microtime(1);
                         $this->sync_format_data_db($format, $store_view_ids);
-                        $this->debbug('### time_sync_format_data_global: ', 'timer', (microtime(1) - $time_ini_sync_format_data_global));
+                        $this->slDebuger->debug('### time_sync_format_data_global: ', 'timer', (microtime(1) - $time_ini_sync_format_data_global));
                         $this->format_created = false;
 
                     }else{
 
                         $time_ini_sync_format_data_global = microtime(1);
                         $this->sync_format_data_db($format, $this->store_view_ids);
-                        $this->debbug('### time_sync_format_data_global: ', 'timer', (microtime(1) - $time_ini_sync_format_data_global));
+                        $this->slDebuger->debug('### time_sync_format_data_global: ', 'timer', (microtime(1) - $time_ini_sync_format_data_global));
 
                     }
 
                     if ($this->avoid_images_updates){
 
-                        $this->debbug(" > Avoiding update of product format images. Option checked.");
+                        $this->slDebuger->debug(" > Avoiding update of product format images. Option checked.");
 
                     }else{
 
                         $time_ini_sync_format_images = microtime(1);
                         $this->prepare_product_images_to_store_db($this->mg_format_id, $format, 'format');
-                        $this->debbug('### sync_format_images: ', 'timer', (microtime(1) - $time_ini_sync_format_images));
+                        $this->slDebuger->debug('### sync_format_images: ', 'timer', (microtime(1) - $time_ini_sync_format_images));
                     
                     }
 
@@ -5481,7 +5394,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
           
         }else{
         
-            $this->debbug("## Error. Format parent product doesn't exist.");
+            $this->slDebuger->debug("## Error. Format parent product doesn't exist.");
             return 'item_not_updated';
         
         }
@@ -5490,13 +5403,13 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
             $time_ini_assign_product_formats = microtime(1);
             $this->assign_product_formats_db($format);
-            $this->debbug('### assign_product_formats: ', 'timer', (microtime(1) - $time_ini_assign_product_formats));
+            $this->slDebuger->debug('### assign_product_formats: ', 'timer', (microtime(1) - $time_ini_assign_product_formats));
 
         }else{
-            $this->debbug('Format does not have any configurable attributes, we skip the assignation.');
+            $this->slDebuger->debug('Format does not have any configurable attributes, we skip the assignation.');
         }
 
-        $this->debbug('### time_format_process: ', 'timer', (microtime(1) - $time_ini_format_process));
+        $this->slDebuger->debug('### time_format_process: ', 'timer', (microtime(1) - $time_ini_format_process));
 
         return 'item_updated';
 
@@ -5514,7 +5427,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         $sl_id = $format[$this->format_field_id];
         $sl_product_id = $format[$this->format_field_products_id];
 
-        $this->debbug(" > Checking product format with SL ID: $sl_id");
+        $this->slDebuger->debug(" > Checking product format with SL ID: $sl_id");
         if ($format['data'][$this->format_field_name] == ''){
 
             $hasFailed[$this->format_field_name] = '## Error. Product format with SL ID: '.$sl_id.' has no name.';
@@ -5533,7 +5446,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         if (!empty($hasFailed)) {
             foreach ($hasFailed as $debugStr) {
-                $this->debbug($debugStr);
+                $this->slDebuger->debug($debugStr);
             }
             return false;
         }
@@ -5729,7 +5642,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         $sl_data = $format['data'];
         
         
-        $this->debbug(" > Updating product format core data ID: $sl_id");
+        $this->slDebuger->debug(" > Updating product format core data ID: $sl_id");
 
         if (null === $this->mg_format_id){
 
@@ -5766,7 +5679,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                 }catch(\Exception $e){
 
-                    $this->debbug('## Error. Updating product format core data: '.$e->getMessage());
+                    $this->slDebuger->debug('## Error. Updating product format core data: '.$e->getMessage());
 
                 }
 
@@ -5888,10 +5801,10 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
           
         }
 
-        $this->debbug(" > Updating product format data ID: $sl_id");
+        $this->slDebuger->debug(" > Updating product format data ID: $sl_id");
 
         if ($this->sl_DEBBUG > 1 && isset($format['data'][$this->format_field_name])) {
-            $this->debbug(" Name ({$this->format_field_name}): ".$format['data'][$this->format_field_name]);
+            $this->slDebuger->debug(" Name ({$this->format_field_name}): ".$format['data'][$this->format_field_name]);
         }
 
         $mg_format_fields = [
@@ -6100,7 +6013,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                             }
 
-                            $this->debbug('## Error. Product format with '.$format_index.' has a price that does not have a valid format, it will not be updated. Original value: '.print_r($format['data'][$sl_format_field],1));
+                            $this->slDebuger->debug('## Error. Product format with '.$format_index.' has a price that does not have a valid format, it will not be updated. Original value: '.print_r($format['data'][$sl_format_field],1));
 
                         }
                         
@@ -6123,7 +6036,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
             
             if (null === $this->mg_product_attribute_set_id){
 
-                $this->debbug('## Error. Product format does not have attribute set id. Cannot update product format additional attribute values.');
+                $this->slDebuger->debug('## Error. Product format does not have attribute set id. Cannot update product format additional attribute values.');
 
             }else{
 
@@ -6138,7 +6051,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                     if (!isset($this->attributeCodesByAttributeSetId[$this->mg_product_attribute_set_id])){
                         $time_ini_load_attribute_codes_by_attribute_set_id = microtime(1);
                         $this->loadattributeCodesByAttributeSetId($this->product_entity_type_id, $this->mg_product_attribute_set_id);
-                        if ($this->sl_DEBBUG > 2) { $this->debbug('# time_load_attribute_codes_by_attribute_set_id: ', 'timer', (microtime(1) - $time_ini_load_attribute_codes_by_attribute_set_id));
+                        if ($this->sl_DEBBUG > 2) { $this->slDebuger->debug('# time_load_attribute_codes_by_attribute_set_id: ', 'timer', (microtime(1) - $time_ini_load_attribute_codes_by_attribute_set_id));
                         }
                     }
 
@@ -6164,7 +6077,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         }
 
-        if ($this->sl_DEBBUG > 1) $this->debbug('## time_sync_format_prepare_data: ', 'timer', (microtime(1) - $time_ini_sync_format_prepare_data));
+        if ($this->sl_DEBBUG > 1) $this->slDebuger->debug('## time_sync_format_prepare_data: ', 'timer', (microtime(1) - $time_ini_sync_format_prepare_data));
 
         $this->syncFormatStoreAllData($store_view_ids, $sl_format_data_to_sync, $sl_format_additional_data_to_sync, $format['data'][$this->format_field_sku]);
 
@@ -6174,7 +6087,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
             $indexLists[] = 'catalog_product_flat'; 
         }
         $this->manageIndexes($indexLists, $this->mg_format_id);
-        $this->debbug('## time_manage_indexes: ', 'timer', (microtime(1) - $time_ini_manage_indexes));
+        $this->slDebuger->debug('## time_manage_indexes: ', 'timer', (microtime(1) - $time_ini_manage_indexes));
 
         return true;
 
@@ -6220,7 +6133,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                 
                 if (empty($attribute)){
                     
-                    $this->debbug('## Error. The attribute with MG ID: '.$format_parent_product_attribute_id.' does not exist or it is not associated to the product attribute set id.');
+                    $this->slDebuger->debug('## Error. The attribute with MG ID: '.$format_parent_product_attribute_id.' does not exist or it is not associated to the product attribute set id.');
                     unset($format_parent_product_attribute_ids[$keyAttr]);
                     continue;
 
@@ -6296,7 +6209,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                 if (!$product_super_attribute_id){
 
-                    $this->debbug('## Error. Could not associate attribute product format.');
+                    $this->slDebuger->debug('## Error. Could not associate attribute product format.');
 
                 }else{
 
@@ -6405,7 +6318,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
             if (null === $product_super_attribute_ids_filter || $product_super_attribute_ids_filter == ''){
                 
-                $this->debbug('Product has no associated attributes, we finish assignation.');
+                $this->slDebuger->debug('Product has no associated attributes, we finish assignation.');
 
             }else{
 
@@ -6624,7 +6537,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         fclose($handle);
 
-        if ($this->sl_DEBBUG > 2) $this->debbug('## time_url_exists: ', 'timer', (microtime(1) - $time_ini_url_exists));
+        if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('## time_url_exists: ', 'timer', (microtime(1) - $time_ini_url_exists));
         
         return true;
     }
@@ -6643,7 +6556,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         //Replace https to http.
         $image_url  = str_replace('https://', 'http://', $image_url); 
 
-        if ($this->sl_DEBBUG > 2) $this->debbug(" > Importing image: $image_url");
+        if ($this->sl_DEBBUG > 2) $this->slDebuger->debug(" > Importing image: $image_url");
 
         $image_url_info = pathinfo($image_url);
 
@@ -6677,7 +6590,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         }
 
-        if ($this->sl_DEBBUG > 2) $this->debbug('## time_get_contents: ', 'timer', (microtime(1) - $time_ini_get_contents));
+        if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('## time_get_contents: ', 'timer', (microtime(1) - $time_ini_get_contents));
 
         if ($image_content_str) {
 
@@ -6690,16 +6603,16 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
             $time_ini_put_contents = microtime(1);
             file_put_contents($filepath, $image_content_str);
             chmod($filepath, 0777);
-            if ($this->sl_DEBBUG > 2) $this->debbug('## time_put_contents: ', 'timer', (microtime(1) - $time_ini_put_contents));
+            if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('## time_put_contents: ', 'timer', (microtime(1) - $time_ini_put_contents));
 
-            if ($this->sl_DEBBUG > 2) $this->debbug(" Image saved in: $filepath");
+            if ($this->sl_DEBBUG > 2) $this->slDebuger->debug(" Image saved in: $filepath");
 
-            if ($this->sl_DEBBUG > 2) $this->debbug('## time_prepare_image: ', 'timer', (microtime(1) - $time_ini_prepare_image));
+            if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('## time_prepare_image: ', 'timer', (microtime(1) - $time_ini_prepare_image));
             return ($returnFilepath) ? $filepath : $filename;
         
         }
 
-        if ($this->sl_DEBBUG > 2) $this->debbug('## time_prepare_image: ', 'timer', (microtime(1) - $time_ini_prepare_image));
+        if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('## time_prepare_image: ', 'timer', (microtime(1) - $time_ini_prepare_image));
         return null;
     }
 
@@ -7036,11 +6949,11 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
              
                     if ($type == 'product'){
 
-                        $this->debbug("## Error. The product with SKU ".$sl_sku." hasn't been synchronized because the same SKU is already in use.");
+                        $this->slDebuger->debug("## Error. The product with SKU ".$sl_sku." hasn't been synchronized because the same SKU is already in use.");
 
                     }else{
 
-                        $this->debbug("## Error. The product format with SKU ".$sl_sku." hasn't been synchronized because the same SKU is already in use.");
+                        $this->slDebuger->debug("## Error. The product format with SKU ".$sl_sku." hasn't been synchronized because the same SKU is already in use.");
 
                     }
 
@@ -7054,11 +6967,11 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                     if ($type == 'product'){
 
-                        $this->debbug('Product found with same SKU '.$sl_sku.' and MG ID: '.$product_data['entity_id'].' without SL credentials assigned.');
+                        $this->slDebuger->debug('Product found with same SKU '.$sl_sku.' and MG ID: '.$product_data['entity_id'].' without SL credentials assigned.');
                     
                     }else{
 
-                        $this->debbug('Product format found with same SKU '.$sl_sku.' and MG ID: '.$product_data['entity_id'].' without SL credentials assigned.');
+                        $this->slDebuger->debug('Product format found with same SKU '.$sl_sku.' and MG ID: '.$product_data['entity_id'].' without SL credentials assigned.');
                     
                     }
 
@@ -7068,11 +6981,11 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                         if ($type == 'product'){
 
-                            $this->debbug("## Error. The product with SKU ".$sl_sku." hasn't been synchronized because the same SKU is already in use.");
+                            $this->slDebuger->debug("## Error. The product with SKU ".$sl_sku." hasn't been synchronized because the same SKU is already in use.");
 
                         }else{
 
-                            $this->debbug("## Error. The product format with SKU ".$sl_sku." hasn't been synchronized because the same SKU is already in use.");
+                            $this->slDebuger->debug("## Error. The product format with SKU ".$sl_sku." hasn't been synchronized because the same SKU is already in use.");
 
                         }
 
@@ -7097,7 +7010,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
      */
     public function delete_stored_category_db ($sl_id) {
 
-        $this->debbug('Disabling category with SL id: '.$sl_id.' comp_id: '.$this->comp_id);
+        $this->slDebuger->debug('Disabling category with SL id: '.$sl_id.' comp_id: '.$this->comp_id);
         
         $this->find_saleslayer_category_id_db($sl_id);
         
@@ -7150,7 +7063,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                 if (!$delete_category){
 
-                    $this->debbug("## Error. ".$deletedMessage. " couldn't been disabled because is being used by another connector.");
+                    $this->slDebuger->debug("## Error. ".$deletedMessage. " couldn't been disabled because is being used by another connector.");
                     return 'item_deleted';
 
                 }else{
@@ -7187,13 +7100,13 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                     }
                     
-                    $this->debbug($deletedMessage." has been disabled.");
+                    $this->slDebuger->debug($deletedMessage." has been disabled.");
        
                 }
 
             }catch(\Exception $e){
 
-                $this->debbug("## Error. ".$deletedMessage. " couldn't been disabled - ".$e->getMessage());
+                $this->slDebuger->debug("## Error. ".$deletedMessage. " couldn't been disabled - ".$e->getMessage());
                 return 'item_not_deleted';
 
             }
@@ -7291,7 +7204,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                                 }catch(\Exception $e){
 
-                                    $this->debbug('## Error. Correcting category children: '.print_r($e->getMessage(),1));
+                                    $this->slDebuger->debug('## Error. Correcting category children: '.print_r($e->getMessage(),1));
 
                                 }
 
@@ -7303,7 +7216,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                 }catch(\Exception $e){
 
-                    $this->debbug("## Error. ".$deletedMessage. " couldn't been reorganized - ".$e->getMessage());
+                    $this->slDebuger->debug("## Error. ".$deletedMessage. " couldn't been reorganized - ".$e->getMessage());
                     return 'item_deleted';
 
                 }
@@ -7314,7 +7227,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         }else{
 
-            $this->debbug("## Notice. The category doesn't exist.");
+            $this->slDebuger->debug("## Notice. The category doesn't exist.");
             return 'item_not_found';
 
         }
@@ -7328,7 +7241,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
      */
     public function delete_stored_product_db($sl_id){
 
-        $this->debbug('Disabling product with SL id: '.$sl_id.' comp_id: '.$this->comp_id);
+        $this->slDebuger->debug('Disabling product with SL id: '.$sl_id.' comp_id: '.$this->comp_id);
        
         $this->find_saleslayer_product_id_db($sl_id);
                  
@@ -7381,7 +7294,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                 if (!$delete_product){
 
-                    $this->debbug("## Error. ".$deletedMessage. " couldn't been disabled because is being used by another connector.");
+                    $this->slDebuger->debug("## Error. ".$deletedMessage. " couldn't been disabled because is being used by another connector.");
                 
                 }else{
 
@@ -7417,7 +7330,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                     }
 
-                    $this->debbug($deletedMessage." has been disabled.");
+                    $this->slDebuger->debug($deletedMessage." has been disabled.");
                     
                 }
 
@@ -7425,14 +7338,14 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                 
             }catch(\Exception $e){
 
-                $this->debbug("## Error. ".$deletedMessage. " couldn't been disabled - ".$e->getMessage());
+                $this->slDebuger->debug("## Error. ".$deletedMessage. " couldn't been disabled - ".$e->getMessage());
                 return 'item_not_deleted';
 
             }
 
         }else{
 
-            $this->debbug("## Notice. The product doesn't exist.");
+            $this->slDebuger->debug("## Notice. The product doesn't exist.");
             return 'item_not_found';
 
         }
@@ -7446,7 +7359,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
      */
     public function delete_stored_product_format_db($sl_id){
 
-        $this->debbug('Disabling product format with SL id: '.$sl_id.' comp_id: '.$this->comp_id);
+        $this->slDebuger->debug('Disabling product format with SL id: '.$sl_id.' comp_id: '.$this->comp_id);
         $mg_format_id = $this->find_saleslayer_format_id_db(null, $sl_id);
                 
         if (null !== $mg_format_id){
@@ -7498,7 +7411,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                 if (!$delete_format){
 
-                    $this->debbug("## Error. ".$deletedMessage. " couldn't been disabled because is being used by another connector.");
+                    $this->slDebuger->debug("## Error. ".$deletedMessage. " couldn't been disabled because is being used by another connector.");
                 
                 }else{
 
@@ -7608,7 +7521,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                     }
 
-                    $this->debbug($deletedMessage." has been disabled.");
+                    $this->slDebuger->debug($deletedMessage." has been disabled.");
 
                 }
                 
@@ -7616,14 +7529,14 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                 
             }catch(\Exception $e){
 
-                $this->debbug("## Error. ".$deletedMessage. " couldn't been disabled - ".$e->getMessage());
+                $this->slDebuger->debug("## Error. ".$deletedMessage. " couldn't been disabled - ".$e->getMessage());
                 return 'item_not_deleted';
 
             }
 
         }else{
 
-            $this->debbug("## Notice. The product format doesn't exist.");
+            $this->slDebuger->debug("## Notice. The product format doesn't exist.");
             return 'item_not_found';
 
         }
@@ -8364,7 +8277,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         if (isset($items_to_process['count']) && $items_to_process['count'] > 0){
 
-            $this->debbug("Deleting ".$items_to_process['count']." items to process...");
+            $this->slDebuger->debug("Deleting ".$items_to_process['count']." items to process...");
 
             try{
 
@@ -8373,8 +8286,8 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
               
             }catch(\Exception $e){
              
-                $this->debbug('## Error. Delete syncdata SQL message: '.$e->getMessage());
-                $this->debbug('## Error. Delete syncdata SQL query: '.$sql_query_delete);
+                $this->slDebuger->debug('## Error. Delete syncdata SQL message: '.$e->getMessage());
+                $this->slDebuger->debug('## Error. Delete syncdata SQL query: '.$sql_query_delete);
 
             }
 
@@ -8404,11 +8317,11 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
             $count_deleted = 0;
 
-            $this->debbug("Deleting ".count($unused_images_to_delete)." images ...");
+            $this->slDebuger->debug("Deleting ".count($unused_images_to_delete)." images ...");
 
             foreach ($unused_images_to_delete as $unused_image_to_delete) {
 
-                $this->debbug("Deleting ".$unused_image_to_delete['value']." ...");
+                $this->slDebuger->debug("Deleting ".$unused_image_to_delete['value']." ...");
         
                 try{
 
@@ -8418,8 +8331,8 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                 }catch (\Exception $e){
 
-                    $this->debbug('## Error. Deleting unused image SQL message: '.$e->getMessage());
-                    $this->debbug('## Error. Deleting unused image SQL query: '.$sql_query_delete);
+                    $this->slDebuger->debug('## Error. Deleting unused image SQL message: '.$e->getMessage());
+                    $this->slDebuger->debug('## Error. Deleting unused image SQL query: '.$sql_query_delete);
                     continue;
 
                 }
@@ -8434,13 +8347,13 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                     }else{
 
-                        $this->debbug("## Notice. Could not read local image with path: ".$image_path." to delete.");
+                        $this->slDebuger->debug("## Notice. Could not read local image with path: ".$image_path." to delete.");
 
                     }
                     
                 }catch (\Exception $e){
 
-                    $this->debbug('## Error. Deleting unused image: '.$image_path.' from stored path: '.$e->getMessage());
+                    $this->slDebuger->debug('## Error. Deleting unused image: '.$image_path.' from stored path: '.$e->getMessage());
 
                 }
 
@@ -8452,7 +8365,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         }
         
-        $this->debbug('# time_delete_all_unused_images: ', 'timer', (microtime(1) - $time_ini_delete_all_unused_images));
+        $this->slDebuger->debug('# time_delete_all_unused_images: ', 'timer', (microtime(1) - $time_ini_delete_all_unused_images));
         return ' '.$count_deleted.' unused images deleted.';
 
     }
@@ -8487,7 +8400,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         }else{
 
-            $this->debbug('## Error. Logs files not found in: '.$this->sl_logs_path.'. Found files: '.print_r($log_folder_files,1));
+            $this->slDebuger->debug('## Error. Logs files not found in: '.$this->sl_logs_path.'. Found files: '.print_r($log_folder_files,1));
             return false;
         }
 
@@ -8517,7 +8430,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         if (!$files_found) {
 
             if (file_exists($zipname)) unlink($zipname);
-            $this->debbug('## Error. SL logs zip not found.');
+            $this->slDebuger->debug('## Error. SL logs zip not found.');
 
         } else {
 
@@ -8547,13 +8460,13 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                 }catch(\Exception $e){
                     
-                    $this->debbug('## Error. Downloading SL logs zip: '.$e->getMessage());
+                    $this->slDebuger->debug('## Error. Downloading SL logs zip: '.$e->getMessage());
 
                 }
 
             }else{
 
-                $this->debbug('## Error. SL logs zip does not exist.');
+                $this->slDebuger->debug('## Error. SL logs zip does not exist.');
 
             }
 
@@ -8582,7 +8495,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
             }catch(\Exception $e){
 
-                $this->debbug('## Error. Deleting index in table '.$attribute_table.': '.$e->getMessage());
+                $this->slDebuger->debug('## Error. Deleting index in table '.$attribute_table.': '.$e->getMessage());
 
             }
     
@@ -8648,15 +8561,15 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
             if (!empty($params)){
 
-                $this->debbug('## Error. SL SQL query: '.$query.' - params: '.print_r($params,1));
+                $this->slDebuger->debug('## Error. SL SQL query: '.$query.' - params: '.print_r($params,1));
                 
             }else{
 
-                $this->debbug('## Error. SL SQL query: '.$query);
+                $this->slDebuger->debug('## Error. SL SQL query: '.$query);
                 
             }
 
-            $this->debbug('## Error. SL SQL error message: '.$e->getMessage());
+            $this->slDebuger->debug('## Error. SL SQL error message: '.$e->getMessage());
 
         }
 
@@ -8889,19 +8802,19 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                 $process_count = count($process);
 
-                if ($this->sl_DEBBUG > 2){ $this->debbug("Searching active process pid '$pid' by Windows. Is active? ".($process_count > 0 ? 'Yes' : 'No')); }
+                if ($this->sl_DEBBUG > 2){ $this->slDebuger->debug("Searching active process pid '$pid' by Windows. Is active? ".($process_count > 0 ? 'Yes' : 'No')); }
 
                 return ($process_count > 0 ? true : false);
 
             } else if (function_exists('posix_getpgid')) {
 
-                if ($this->sl_DEBBUG > 2) { $this->debbug("Searching active process pid '$pid' by posix_getpgid. Is active? ".(posix_getpgid($pid) ? 'Yes' : 'No')); }
+                if ($this->sl_DEBBUG > 2) { $this->slDebuger->debug("Searching active process pid '$pid' by posix_getpgid. Is active? ".(posix_getpgid($pid) ? 'Yes' : 'No')); }
 
                 return (posix_getpgid($pid) ? true : false);
 
             } else {
 
-                if ($this->sl_DEBBUG > 2) { $this->debbug("Searching active process pid '$pid' by ps -p. Is active? ".(shell_exec("ps -p $pid | wc -l") > 1 ? 'Yes' : 'No')); }
+                if ($this->sl_DEBBUG > 2) { $this->slDebuger->debug("Searching active process pid '$pid' by ps -p. Is active? ".(shell_exec("ps -p $pid | wc -l") > 1 ? 'Yes' : 'No')); }
 
                 if (shell_exec("ps -p $pid | wc -l") > 1) { 
                     return true; 
@@ -8948,7 +8861,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                         }catch(\Exception $e){
 
-                            $this->debbug('## Error. Updating SL attribute global value: '.print_r($e->getMessage(),1));
+                            $this->slDebuger->debug('## Error. Updating SL attribute global value: '.print_r($e->getMessage(),1));
 
                         }
 
@@ -8962,7 +8875,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         if ($attributes_error){
 
-            $this->debbug('## Error. Reading Sales Layer attributes, please compile again.');
+            $this->slDebuger->debug('## Error. Reading Sales Layer attributes, please compile again.');
 
             return false;
 
@@ -9386,7 +9299,6 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
             return $original_url_key;
         }
 
-
         $category_table = $this->getTable('catalog_category_entity');
         $category_url_key_table = $this->getTable('catalog_category_entity_' . $url_key_attribute[\Magento\Eav\Api\Data\AttributeInterface::BACKEND_TYPE]);
         $category_saleslayer_id_table = $this->getTable('catalog_category_entity_' . $this->category_saleslayer_id_attribute_backend_type);
@@ -9582,7 +9494,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
             $this->find_saleslayer_category_id_db($saleslayer_parent_category_id, 0, 'parent');
 
             if (null === $this->mg_parent_category_id){
-                $this->debbug('## Error. Category has no parent.');
+                $this->slDebuger->debug('## Error. Category has no parent.');
                 return false;
             }
 
@@ -9648,7 +9560,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         if (!in_array($tableName, $this->mg_tables_23)){
 
-            $this->debbug('## Error. The table '.$tableName.' does not exist.');
+            $this->slDebuger->debug('## Error. The table '.$tableName.' does not exist.');
 
         }
 
@@ -9708,7 +9620,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         }
 
-        if ($this->sl_DEBBUG > 2) $this->debbug('# time_set_value_all_attributes: ', 'timer', (microtime(1) - $time_ini_set_value_all_attributes));
+        if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_set_value_all_attributes: ', 'timer', (microtime(1) - $time_ini_set_value_all_attributes));
 
         $this->insertNewAttributes($tables_insert_values);
 
@@ -9765,7 +9677,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         $identifier = $this->tables_identifiers[$attribute_table];
 
-        if ($this->sl_DEBBUG > 2) $this->debbug('# time_identify_attribute: ', 'timer', (microtime(1) - $time_ini_identify_attribute));
+        if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_identify_attribute: ', 'timer', (microtime(1) - $time_ini_identify_attribute));
 
         if ($attribute[\Magento\Catalog\Model\ResourceModel\Eav\Attribute::KEY_IS_GLOBAL] == $this->scope_global){
 
@@ -9794,8 +9706,8 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         }
 
-        if ($this->sl_DEBBUG > 2) $this->debbug('# time_restore_store: ', 'timer', (microtime(1) - $time_ini_restore_store));
-        if ($this->sl_DEBBUG > 2) $this->debbug('# time_set_value_attribute: ', 'timer', (microtime(1) - $time_ini_set_value_attribute));
+        if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_restore_store: ', 'timer', (microtime(1) - $time_ini_restore_store));
+        if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_set_value_attribute: ', 'timer', (microtime(1) - $time_ini_set_value_attribute));
 
         return $tables_insert_value;
 
@@ -9826,7 +9738,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                     ->limit(1)
                 );
 
-        if ($this->sl_DEBBUG > 2) $this->debbug('# time_read_datos: ', 'timer', (microtime(1) - $time_ini_read_datos));
+        if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_read_datos: ', 'timer', (microtime(1) - $time_ini_read_datos));
 
         $time_ini_store_value = microtime(1);
         
@@ -9844,7 +9756,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                 'values' => $values
             ];
 
-            if ($this->sl_DEBBUG > 2) $this->debbug('# time_store_value: ', 'timer', (microtime(1) - $time_ini_store_value));
+            if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_store_value: ', 'timer', (microtime(1) - $time_ini_store_value));
 
             return $tables_insert_value;
 
@@ -9852,7 +9764,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         $this->updateAttribute($datos, $attribute, $value, $attribute_table);
 
-        if ($this->sl_DEBBUG > 2) $this->debbug('# time_store_value: ', 'timer', (microtime(1) - $time_ini_store_value));
+        if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_store_value: ', 'timer', (microtime(1) - $time_ini_store_value));
         return false;
 
     }
@@ -9875,7 +9787,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
             $time_ini_get_attribute_additional = microtime(1);
             $attribute = $this->getAttributeAdditional($code, $entityTypeId, $this->mg_product_attribute_set_id);
-            if ($this->sl_DEBBUG > 2) $this->debbug('# time_get_attribute_additional: ', 'timer', (microtime(1) - $time_ini_get_attribute_additional));
+            if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_get_attribute_additional: ', 'timer', (microtime(1) - $time_ini_get_attribute_additional));
 
             if (empty($attribute)){
 
@@ -9891,14 +9803,14 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                 if ($attribute['frontend_input'] == 'media_image'){
                 
                     // Value stored in global param, will be processed at the image preparation
-                    if ($this->sl_DEBBUG > 2) $this->debbug('# time_extract_additional_value: ', 'timer', (microtime(1) - $time_ini_extract_additional_value));
+                    if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_extract_additional_value: ', 'timer', (microtime(1) - $time_ini_extract_additional_value));
                     return false;
                 
                 }
 
                 $return_array['value'] = $value;
                 
-                if ($this->sl_DEBBUG > 2) $this->debbug('# time_extract_additional_value: ', 'timer', (microtime(1) - $time_ini_extract_additional_value));
+                if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_extract_additional_value: ', 'timer', (microtime(1) - $time_ini_extract_additional_value));
 
             }
 
@@ -9906,7 +9818,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
             $time_ini_get_attribute_wysiwyg = microtime(1);
             $attribute = $this->getAttributeWysiwyg($code, $entityTypeId);
-            if ($this->sl_DEBBUG > 2) $this->debbug('# time_get_attribute_wysiwyg: ', 'timer', (microtime(1) - $time_ini_get_attribute_wysiwyg));
+            if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_get_attribute_wysiwyg: ', 'timer', (microtime(1) - $time_ini_get_attribute_wysiwyg));
 
         }
 
@@ -9918,7 +9830,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                 if (!in_array($code, array('length', 'width', 'height'))){
 
-                    $this->debbug('## Error. The attribute with code '.$code.' does not exist, we cannot set data.');
+                    $this->slDebuger->debug('## Error. The attribute with code '.$code.' does not exist, we cannot set data.');
 
                 }
 
@@ -10259,7 +10171,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         if (!empty($values)){
 
-            $this->debbug(" > SL category image data to sync: ".print_r($values,1));
+            $this->slDebuger->debug(" > SL category image data to sync: ".print_r($values,1));
             
             foreach ($values as $code => $value) {
     
@@ -10313,7 +10225,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         }else{
 
-            $this->debbug(" > Deleting SL category image");
+            $this->slDebuger->debug(" > Deleting SL category image");
 
             $attribute_info = $this->getCategoryAttributeInfo('image', $entityTable, $entityTypeId, $entityId);
             if ($attribute_info === false) return false;
@@ -10340,10 +10252,10 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
             
             }catch(\Exception $e){
 
-                $this->debbug('## Error. Deleting category image: '.print_r($e->getMessage(),1));
+                $this->slDebuger->debug('## Error. Deleting category image: '.print_r($e->getMessage(),1));
 
             }
-            if ($this->sl_DEBBUG > 2) $this->debbug('## time_delete_mg_image: ', 'timer', (microtime(1) - $time_ini_delete_mg_image));
+            if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('## time_delete_mg_image: ', 'timer', (microtime(1) - $time_ini_delete_mg_image));
 
         }
 
@@ -10411,7 +10323,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                 
                 if (isset($this->stored_url_files_sizes[$url])){
 
-                    if ($this->sl_DEBBUG > 2) $this->debbug('# time_check_size_url stored: ', 'timer', (microtime(1) - $time_ini_check_url_size));
+                    if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_check_size_url stored: ', 'timer', (microtime(1) - $time_ini_check_url_size));
                     return $this->stored_url_files_sizes[$url];
 
                 }else{
@@ -10436,13 +10348,13 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                     }
 
-                    if ($this->sl_DEBBUG > 2) $this->debbug('# time_check_size_url: ', 'timer', (microtime(1) - $time_ini_check_url_size));
+                    if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_check_size_url: ', 'timer', (microtime(1) - $time_ini_check_url_size));
 
                 }
 
             }catch(\Exception $e){
 
-                $this->debbug("## Error. Remote image with URL ".$url." couldn't been synchronized: ".$e->getMessage());
+                $this->slDebuger->debug("## Error. Remote image with URL ".$url." couldn't been synchronized: ".$e->getMessage());
                 return false;
 
             }
@@ -10468,12 +10380,12 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                 $time_ini_check_local_size = microtime(1);
                 $url_filesize = filesize($url);
                 clearstatcache();
-                if ($this->sl_DEBBUG > 2) $this->debbug('# time_check_size_local: ', 'timer', (microtime(1) - $time_ini_check_local_size));
+                if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_check_size_local: ', 'timer', (microtime(1) - $time_ini_check_local_size));
                 return $url_filesize; 
 
             }catch(\Exception $e){
 
-                $this->debbug("## Notice. Could not read local image with URL ".$url." : ".$e->getMessage());
+                $this->slDebuger->debug("## Notice. Could not read local image with URL ".$url." : ".$e->getMessage());
 
             }
 
@@ -10495,7 +10407,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         if (null === $this->mg_product_attribute_set_id){
 
-            $this->debbug('## Error. Product does not have attribute set id. Cannot update product image types: '.print_r($this->mg_product_attribute_set_id,1));
+            $this->slDebuger->debug('## Error. Product does not have attribute set id. Cannot update product image types: '.print_r($this->mg_product_attribute_set_id,1));
             return false;
 
         }
@@ -10508,14 +10420,14 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
             if (empty($attribute)){
                 
-                $this->debbug('## Error. The attribute '.$code.' does not exist or it is not associated to the product attribute set id.');
+                $this->slDebuger->debug('## Error. The attribute '.$code.' does not exist or it is not associated to the product attribute set id.');
                 continue;
 
             }
 
             if (!isset($attribute[\Magento\Eav\Api\Data\AttributeInterface::BACKEND_TYPE]) || (isset($attribute[\Magento\Eav\Api\Data\AttributeInterface::BACKEND_TYPE]) && $attribute[\Magento\Eav\Api\Data\AttributeInterface::BACKEND_TYPE] === 'static')){
                                 
-                $this->debbug('## Error. The attribute '.$code.' does not have backend type or is static.');
+                $this->slDebuger->debug('## Error. The attribute '.$code.' does not have backend type or is static.');
                 continue;
 
             }
@@ -10583,7 +10495,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                         }catch(\Exception $e){
 
-                            $this->debbug('## Error. Updating value: '.print_r($e->getMessage(),1));
+                            $this->slDebuger->debug('## Error. Updating value: '.print_r($e->getMessage(),1));
 
                         }
 
@@ -10605,7 +10517,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                 
                 }catch(\Exception $e){
 
-                    $this->debbug('## Error. Inserting multiple attributes values: '.$e->getMessage());
+                    $this->slDebuger->debug('## Error. Inserting multiple attributes values: '.$e->getMessage());
 
                 }
 
@@ -10884,11 +10796,11 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
             if (empty($attribute)){
 
-                $this->debbug('## Error. '.$prev_error_message.$code.' attribute does not exist, please correct this.');
+                $this->slDebuger->debug('## Error. '.$prev_error_message.$code.' attribute does not exist, please correct this.');
             
             }else{
             
-                $this->debbug('## Error. '.$prev_error_message.$code.' attribute does not have a backend type, please correct this.');
+                $this->slDebuger->debug('## Error. '.$prev_error_message.$code.' attribute does not have a backend type, please correct this.');
             
             }
 
@@ -11034,7 +10946,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
             
         }
 
-        if ($this->sl_DEBBUG > 1) $this->debbug($index.' image sizes: '.implode(', ', (array)$images_sizes));
+        if ($this->sl_DEBBUG > 1) $this->slDebuger->debug($index.' image sizes: '.implode(', ', (array)$images_sizes));
         return $images_sizes;
 
     }
@@ -11048,7 +10960,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         if (!isset($product['data'][$this->product_field_name]) || (isset($product['data'][$this->product_field_name]) && $product['data'][$this->product_field_name] == '')){
 
-            $this->debbug('## Error. Product with SL ID: '.$product[$this->product_field_id].' has no name.');
+            $this->slDebuger->debug('## Error. Product with SL ID: '.$product[$this->product_field_id].' has no name.');
 
             return false;
 
@@ -11056,7 +10968,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         if (!isset($product['data'][$this->product_field_sku]) || (isset($product['data'][$this->product_field_sku]) && $product['data'][$this->product_field_sku] == '')){
 
-            $this->debbug('## Error. Product with SL ID: '.$product[$this->product_field_id].' has no SKU.');
+            $this->slDebuger->debug('## Error. Product with SL ID: '.$product[$this->product_field_id].' has no SKU.');
             
             return false;
 
@@ -11064,7 +10976,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         if (empty($product[$this->product_field_catalogue_id])){
 
-            $this->debbug('## Error. Product '.$product['data'][$this->product_field_name].' with SL ID: '.$product[$this->product_field_id].' has no categories.');
+            $this->slDebuger->debug('## Error. Product '.$product['data'][$this->product_field_name].' with SL ID: '.$product[$this->product_field_id].' has no categories.');
             
             return false;
 
@@ -11186,7 +11098,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         }
 
-        if ($this->sl_DEBBUG > 2) $this->debbug('### time_check_attribute_set_id: ', 'timer', (microtime(1) - $time_ini));
+        if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('### time_check_attribute_set_id: ', 'timer', (microtime(1) - $time_ini));
         
         if (!empty($arrayProducts)){
 
@@ -11365,11 +11277,11 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                 
                 if (!empty($attribute_data_empty)){
 
-                    $this->debbug('## Error. '.print_r($error_message,1));
+                    $this->slDebuger->debug('## Error. '.print_r($error_message,1));
 
                     foreach ($attribute_data_empty as $error_msg) {
 
-                        $this->debbug('## Error. '.$format_data[$this->format_field_sku]." - ".print_r($error_msg,1));
+                        $this->slDebuger->debug('## Error. '.$format_data[$this->format_field_sku]." - ".print_r($error_msg,1));
 
                     }
 
@@ -11524,7 +11436,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         if (isset($items_processing['count']) && $items_processing['count'] > 0){
 
-            $this->debbug("There are still ".$items_processing['count']." items processing, wait until is finished and synchronize again.");
+            $this->slDebuger->debug("There are still ".$items_processing['count']." items processing, wait until is finished and synchronize again.");
             
             return $items_processing;
 
@@ -11703,12 +11615,12 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         if ($data_schema === false) return false;
         
         if (!isset($data_schema['products'])){
-            $this->debbug('## Error. The schema does not has the products structure.');
+            $this->slDebuger->debug('## Error. The schema does not has the products structure.');
             return false;
         }
 
         if (!isset($data_schema['product_formats'])){
-            $this->debbug('## Warning. The schema does not has the variants structure.');
+            $this->slDebuger->debug('## Warning. The schema does not has the variants structure.');
             return false;
         }
 
@@ -11716,7 +11628,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
             $this->format_as_products_schema = true;
 
-            if ($this->sl_DEBBUG > 1) $this->debbug('Option to process variants as products active. Reorganizing data.');
+            if ($this->sl_DEBBUG > 1) $this->slDebuger->debug('Option to process variants as products active. Reorganizing data.');
 
             //Field relation between products and variants
             $this->format_as_product_field_relations = [
@@ -11893,7 +11805,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                         
                     }catch(\Exception $e){
 
-                        $this->debbug('## Error. Deleting unused category to process: '.$e->getMessage());
+                        $this->slDebuger->debug('## Error. Deleting unused category to process: '.$e->getMessage());
 
                     }
 
@@ -11996,11 +11908,11 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                     break;
                 default:
 
-                    $this->debbug('## Error. Deleting, table '.$nombre_tabla.' not recognized.');
+                    $this->slDebuger->debug('## Error. Deleting, table '.$nombre_tabla.' not recognized.');
                     break;
             }
 
-            if ($this->sl_DEBBUG > 1) $this->debbug('#### time_store_items_delete - '.$nombre_tabla.': ', 'timer', (microtime(1) - $time_ini_delete));
+            if ($this->sl_DEBBUG > 1) $this->slDebuger->debug('#### time_store_items_delete - '.$nombre_tabla.': ', 'timer', (microtime(1) - $time_ini_delete));
 
             $this->insert_syncdata_sql(true);
 
@@ -12016,8 +11928,8 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
     private function storeDeletedItems($item_type, $deleted_data, $sync_params){
 
         $delete_data_count = count($deleted_data);
-        $this->debbug('Total count of deleted '.$item_type.' to store: '.$delete_data_count);
-        if ($this->sl_DEBBUG > 1) $this->debbug('Deleted '.$item_type.' data to store: '.print_r($deleted_data,1));
+        $this->slDebuger->debug('Total count of deleted '.$item_type.' to store: '.$delete_data_count);
+        if ($this->sl_DEBBUG > 1) $this->slDebuger->debug('Deleted '.$item_type.' data to store: '.print_r($deleted_data,1));
         
         $this->createSQLs($deleted_data, 'delete', $item_type, $sync_params);
 
@@ -12055,14 +11967,14 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                 break;
             default:
 
-                $this->debbug('## Error. Synchronizing, table '.$nombre_tabla.' not recognized.');
+                $this->slDebuger->debug('## Error. Synchronizing, table '.$nombre_tabla.' not recognized.');
                 break;
         }
 
         
         $this->insert_syncdata_sql(true);
 
-        if ($this->sl_DEBBUG > 1) $this->debbug('#### time_store_items_update - '.$nombre_tabla.': ', 'timer', (microtime(1) - $time_ini_store_items_update));
+        if ($this->sl_DEBBUG > 1) $this->slDebuger->debug('#### time_store_items_update - '.$nombre_tabla.': ', 'timer', (microtime(1) - $time_ini_store_items_update));
         
     }
 
@@ -12079,8 +11991,8 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         $categories_to_sync_count = count($modified_data);
         $categories_to_sync = [];
 
-        if ($this->sl_DEBBUG > 1) $this->debbug('Total count of modified categories to store initial: '.$categories_to_sync_count);
-        if ($this->sl_DEBBUG > 1) $this->debbug('Modified categories data to store initial: '.print_r($modified_data,1));
+        if ($this->sl_DEBBUG > 1) $this->slDebuger->debug('Total count of modified categories to store initial: '.$categories_to_sync_count);
+        if ($this->sl_DEBBUG > 1) $this->slDebuger->debug('Modified categories data to store initial: '.print_r($modified_data,1));
 
         if ($categories_to_sync_count > 0){
 
@@ -12097,10 +12009,10 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         }
 
-        $this->debbug('Total count of modified categories to store: '.count($categories_to_sync));
-        if ($this->sl_DEBBUG > 1) $this->debbug('Modified categories data to store final: '.print_r($categories_to_sync,1));
+        $this->slDebuger->debug('Total count of modified categories to store: '.count($categories_to_sync));
+        if ($this->sl_DEBBUG > 1) $this->slDebuger->debug('Modified categories data to store final: '.print_r($categories_to_sync,1));
 
-        if ($this->sl_DEBBUG > 1) $this->debbug('### time_insert_categories: ', 'timer', (microtime(1) - $time_ini));
+        if ($this->sl_DEBBUG > 1) $this->slDebuger->debug('### time_insert_categories: ', 'timer', (microtime(1) - $time_ini));
         return count($categories_to_sync);
 
     }
@@ -12118,14 +12030,14 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         $product_to_sync_count = count($modified_data);
         $products_to_sync = [];
         
-        if ($this->sl_DEBBUG > 1) $this->debbug('Total count of modified products to store initial: '.$product_to_sync_count);
-        if ($this->sl_DEBBUG > 1) $this->debbug('Modified products data to store initial: '.print_r($modified_data,1));
+        if ($this->sl_DEBBUG > 1) $this->slDebuger->debug('Total count of modified products to store initial: '.$product_to_sync_count);
+        if ($this->sl_DEBBUG > 1) $this->slDebuger->debug('Modified products data to store initial: '.print_r($modified_data,1));
 
         if ($product_to_sync_count > 0){
 
             $time_ini_prepare_product_data_to_store = microtime(1);
             $products_to_sync = $this->prepare_product_data_to_store($modified_data);
-            if ($this->sl_DEBBUG > 1) $this->debbug('## time_prepare_product_data_to_store: ', 'timer', (microtime(1) - $time_ini_prepare_product_data_to_store));
+            if ($this->sl_DEBBUG > 1) $this->slDebuger->debug('## time_prepare_product_data_to_store: ', 'timer', (microtime(1) - $time_ini_prepare_product_data_to_store));
             unset($modified_data);
             
             if ($products_to_sync === false) return 0;
@@ -12136,14 +12048,14 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
             $this->createSQLs($products_to_sync, 'update', 'product', $product_params);
 
-            if ($this->sl_DEBBUG > 1) $this->debbug('## time_insert_products: ', 'timer', (microtime(1) - $time_ini_insert_products_into_db));
+            if ($this->sl_DEBBUG > 1) $this->slDebuger->debug('## time_insert_products: ', 'timer', (microtime(1) - $time_ini_insert_products_into_db));
                 
         }
         
-        $this->debbug('Total count of modified products to store: '.count($products_to_sync));
-        if ($this->sl_DEBBUG > 1) $this->debbug('Modified products data to store final: '.print_r($products_to_sync,1));
+        $this->slDebuger->debug('Total count of modified products to store: '.count($products_to_sync));
+        if ($this->sl_DEBBUG > 1) $this->slDebuger->debug('Modified products data to store final: '.print_r($products_to_sync,1));
 
-        if ($this->sl_DEBBUG > 1) $this->debbug('### time_insert_products: ', 'timer', (microtime(1) - $time_ini_insert_products));
+        if ($this->sl_DEBBUG > 1) $this->slDebuger->debug('### time_insert_products: ', 'timer', (microtime(1) - $time_ini_insert_products));
         return count($products_to_sync);
 
     }
@@ -12167,7 +12079,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         
                 if (isset($this->products_not_synced[$format[$this->format_field_products_id]])){
 
-                    $this->debbug('## Error. The Format with SL ID '.$format[$this->format_field_id].' has no product parent to synchronize.');
+                    $this->slDebuger->debug('## Error. The Format with SL ID '.$format[$this->format_field_id].' has no product parent to synchronize.');
                     unset($modified_data[$keyForm]);
                     $product_formats_to_sync_count --;
                     
@@ -12177,8 +12089,8 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         }
 
-        if ($this->sl_DEBBUG > 1) $this->debbug('Total count of modified product formats to store initial: '.$product_formats_to_sync_count);
-        if ($this->sl_DEBBUG > 1) $this->debbug('Modified product formats data to store initial: '.print_r($modified_data,1));
+        if ($this->sl_DEBBUG > 1) $this->slDebuger->debug('Total count of modified product formats to store initial: '.$product_formats_to_sync_count);
+        if ($this->sl_DEBBUG > 1) $this->slDebuger->debug('Modified product formats data to store initial: '.print_r($modified_data,1));
         
         if ($product_formats_to_sync_count > 0){
 
@@ -12194,10 +12106,10 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                 
         }
 
-        $this->debbug('Total count of modified product formats to store: '.count($product_formats_to_sync));
-        if ($this->sl_DEBBUG > 1) $this->debbug('Modified product formats data to store final: '.print_r($product_formats_to_sync,1));
+        $this->slDebuger->debug('Total count of modified product formats to store: '.count($product_formats_to_sync));
+        if ($this->sl_DEBBUG > 1) $this->slDebuger->debug('Modified product formats data to store final: '.print_r($product_formats_to_sync,1));
 
-        if ($this->sl_DEBBUG > 1) $this->debbug('### time_insert_formats: ', 'timer', (microtime(1) - $time_ini_insert_formats));
+        if ($this->sl_DEBBUG > 1) $this->slDebuger->debug('### time_insert_formats: ', 'timer', (microtime(1) - $time_ini_insert_formats));
         return count($product_formats_to_sync);
 
     }
@@ -12283,7 +12195,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
             }catch(\Exception $e){
 
-                $this->debbug('## Error. Updating product core data: '.$e->getMessage());
+                $this->slDebuger->debug('## Error. Updating product core data: '.$e->getMessage());
 
             }
 
@@ -12485,7 +12397,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
      */
     private function updateProductStock($sl_data){
 
-        $this->debbug('updateProductStock() - sl_data: '.print_r($sl_data,1));
+        $this->slDebuger->debug('updateProductStock() - sl_data: '.print_r($sl_data,1));
 
         if ($this->product_created === true || $this->avoid_stock_update == '0'){
 
@@ -12542,7 +12454,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
             }
 
-            $this->debbug('updateProductStock() - sl_inventory_data: '.print_r($sl_inventory_data,1));
+            $this->slDebuger->debug('updateProductStock() - sl_inventory_data: '.print_r($sl_inventory_data,1));
 
             if (!empty($sl_inventory_data)){
 
@@ -12606,7 +12518,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                         if ($grouping_product_ref == $mg_product_core_data['sku']){
 
-                            $this->debbug('## Error. Product reference '.$grouping_product_ref.' is the same as the current product: '.$mg_product_core_data['sku']);
+                            $this->slDebuger->debug('## Error. Product reference '.$grouping_product_ref.' is the same as the current product: '.$mg_product_core_data['sku']);
                             continue;
 
                         }
@@ -12742,13 +12654,13 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                 
                 }catch(\Exception $e){
 
-                    $this->debbug('## Error. Inserting multiple attributes values: '.$e->getMessage());
+                    $this->slDebuger->debug('## Error. Inserting multiple attributes values: '.$e->getMessage());
 
                 }
 
             }
 
-            if ($this->sl_DEBBUG > 2) $this->debbug('# time_insert_values: ', 'timer', (microtime(1) - $time_ini_insert_values));
+            if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_insert_values: ', 'timer', (microtime(1) - $time_ini_insert_values));
 
         }
 
@@ -12778,14 +12690,14 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
             }catch(\Exception $e){
 
-                $this->debbug('## Error. Updating attribute value: '.print_r($e->getMessage(),1));
+                $this->slDebuger->debug('## Error. Updating attribute value: '.print_r($e->getMessage(),1));
                 return false;
 
             }
 
         }
 
-        if ($this->sl_DEBBUG > 2) $this->debbug('# time_update_value: ', 'timer', (microtime(1) - $time_ini_update_value));
+        if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_update_value: ', 'timer', (microtime(1) - $time_ini_update_value));
         return true;
 
     }
@@ -12853,12 +12765,12 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         }catch(\Exception $e){
 
-            $this->debbug('## Error. Deleting global attribute in other stores than 0: '.print_r($e->getMessage(),1));
+            $this->slDebuger->debug('## Error. Deleting global attribute in other stores than 0: '.print_r($e->getMessage(),1));
 
         }
 
         
-        if ($this->sl_DEBBUG > 2) $this->debbug('# time_delete_attribute_global: ', 'timer', (microtime(1) - $time_delete));
+        if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_delete_attribute_global: ', 'timer', (microtime(1) - $time_delete));
 
         return true;
 
@@ -12898,15 +12810,15 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
             }catch(\Exception $e){
 
-                $this->debbug('## Error. Updating index row '.$indexList.' : '.print_r($e->getMessage(),1));
+                $this->slDebuger->debug('## Error. Updating index row '.$indexList.' : '.print_r($e->getMessage(),1));
 
             }
 
-            if ($this->sl_DEBBUG > 2) $this->debbug('## time_index_row '.$indexList.': ', 'timer', (microtime(1) - $time_ini_index_row));
+            if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('## time_index_row '.$indexList.': ', 'timer', (microtime(1) - $time_ini_index_row));
 
         }
 
-        if ($this->sl_DEBBUG > 1) $this->debbug('### time_index_all: ', 'timer', (microtime(1) - $time_ini_index_all));
+        if ($this->sl_DEBBUG > 1) $this->slDebuger->debug('### time_index_all: ', 'timer', (microtime(1) - $time_ini_index_all));
 
     }
 
@@ -12935,7 +12847,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                 $time_ini_get_valid_url_key = microtime(1);
                 $attrV = $this->getValidProductUrlKey($attrV, $storeViewId);
                 if ($this->sl_DEBBUG > 2) { 
-                    $this->debbug('# time_get_valid_url_key: ', 'timer', (microtime(1) - $time_ini_get_valid_url_key));
+                    $this->slDebuger->debug('# time_get_valid_url_key: ', 'timer', (microtime(1) - $time_ini_get_valid_url_key));
                 }
                 $entity->setDataUsingMethod($attrK, $attrV);
                 $entity->getResource()->saveAttribute($entity, $attrK);
@@ -12980,7 +12892,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
     {
         foreach ($store_view_ids as $store_view_id) {
 
-            $this->debbug(" > In store view id: ".$store_view_id);
+            $this->slDebuger->debug(" > In store view id: ".$store_view_id);
 
             $time_ini_all_data = microtime(1);
 
@@ -12989,7 +12901,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                 // $product->setStoreId($store_view_id);
             } catch (NoSuchEntityException $e) {
                 $product = null;
-                if ($this->sl_DEBBUG > 2) $this->debbug('## Error.' . $e->getMessage() . ' (SKU: ' . $sku, '), timer', (microtime(1) - $time_ini_all_data));
+                if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('## Error.' . $e->getMessage() . ' (SKU: ' . $sku, '), timer', (microtime(1) - $time_ini_all_data));
             } 
     
             if ($product !== null) {
@@ -12998,19 +12910,19 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                 if (!empty($sl_product_data_to_sync)){
 
-                    $this->debbug(" > SL product data to sync: ".print_r($sl_product_data_to_sync,1));
+                    $this->slDebuger->debug(" > SL product data to sync: ".print_r($sl_product_data_to_sync,1));
                     $time_ini_sync_data = microtime(1);
                     $this->setAttributes($product, $sl_product_data_to_sync, $store_view_id);
-                    if ($this->sl_DEBBUG > 1) $this->debbug('## sync_product_data store_view_id: '.$store_view_id.': ', 'timer', (microtime(1) - $time_ini_sync_data));
+                    if ($this->sl_DEBBUG > 1) $this->slDebuger->debug('## sync_product_data store_view_id: '.$store_view_id.': ', 'timer', (microtime(1) - $time_ini_sync_data));
 
                 }
 
                 if (!empty($sl_product_additional_data_to_sync)){
 
-                    $this->debbug(" > SL product additional data to sync: ".print_r($sl_product_additional_data_to_sync,1));
+                    $this->slDebuger->debug(" > SL product additional data to sync: ".print_r($sl_product_additional_data_to_sync,1));
                     $time_ini_additional_data = microtime(1);                
                     $this->setAttributes($product, $sl_product_additional_data_to_sync, $store_view_id);
-                    if ($this->sl_DEBBUG > 1) $this->debbug('## sync_product_additional_data store_view_id: '.$store_view_id.': ', 'timer', (microtime(1) - $time_ini_additional_data));
+                    if ($this->sl_DEBBUG > 1) $this->slDebuger->debug('## sync_product_additional_data store_view_id: '.$store_view_id.': ', 'timer', (microtime(1) - $time_ini_additional_data));
 
                 }
 
@@ -13020,13 +12932,13 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                     
                 } catch(\Exception $e) {
                     
-                    $this->debbug('## Error. Updating product attributes with SKU '.$sku.' for store_view_id '.$store_view_id.': '.$e->getMessage());
+                    $this->slDebuger->debug('## Error. Updating product attributes with SKU '.$sku.' for store_view_id '.$store_view_id.': '.$e->getMessage());
 
                 } 
                 
-                $this->debbug(" > In store view id: ".$store_view_id);
+                $this->slDebuger->debug(" > In store view id: ".$store_view_id);
 
-                if ($this->sl_DEBBUG > 2) $this->debbug('## time_sync_product_store_all_data store_view_id: '.$store_view_id.': ', 'timer', (microtime(1) - $time_ini_all_data));
+                if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('## time_sync_product_store_all_data store_view_id: '.$store_view_id.': ', 'timer', (microtime(1) - $time_ini_all_data));
             
             }
 
@@ -13047,7 +12959,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         foreach ($store_view_ids as $store_view_id) {
 
-            $this->debbug(" > In store view id: ".$store_view_id);
+            $this->slDebuger->debug(" > In store view id: ".$store_view_id);
 
             $time_ini_all_data = microtime(1);
 
@@ -13055,7 +12967,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                 $format = $this->_productRepository->get($sku, true, $store_view_id);
             } catch (NoSuchEntityException $e) {
                 $format = null;
-                if ($this->sl_DEBBUG > 2) $this->debbug('## Error.' . $e->getMessage() . ' (SKU: ' . $sku, '), timer', (microtime(1) - $time_ini_all_data));
+                if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('## Error.' . $e->getMessage() . ' (SKU: ' . $sku, '), timer', (microtime(1) - $time_ini_all_data));
             } 
     
             if ($format !== null) {
@@ -13064,19 +12976,19 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                 if (!empty($sl_format_data_to_sync)){
 
-                    $this->debbug(" > SL product format data to sync: ".print_r($sl_format_data_to_sync,1));
+                    $this->slDebuger->debug(" > SL product format data to sync: ".print_r($sl_format_data_to_sync,1));
                     $time_ini_sync_data = microtime(1);
                     $this->setAttributes($format, $sl_format_data_to_sync, $store_view_id);
-                    if ($this->sl_DEBBUG > 1) $this->debbug('## sync_format_data store_view_id: '.$store_view_id.': ', 'timer', (microtime(1) - $time_ini_sync_data));
+                    if ($this->sl_DEBBUG > 1) $this->slDebuger->debug('## sync_format_data store_view_id: '.$store_view_id.': ', 'timer', (microtime(1) - $time_ini_sync_data));
 
                 }
 
                 if (!empty($sl_format_additional_data_to_sync)){
 
-                    $this->debbug(" > SL product format additional data to sync: ".print_r($sl_format_additional_data_to_sync,1));
+                    $this->slDebuger->debug(" > SL product format additional data to sync: ".print_r($sl_format_additional_data_to_sync,1));
                     $time_ini_additional_data = microtime(1);
                     $this->setAttributes($format, $sl_format_additional_data_to_sync, $store_view_id);
-                    if ($this->sl_DEBBUG > 1) $this->debbug('## sync_format_additional_data store_view_id: '.$store_view_id.': ', 'timer', (microtime(1) - $time_ini_additional_data));
+                    if ($this->sl_DEBBUG > 1) $this->slDebuger->debug('## sync_format_additional_data store_view_id: '.$store_view_id.': ', 'timer', (microtime(1) - $time_ini_additional_data));
 
                 }
 
@@ -13087,13 +12999,13 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                     
                 } catch(\Exception $e) {
                     
-                    $this->debbug('## Error. Updating product format attributes with SKU '.$sku.' for store_view_id '.$store_view_id.': '.$e->getMessage());
+                    $this->slDebuger->debug('## Error. Updating product format attributes with SKU '.$sku.' for store_view_id '.$store_view_id.': '.$e->getMessage());
                     
                 } 
                 
-                $this->debbug(" > In store view id: ".$store_view_id);
+                $this->slDebuger->debug(" > In store view id: ".$store_view_id);
 
-                if ($this->sl_DEBBUG > 2) $this->debbug('## time_sync_format_store_all_data store_view_id: '.$store_view_id.': ', 'timer', (microtime(1) - $time_ini_all_data));
+                if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('## time_sync_format_store_all_data store_view_id: '.$store_view_id.': ', 'timer', (microtime(1) - $time_ini_all_data));
             
             }
 
@@ -13115,7 +13027,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
             
             if (null === $this->mg_product_attribute_set_id){
 
-                $this->debbug('## Error. Product does not have attribute set id. Cannot update product additional attribute values.');
+                $this->slDebuger->debug('## Error. Product does not have attribute set id. Cannot update product additional attribute values.');
 
             }else{
 
@@ -13124,7 +13036,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                     $time_additional_field = microtime(1);
                     if (!isset($product['data'][$field_name_value])){
 
-                        if ($this->sl_DEBBUG > 2) $this->debbug('# time_prepare_additional_field: ', 'timer', (microtime(1) - $time_additional_field));
+                        if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_prepare_additional_field: ', 'timer', (microtime(1) - $time_additional_field));
                         continue;
 
                     }
@@ -13132,13 +13044,13 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                     if (!isset($this->attributeCodesByAttributeSetId[$this->mg_product_attribute_set_id])){
                         $time_ini_load_attribute_codes_by_attribute_set_id = microtime(1);
                         $this->loadattributeCodesByAttributeSetId($this->product_entity_type_id, $this->mg_product_attribute_set_id);
-                        if ($this->sl_DEBBUG > 2) { $this->debbug('# time_load_attribute_codes_by_attribute_set_id: ', 'timer', (microtime(1) - $time_ini_load_attribute_codes_by_attribute_set_id));
+                        if ($this->sl_DEBBUG > 2) { $this->slDebuger->debug('# time_load_attribute_codes_by_attribute_set_id: ', 'timer', (microtime(1) - $time_ini_load_attribute_codes_by_attribute_set_id));
                         }
                     }
 
                     if (!isset($this->attributeCodesByAttributeSetId[$this->mg_product_attribute_set_id][$field_name])){
 
-                        if ($this->sl_DEBBUG > 2) { $this->debbug('# time_prepare_additional_field: ', 'timer', (microtime(1) - $time_additional_field));
+                        if ($this->sl_DEBBUG > 2) { $this->slDebuger->debug('# time_prepare_additional_field: ', 'timer', (microtime(1) - $time_additional_field));
                         }
                         continue;
 
@@ -13154,7 +13066,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                     }
 
-                    if ($this->sl_DEBBUG > 2) $this->debbug('# time_prepare_additional_field: ', 'timer', (microtime(1) - $time_additional_field));
+                    if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_prepare_additional_field: ', 'timer', (microtime(1) - $time_additional_field));
 
                 }
 
@@ -13162,7 +13074,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         }
 
-        if ($this->sl_DEBBUG > 2) $this->debbug('# time_prepare_all_additional_fields: ', 'timer', (microtime(1) - $time_additional_fields));
+        if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_prepare_all_additional_fields: ', 'timer', (microtime(1) - $time_additional_fields));
         return $sl_product_additional_data_to_sync;
 
     }
@@ -13226,7 +13138,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                         $time_check_html_text = microtime(1);
                         $sl_product_data_to_sync[$mg_product_field] = $this->sl_check_html_text($product['data'][$sl_product_field]);
-                        if ($this->sl_DEBBUG > 2) $this->debbug('# time_prepare_field: ', 'timer', (microtime(1) - $time_check_html_text));
+                        if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_prepare_field: ', 'timer', (microtime(1) - $time_check_html_text));
 
                         break;
 
@@ -13240,7 +13152,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
     
                         $time_ini_format_url_key = microtime(1);
                         $sl_product_data_to_sync[$mg_product_field] = $this->productModel->formatUrlKey($product['data'][$sl_product_field]);
-                        if ($this->sl_DEBBUG > 2) $this->debbug('# time_format_url_key: ', 'timer', (microtime(1) - $time_ini_format_url_key));
+                        if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_format_url_key: ', 'timer', (microtime(1) - $time_ini_format_url_key));
     
                         break;    
 
@@ -13256,7 +13168,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                             $sl_product_data_to_sync[$mg_product_field] = $this->status_enabled;
 
                         }
-                        if ($this->sl_DEBBUG > 2) $this->debbug('# time_validate_status_value: ', 'timer', (microtime(1) - $time_ini_validate_status_value));
+                        if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_validate_status_value: ', 'timer', (microtime(1) - $time_ini_validate_status_value));
 
                         break;
 
@@ -13410,7 +13322,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                             }
 
-                            $this->debbug('## Error. Product with '.$product_index.' has a price that does not have a valid format, it will not be updated. Original value: '.print_r($product['data'][$sl_product_field],1));
+                            $this->slDebuger->debug('## Error. Product with '.$product_index.' has a price that does not have a valid format, it will not be updated. Original value: '.print_r($product['data'][$sl_product_field],1));
 
                         }
 
@@ -13425,7 +13337,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
             }
 
-            if ($this->sl_DEBBUG > 2) $this->debbug('# time_prepare_field: ', 'timer', (microtime(1) - $time_ini_prepare_field));
+            if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_prepare_field: ', 'timer', (microtime(1) - $time_ini_prepare_field));
         }
 
         if ((!isset($sl_product_data_to_sync['url_key']) || 
@@ -13434,12 +13346,12 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
             $time_ini_format_url_key = microtime(1);
             $sl_product_data_to_sync['url_key'] = $this->productModel->formatUrlKey($sl_product_data_to_sync['name'].'-'.$mg_product_core_data['sku']);
-            if ($this->sl_DEBBUG > 2) { $this->debbug('# time_format_url_key: ', 'timer', (microtime(1) - $time_ini_format_url_key));
+            if ($this->sl_DEBBUG > 2) { $this->slDebuger->debug('# time_format_url_key: ', 'timer', (microtime(1) - $time_ini_format_url_key));
             }        
     
         }
 
-        if ($this->sl_DEBBUG > 1) $this->debbug('# time_prepare_all_fields: ', 'timer', (microtime(1) - $time_ini_prepare_all_fields));
+        if ($this->sl_DEBBUG > 1) $this->slDebuger->debug('# time_prepare_all_fields: ', 'timer', (microtime(1) - $time_ini_prepare_all_fields));
 
         return $sl_product_data_to_sync;
 
@@ -13559,7 +13471,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                         }else{
                         
-                            $this->debbug('## Error. Loading Country of Manufacture options, duplicated value in database: '.$country_of_manufacture['value'].'. Please, correct this, as country codes must by unique.');
+                            $this->slDebuger->debug('## Error. Loading Country of Manufacture options, duplicated value in database: '.$country_of_manufacture['value'].'. Please, correct this, as country codes must by unique.');
                         }
 
                     }
@@ -13624,7 +13536,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                     $time_ini_category_size = microtime(1);
                     $sl_category_image_size = $this->sl_get_file_size($sl_category_image_url);
-                    if ($this->sl_DEBBUG > 2) $this->debbug('# time_category_size: ', 'timer', (microtime(1) - $time_ini_category_size));
+                    if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_category_size: ', 'timer', (microtime(1) - $time_ini_category_size));
                     
                     if (!$sl_category_image_size){ 
                 
@@ -13656,7 +13568,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         }while($sl_category_image_url == '' && ($n_image < $count_images_sizes));
 
-        if ($this->sl_DEBBUG > 2) $this->debbug('## time_check_sl_images: ', 'timer', (microtime(1) - $time_ini_check_sl_images));
+        if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('## time_check_sl_images: ', 'timer', (microtime(1) - $time_ini_check_sl_images));
 
         return array(
             'sl_category_image_url' =>$sl_category_image_url,
@@ -13686,7 +13598,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
             $time_ini_mg_category_size = microtime(1);
             $mg_category_image_size_check = $this->sl_get_file_size($mg_category_image_path_check);
-            if ($this->sl_DEBBUG > 2) $this->debbug('# time_mg_category_size: ', 'timer', (microtime(1) - $time_ini_mg_category_size));
+            if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_mg_category_size: ', 'timer', (microtime(1) - $time_ini_mg_category_size));
         
         }
 
@@ -13735,7 +13647,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
             $time_ini_mg_category_size = microtime(1);
             $mg_category_image_size = $this->sl_get_file_size($mg_category_image_path);
-            if ($this->sl_DEBBUG > 2) $this->debbug('# time_mg_category_size: ', 'timer', (microtime(1) - $time_ini_mg_category_size));
+            if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_mg_category_size: ', 'timer', (microtime(1) - $time_ini_mg_category_size));
         
         }
 
@@ -13743,14 +13655,14 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
             if ($image_data['sl_category_image_name'] == $mg_category_image_name && $image_data['sl_category_image_size'] == $mg_category_image_size){
                 
-                if ($this->sl_DEBBUG > 2) $this->debbug('## time_check_mg_image: ', 'timer', (microtime(1) - $time_ini_check_mg_image));
+                if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('## time_check_mg_image: ', 'timer', (microtime(1) - $time_ini_check_mg_image));
                 return;
 
             }
 
         }else{
 
-            $this->debbug('## Error. Reading local image file size, we insert and update the new image.');
+            $this->slDebuger->debug('## Error. Reading local image file size, we insert and update the new image.');
 
         }
 
@@ -13761,7 +13673,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
             $time_ini_mg_category_size = microtime(1);
             $mg_category_image_size_check = $this->sl_get_file_size($mg_category_image_path_check);
-            if ($this->sl_DEBBUG > 2) $this->debbug('# time_mg_category_size_check: ', 'timer', (microtime(1) - $time_ini_mg_category_size));
+            if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_mg_category_size_check: ', 'timer', (microtime(1) - $time_ini_mg_category_size));
         
         }
 
@@ -13783,10 +13695,10 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
             }catch(\Exception $e){
 
-                $this->debbug('## Error. Updating category image: '.print_r($e->getMessage(),1));
+                $this->slDebuger->debug('## Error. Updating category image: '.print_r($e->getMessage(),1));
 
             }
-            if ($this->sl_DEBBUG > 2) $this->debbug('## time_process_mg_image: ', 'timer', (microtime(1) - $time_ini_check_mg_image));
+            if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('## time_process_mg_image: ', 'timer', (microtime(1) - $time_ini_check_mg_image));
 
         }
 
@@ -13827,7 +13739,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         }
 
-        if ($this->sl_DEBBUG > 2) $this->debbug('# time_delete_links: ', 'timer', (microtime(1) - $time_ini_delete_links));
+        if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_delete_links: ', 'timer', (microtime(1) - $time_ini_delete_links));
 
     }
 
@@ -13932,7 +13844,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         }
     
-        if ($this->sl_DEBBUG > 2) $this->debbug('# time_generate_link: ', 'timer', (microtime(1) - $time_ini_generate_link));
+        if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_generate_link: ', 'timer', (microtime(1) - $time_ini_generate_link));
 
     }
 
@@ -13955,7 +13867,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         
         if (null === $parent_product_core_data){
 
-            $this->debbug('## Error. Product parent with MG ID: '.$product_id.' does not exist. Cannot process linked items.');
+            $this->slDebuger->debug('## Error. Product parent with MG ID: '.$product_id.' does not exist. Cannot process linked items.');
             return 'item_not_updated';
 
         }
@@ -13976,11 +13888,11 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         
         }
         
-        if ($this->sl_DEBBUG > 2) $this->debbug('# time_link_all_data_update: ', 'timer', (microtime(1) - $time_ini_link_all_data_update));
+        if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_link_all_data_update: ', 'timer', (microtime(1) - $time_ini_link_all_data_update));
 
         $this->deleteLinks($product_link_table);
 
-        if ($this->sl_DEBBUG > 2) $this->debbug('## time_link_product: ', 'timer', (microtime(1) - $time_ini_link_product));
+        if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('## time_link_product: ', 'timer', (microtime(1) - $time_ini_link_product));
 
     }
 
@@ -14003,7 +13915,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         $link_product_id = $this->get_product_id_by_sku_db($link_reference);
         
         if (null === $link_product_id) {
-            if ($this->sl_DEBBUG > 2) $this->debbug('# time_link_data_update: ', 'timer', (microtime(1) - $time_ini_link_data_update));
+            if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_link_data_update: ', 'timer', (microtime(1) - $time_ini_link_data_update));
             return;
         }
 
@@ -14014,7 +13926,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
             if (!in_array($link_product_core_data['type_id'], array($this->product_type_simple, $this->product_type_virtual, $this->product_type_downloadable))){
 
-                $this->debbug('## Error. Product reference '.$link_reference.' type not valid: '.$link_product_core_data['type_id']);
+                $this->slDebuger->debug('## Error. Product reference '.$link_reference.' type not valid: '.$link_product_core_data['type_id']);
                 return;
 
             }
@@ -14098,7 +14010,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         }
 
-        if ($this->sl_DEBBUG > 2) $this->debbug('# time_link_data_update: ', 'timer', (microtime(1) - $time_ini_link_data_update));
+        if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_link_data_update: ', 'timer', (microtime(1) - $time_ini_link_data_update));
         
     }
 
@@ -14155,7 +14067,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         } catch (\Exception $e) {
 
-            $this->debbug('## Error. Updating core category '.$sl_category_name.' SL multiconn data.');
+            $this->slDebuger->debug('## Error. Updating core category '.$sl_category_name.' SL multiconn data.');
 
         }
 

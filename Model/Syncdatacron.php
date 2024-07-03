@@ -35,6 +35,7 @@ use Magento\Framework\Registry as registry;
 use Magento\Indexer\Model\Indexer as indexer;
 use Saleslayer\Synccatalog\Helper\Config as synccatalogConfigHelper;
 use Saleslayer\Synccatalog\Helper\Data as synccatalogDataHelper;
+use Saleslayer\Synccatalog\Helper\slDebuger as slDebuger;
 use Saleslayer\Synccatalog\Model\SalesLayerConn as SalesLayerConn;
 use Zend_Db_Expr as Expr;
 
@@ -69,6 +70,7 @@ class Syncdatacron extends Synccatalog
         registry $registry,
         SalesLayerConn $salesLayerConn,
         synccatalogDataHelper $synccatalogDataHelper,
+        slDebuger $slDebuger,
         synccatalogConfigHelper $synccatalogConfigHelper,
         directoryListFilesystem $directoryListFilesystem,
         categoryModel $categoryModel,
@@ -100,6 +102,7 @@ class Syncdatacron extends Synccatalog
             $registry, 
             $salesLayerConn, 
             $synccatalogDataHelper, 
+            $slDebuger,
             $synccatalogConfigHelper,
             $directoryListFilesystem,
             $categoryModel, 
@@ -155,7 +158,7 @@ class Syncdatacron extends Synccatalog
 
             if (!$this->execute_slyr_load_functions()){
 
-                $this->debbug('## Error. Could not load synchronization parameters. Please check error log.', 'syncdata');
+                $this->slDebuger->debug('## Error. Could not load synchronization parameters. Please check error log.', 'syncdata');
                 $this->end_process = true;
 
             }
@@ -171,7 +174,8 @@ class Syncdatacron extends Synccatalog
                 'category_field_active',
                 'category_images_sizes',
                 'category_field_page_layout',
-                'category_field_is_anchor'
+                'category_field_is_anchor',
+                'category_field_position'
             ];
 
             $this->product_fields = [
@@ -302,7 +306,7 @@ class Syncdatacron extends Synccatalog
             
             if ($minutes < 10){
             
-                $this->debbug('Data is already being processed.', 'syncdata');
+                $this->slDebuger->debug('Data is already being processed.', 'syncdata');
                 $this->end_process = true;
 
                 return;
@@ -311,7 +315,7 @@ class Syncdatacron extends Synccatalog
                 
             if ($this->syncdata_pid === $current_flag['syncdata_pid']){
 
-                $this->debbug('Pid is the same as current.', 'syncdata');
+                $this->slDebuger->debug('Pid is the same as current.', 'syncdata');
 
             }
 
@@ -321,19 +325,19 @@ class Syncdatacron extends Synccatalog
             
                 try{
 
-                    $this->debbug('Killing pid: '.$current_flag['syncdata_pid'].' with user: '.get_current_user(), 'syncdata');
+                    $this->slDebuger->debug('Killing pid: '.$current_flag['syncdata_pid'].' with user: '.get_current_user(), 'syncdata');
                     
                     $result_kill = posix_kill($current_flag['syncdata_pid'], 0);
 
                     if (!$result_kill){
 
-                        $this->debbug('## Error. Could not kill pid '.$current_flag['syncdata_pid'], 'syncdata');
+                        $this->slDebuger->debug('## Error. Could not kill pid '.$current_flag['syncdata_pid'], 'syncdata');
 
                     }
 
                 }catch(\Exception $e){
             
-                    $this->debbug('## Error. Exception killing pid '.$current_flag['syncdata_pid'].': '.print_r($e->getMessage(),1), 'syncdata');
+                    $this->slDebuger->debug('## Error. Exception killing pid '.$current_flag['syncdata_pid'].': '.print_r($e->getMessage(),1), 'syncdata');
             
                 }
                                             
@@ -369,7 +373,7 @@ class Syncdatacron extends Synccatalog
         
         }catch(\Exception $e){
 
-            $this->debbug('## Error. Deleting sync_data_flag: '.$e->getMessage(), 'syncdata');
+            $this->slDebuger->debug('## Error. Deleting sync_data_flag: '.$e->getMessage(), 'syncdata');
 
         }
 
@@ -388,7 +392,7 @@ class Syncdatacron extends Synccatalog
 
         }catch(\Exception $e){
 
-            $this->debbug('## Error. Clearing exceeded attemps: '.$e->getMessage(), 'syncdata');
+            $this->slDebuger->debug('## Error. Clearing exceeded attemps: '.$e->getMessage(), 'syncdata');
 
         }
     }
@@ -409,12 +413,12 @@ class Syncdatacron extends Synccatalog
          || ($hour_from_time > $hour_until_time && ($hour_now_time >= $hour_from_time || $hour_now_time <= $hour_until_time)) 
          ||  $hour_from_time == $hour_until_time){
             
-            $this->debbug('Current hour '.$hour_now.' for sync data process.', 'syncdata');
+            $this->slDebuger->debug('Current hour '.$hour_now.' for sync data process.', 'syncdata');
         
         } else {
         
             $this->end_process = true;
-            $this->debbug('Current hour '.$hour_now.' is not set between hour from '.$hour_from.' and hour until '.$hour_until.'. Finishing sync data process.', 'syncdata');
+            $this->slDebuger->debug('Current hour '.$hour_now.' is not set between hour from '.$hour_from.' and hour until '.$hour_until.'. Finishing sync data process.', 'syncdata');
         
         }
     }
@@ -432,9 +436,9 @@ class Syncdatacron extends Synccatalog
 
         if ($this->clean_main_debug_file) file_put_contents($this->sl_logs_path.'_debbug_log_saleslayer_'.date('Y-m-d').'.dat', "");
 
-        $this->debbug("==== Sync Data DB INIT ".date('Y-m-d H:i:s')." ====", 'syncdata');
-        $this->debbug("==== Synccatalog version: ". $this->moduleVersion ." ====", 'syncdata');
-        $this->debbug("==== Magento version: ". $this->productMetadata->getVersion() . " - " . $this->productMetadata->getEdition() ." ====", 'syncdata');
+        $this->slDebuger->debug("==== Sync Data DB INIT ".date('Y-m-d H:i:s')." ====", 'syncdata');
+        $this->slDebuger->debug("==== Synccatalog version: ". $this->moduleVersion ." ====", 'syncdata');
+        $this->slDebuger->debug("==== Magento version: ". $this->productMetadata->getVersion() . " - " . $this->productMetadata->getEdition() ." ====", 'syncdata');
 
         $this->clearExcededAttemps();
 
@@ -473,9 +477,9 @@ class Syncdatacron extends Synccatalog
 
         $this->generateSummary();
         
-        $this->debbug('### time_all_syncdata_process: '.(microtime(1) - $this->sl_time_ini_sync_data_process).' seconds.', 'syncdata');
+        $this->slDebuger->debug('### time_all_syncdata_process: '.(microtime(1) - $this->sl_time_ini_sync_data_process).' seconds.', 'syncdata');
 
-        $this->debbug("==== Sync Data DB END ====", 'syncdata');
+        $this->slDebuger->debug("==== Sync Data DB END ====", 'syncdata');
 
     }
 
@@ -566,7 +570,7 @@ class Syncdatacron extends Synccatalog
 
                 if ($this->end_process){
 
-                    $this->debbug('Breaking syncdata process due to time limit.', 'syncdata');
+                    $this->slDebuger->debug('Breaking syncdata process due to time limit.', 'syncdata');
                     return false;
 
                 }
@@ -609,7 +613,7 @@ class Syncdatacron extends Synccatalog
 
                     if ($this->end_process){
 
-                        $this->debbug('Breaking syncdata process due to time limit.', 'syncdata');
+                        $this->slDebuger->debug('Breaking syncdata process due to time limit.', 'syncdata');
                         break;
 
                     }
@@ -622,7 +626,7 @@ class Syncdatacron extends Synccatalog
 
         } catch (\Exception $e) {
 
-            $this->debbug('## Error. Deleting syncdata process: '.$e->getMessage(), 'syncdata');
+            $this->slDebuger->debug('## Error. Deleting syncdata process: '.$e->getMessage(), 'syncdata');
 
         }
 
@@ -669,7 +673,7 @@ class Syncdatacron extends Synccatalog
 
             default:
                 
-                $this->debbug('## Error. Incorrect item: '.print_R($item_to_delete,1), 'syncdata');
+                $this->slDebuger->debug('## Error. Incorrect item: '.print_R($item_to_delete,1), 'syncdata');
                 break;
 
         }
@@ -700,7 +704,7 @@ class Syncdatacron extends Synccatalog
 
             foreach ($this->processed_items as $processed_item_type => $processed_item_type_count) {
                 
-                $this->debbug('Processed items - type: '.$processed_item_type.' count: '.$processed_item_type_count, 'syncdata');
+                $this->slDebuger->debug('Processed items - type: '.$processed_item_type.' count: '.$processed_item_type_count, 'syncdata');
 
             }
 
@@ -726,12 +730,12 @@ class Syncdatacron extends Synccatalog
 
             $time_ini_clean_cache = microtime(1);
             $this->typeListInterface->cleanType($type);
-            if ($this->sl_DEBBUG > 1) $this->debbug('### time_clean_cache: ', 'timer', (microtime(1) - $time_ini_clean_cache));
+            if ($this->sl_DEBBUG > 1) $this->slDebuger->debug('### time_clean_cache: ', 'timer', (microtime(1) - $time_ini_clean_cache));
 
         }
 
-        $this->debbug('Cache cleaned for: '.print_r($types,1));
-        $this->debbug('#### time_clean_all_caches: ', 'timer', (microtime(1) - $time_ini_clean_all_caches));
+        $this->slDebuger->debug('Cache cleaned for: '.print_r($types,1));
+        $this->slDebuger->debug('#### time_clean_all_caches: ', 'timer', (microtime(1) - $time_ini_clean_all_caches));
 
     }
 
@@ -760,22 +764,22 @@ class Syncdatacron extends Synccatalog
            
                 if (!$categoryIndexer->isScheduled()) {
                 
-                    if ($this->sl_DEBBUG > 0) $this->debbug('Reindexing indexer after product formats sync: '.$indexList, 'syncdata');
+                    if ($this->sl_DEBBUG > 0) $this->slDebuger->debug('Reindexing indexer after product formats sync: '.$indexList, 'syncdata');
                     $categoryIndexer->reindexAll();
                                         
                 }
 
             }catch(\Exception $e){
 
-                $this->debbug('## Error. Updating index row '.$indexList.' : '.print_R($e->getMessage(),1), 'syncdata');
+                $this->slDebuger->debug('## Error. Updating index row '.$indexList.' : '.print_R($e->getMessage(),1), 'syncdata');
 
             }
 
-            if ($this->sl_DEBBUG > 2) $this->debbug('## time_index_row '.$indexList.': ', 'timer', (microtime(1) - $time_ini_index_row));
+            if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('## time_index_row '.$indexList.': ', 'timer', (microtime(1) - $time_ini_index_row));
 
         }
 
-        $this->debbug('#### time_reindex_after_formats: ', 'timer', (microtime(1) - $time_ini_reindex_after_formats));
+        $this->slDebuger->debug('#### time_reindex_after_formats: ', 'timer', (microtime(1) - $time_ini_reindex_after_formats));
 
     }
 
@@ -792,7 +796,7 @@ class Syncdatacron extends Synccatalog
         
         if ($item_data == ''){
         
-            $this->debbug("## Error. Decoding item's data: ".print_R($item_to_update['item_data'],1), 'syncdata');
+            $this->slDebuger->debug("## Error. Decoding item's data: ".print_R($item_to_update['item_data'],1), 'syncdata');
             $this->sql_items_delete[] = $item_to_update['id'];
             $this->check_sql_items_delete(true);
             return;
@@ -841,7 +845,7 @@ class Syncdatacron extends Synccatalog
 
             default:
                 
-                $this->debbug('## Error. Incorrect item: '.print_R($item_to_update,1), 'syncdata');
+                $this->slDebuger->debug('## Error. Incorrect item: '.print_R($item_to_update,1), 'syncdata');
                 break;
         }
 
@@ -885,7 +889,7 @@ class Syncdatacron extends Synccatalog
                     
         if (!isset($item_data['product_id']) && !isset($item_data['format_id'])){
 
-            $this->debbug('## Error. Updating item images - Unknown index: '.print_R($item_data,1), 'syncdata');
+            $this->slDebuger->debug('## Error. Updating item images - Unknown index: '.print_R($item_data,1), 'syncdata');
             return 'item_updated';
         }
 
@@ -898,10 +902,10 @@ class Syncdatacron extends Synccatalog
         }
 
         $time_ini_sync = microtime(1);
-        $this->debbug(' >> '.ucfirst($item_index).' images synchronization initialized << ');
+        $this->slDebuger->debug(' >> '.ucfirst($item_index).' images synchronization initialized << ');
         $this->sync_stored_product_images_db($item_data, $item_index);
-        $this->debbug(' >> '.ucfirst($item_index).' images synchronization finished << ');
-        $this->debbug('#### time_sync_stored_product_images: ', 'timer', (microtime(1) - $time_ini_sync));
+        $this->slDebuger->debug(' >> '.ucfirst($item_index).' images synchronization finished << ');
+        $this->slDebuger->debug('#### time_sync_stored_product_images: ', 'timer', (microtime(1) - $time_ini_sync));
 
         return 'item_updated';
 
@@ -915,10 +919,10 @@ class Syncdatacron extends Synccatalog
     private function updateProductLinks($item_data){
 
         $time_ini_sync = microtime(1);
-        $this->debbug(' >> Product links synchronization initialized << ');
+        $this->slDebuger->debug(' >> Product links synchronization initialized << ');
         $this->sync_stored_product_links_db($item_data);
-        $this->debbug(' >> Product links synchronization finished << ');
-        $this->debbug('#### time_sync_stored_product_links: ', 'timer', (microtime(1) - $time_ini_sync));
+        $this->slDebuger->debug(' >> Product links synchronization finished << ');
+        $this->slDebuger->debug('#### time_sync_stored_product_links: ', 'timer', (microtime(1) - $time_ini_sync));
         
         return 'item_updated';
 
@@ -965,10 +969,10 @@ class Syncdatacron extends Synccatalog
         }
         
         $time_ini_sync = microtime(1);
-        $this->debbug(' >> Format synchronization initialized << ');
+        $this->slDebuger->debug(' >> Format synchronization initialized << ');
         $result_update = $this->sync_stored_format_db($item_data);
-        $this->debbug(' >> Format synchronization finished << ');
-        $this->debbug('#### time_sync_stored_product_format: ', 'timer', (microtime(1) - $time_ini_sync));
+        $this->slDebuger->debug(' >> Format synchronization finished << ');
+        $this->slDebuger->debug('#### time_sync_stored_product_format: ', 'timer', (microtime(1) - $time_ini_sync));
 
         $this->updated_product_formats = true;
         
@@ -1016,10 +1020,10 @@ class Syncdatacron extends Synccatalog
         }
         
         $time_ini_sync = microtime(1);
-        $this->debbug(' >> Product synchronization initialized << ');
+        $this->slDebuger->debug(' >> Product synchronization initialized << ');
         $result_update = $this->sync_stored_product_db($item_data);
-        $this->debbug(' >> Product synchronization finished << ');
-        $this->debbug('#### time_sync_stored_product: ', 'timer', (microtime(1) - $time_ini_sync));
+        $this->slDebuger->debug(' >> Product synchronization finished << ');
+        $this->slDebuger->debug('#### time_sync_stored_product: ', 'timer', (microtime(1) - $time_ini_sync));
         
         return $result_update;
 
@@ -1054,10 +1058,10 @@ class Syncdatacron extends Synccatalog
         }
         
         $time_ini_sync = microtime(1);
-        $this->debbug(' >> Category synchronization initialized << ');
+        $this->slDebuger->debug(' >> Category synchronization initialized << ');
         $result_update = $this->sync_stored_category_db($item_data);
-        $this->debbug(' >> Category synchronization finished << ');
-        $this->debbug('#### time_sync_stored_category: ', 'timer', (microtime(1) - $time_ini_sync));
+        $this->slDebuger->debug(' >> Category synchronization finished << ');
+        $this->slDebuger->debug('#### time_sync_stored_category: ', 'timer', (microtime(1) - $time_ini_sync));
 
         return $result_update;
        
