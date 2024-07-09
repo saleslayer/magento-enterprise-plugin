@@ -6,6 +6,7 @@
 
 - Added categories and products URL Key field to process.
 - Added categories position field to process.
+- Added multiple select fields to process.
 
 ### Changed
 

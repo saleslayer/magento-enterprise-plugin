@@ -12831,49 +12831,91 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
      */
     private function setAttributes(&$entity, array $attributesValues, int $storeViewId)
     {
+        
         foreach ($attributesValues as $attrK => $attrV) {
+            
+            $attribute = $entity->getResource()->getAttribute($attrK);
 
-            if (is_array($attrV) && isset($attrV[0])) {
+            $multiselect_attribute = false;
+
+            if ($attribute !== false) {
+
+                if ($attribute->isScopeGlobal()) {
+
+                    $storeViewId = 0;
+
+                }
+
+                if ($attribute->usesSource() &&
+                    $attribute->getFrontendInput() == 'multiselect') {
+
+                    $multiselect_attribute = true;
+
+                }
+
+            }
+
+            if ($multiselect_attribute) {
+
+                $multiselect_values = [];
+                $first_element = true;
+
+                if (!is_array($attrV)) $attrV = [$attrV];
+
+                foreach ($attrV as $keyAV => $attribute_value) {
+                    
+                    if (trim($attribute_value) === '') continue;
+
+                    if ($keyAV !== array_key_first($attrV)) {
+                        
+			            $attribute = $entity->getResource()->getAttribute($attrK);
+
+		            }
+
+                    $multiselect_values[] = $this->synccatalogDataHelper->createOrGetOptionIdByValue($attribute, $attribute_value, $storeViewId);
+
+                }
+                
+                $attrV = $multiselect_values;
+                
+            }else if (is_array($attrV) && isset($attrV[0])) {
+
                 $attrV = $attrV[0];
+                
             }
 
             if ($attrK === 'visibility') {
+                
                 $entity->setData($attrK, $attrV);
                 continue;
+            
             }
 
-            if ($attrK === 'url_key'){
+            if ($attrK === 'url_key') {
 
                 $time_ini_get_valid_url_key = microtime(1);
                 $attrV = $this->getValidProductUrlKey($attrV, $storeViewId);
                 if ($this->sl_DEBBUG > 2) { 
                     $this->slDebuger->debug('# time_get_valid_url_key: ', 'timer', (microtime(1) - $time_ini_get_valid_url_key));
                 }
-                $entity->setDataUsingMethod($attrK, $attrV);
-                $entity->getResource()->saveAttribute($entity, $attrK);
-                continue;
-                
+
             }
 
-            $attribute = $entity->getResource()->getAttribute($attrK);
-
+            
             if ($attribute !== false) {
 
-                if ($attribute->isScopeGlobal()) {
-                    $storeViewId = 0;
-                }
+                if ($attribute->usesSource() &&
+                    !$multiselect_attribute &&
+                    $attrV !== '') {
 
-                if ($attribute->usesSource()) {
+                    $entity->setData($attrK, $this->synccatalogDataHelper->createOrGetOptionIdByValue($attribute, $attrV, $storeViewId));
+    
+                }else{
 
-                    if ($attrV !== ''){
-                        $entity->setData($attrK, $this->synccatalogDataHelper->createOrGetOptionIdByValue($attribute, $attrV, $storeViewId));
-                    }else{
-                        $entity->setData($attrK, $attrV);
-                    }
-
-                } else {
                     $entity->setData($attrK, $attrV);
+
                 }
+
             }
                 
         }
