@@ -4077,6 +4077,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         $time_ini_load_sl_images = microtime(1);
         $main_image_to_process = $final_images = $existing_images_to_delete = [];
+        $images_position = 1;
 
         if ($type == 'format'){
 
@@ -4118,14 +4119,25 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                         
                         if (!$main_image_selected && $img_format == $this->main_image_extension){
 
-                            $media_attribute = array('image', 'small_image', 'thumbnail', 'swatch_image');
+                            $media_attribute = ['image', 'small_image', 'thumbnail', 'swatch_image'];
 
                             $main_image_selected = true;
-                            $main_image_to_process = array('url' => $image_url, 'media_attribute' => $media_attribute, 'image_name' => $image_filename);
+                            $main_image_to_process = [
+                                'url' => $image_url,
+                                'media_attribute' => $media_attribute,
+                                'image_name' => $image_filename,
+                                'position' => $images_position
+                            ];
                      
                         }
 
-                        $final_images[$image_filename] = array('url' => $image_url, 'media_attribute' => $media_attribute);
+                        $final_images[$image_filename] = [
+                            'url' => $image_url,
+                            'media_attribute' => $media_attribute,
+                            'position' => $images_position
+                        ];
+
+                        $images_position++;
 
                         break;
 
@@ -4145,7 +4157,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
             foreach ($this->product_additional_fields_images[$mg_item_id] as $field_name_value => $media){
                 
-                foreach ($media as $media_image) {
+                foreach ($media as $keyMedia => $media_image) {
 
                     $media_info = pathinfo($media_image);
 
@@ -4161,7 +4173,24 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                     $media_image_filename = preg_replace('/[^a-z0-9_\\-\\.]+/i', '_', $media_filename).'.'.$media_info['extension'];
 
-                    $final_images[$media_image_filename] = array('url' => $media_image, 'media_attribute' => array($field_name_value));
+                    if ($keyMedia === array_key_first($media)) {
+
+                        $media_attribute = [$field_name_value];
+
+                    }else{
+
+                        $media_attribute = [];
+
+                    }
+
+                    $final_images[$media_image_filename] = [
+                        'url' => $media_image,
+                        'media_attribute' => $media_attribute,
+                        'position' => $images_position
+                    ];
+                    
+                    $images_position++;
+
                 }
 
                 unset($this->product_additional_fields_images[$mg_item_id][$field_name_value]);
@@ -4219,16 +4248,16 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                 foreach ($this->mg_product_row_ids as $mg_product_row_id) {
                     
-                    $this->processImage($mg_product_row_id, $main_image_to_process['image_name'], $main_image_to_process['url'], $main_image_to_process['media_attribute'], $main_image_file_size);
-
+                    $this->processImage($mg_product_row_id, $main_image_to_process['image_name'], $main_image_to_process['url'], $main_image_to_process['media_attribute'], $main_image_to_process['position'], $main_image_file_size);
+                
                 }
 
             }else{
 
                 foreach ($this->mg_format_row_ids as $mg_format_row_id) {
                     
-                    $this->processImage($mg_format_row_id, $main_image_to_process['image_name'], $main_image_to_process['url'], $main_image_to_process['media_attribute'], $main_image_file_size);
-
+                    $this->processImage($mg_format_row_id, $main_image_to_process['image_name'], $main_image_to_process['url'], $main_image_to_process['media_attribute'], $main_image_to_process['position'], $main_image_file_size);
+                
                 }
 
             }
@@ -4352,10 +4381,13 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                             $image_media_attribute = $final_images[$item_filename]['media_attribute'];
                             if (!empty($image_media_attribute)){ asort($image_media_attribute); }
         
+                            $image_media_position = $final_images[$item_filename]['position'];
+
                             $time_ini_mod_item = microtime(1);
 
                             $this->check_existing_item_types($mg_item_id, $item_data['file'], $item_data['types'], $image_media_attribute);
                             $this->check_existing_item_enabled($item_data['value_id'], $item_data['disabled']);
+                            $this->checkExistingImagePosition($item_data['value_id'], $item_data['position'], $image_media_position);
 
                             if (!$main_image_processed && $main_image_to_process_image_name == $item_filename){
 
@@ -4478,6 +4510,34 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
             if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_item_update_disabled: ', 'timer', (microtime(1) - $time_ini_update_disabled));
           
+        }
+
+    }
+
+        /**
+     * Function to check if an existing image position is different fromt he one coming from SL, if not, we update it.
+     *
+     * @param  int $mg_image_id             Magento image id
+     * @param  int $mg_image_position       Magento image position
+     * @param  int $sl_image_position       Sales Layer image position
+     * @return void
+     */
+    private function checkExistingImagePosition($mg_image_id, $mg_image_position, $sl_image_position){
+
+        if ($mg_image_position != $sl_image_position){
+
+            $time_ini_update_position = microtime(1);
+            $catalog_product_entity_media_gallery_value_table = $this->getTable('catalog_product_entity_media_gallery_value');
+
+            $this->connection->update(
+                $catalog_product_entity_media_gallery_value_table, 
+                ['position' => $sl_image_position], 
+                'value_id = ' . $mg_image_id
+            );
+
+            if ($this->sl_DEBBUG > 2) { $this->slDebuger->debug('# time_image_update_position: ', 'timer', (microtime(1) - $time_ini_update_position));
+            }
+
         }
 
     }
@@ -4657,7 +4717,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                     foreach ($this->mg_product_row_ids as $mg_product_row_id) {
                         
-                        $this->processImage($mg_product_row_id, $image_filename, $image_info['url'], $image_info['media_attribute'], $image_file_size);
+                        $this->processImage($mg_product_row_id, $image_filename, $image_info['url'], $image_info['media_attribute'], $image_info['position'], $image_file_size);
 
                     }
 
@@ -4665,7 +4725,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
                     foreach ($this->mg_format_row_ids as $mg_format_row_id) {
                         
-                        $this->processImage($mg_format_row_id, $image_filename, $image_info['url'], $image_info['media_attribute'], $image_file_size);
+                        $this->processImage($mg_format_row_id, $image_filename, $image_info['url'], $image_info['media_attribute'], $image_info['position'], $image_file_size);
 
                     }
 
@@ -4772,10 +4832,11 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
      * @param string $image_filename            image name
      * @param string $image_url                 image url
      * @param array $image_types                image types to assign
+     * @param int $image_position               image position
      * @param int $image_file_size              image file size, if null, we check it
      * @return string                           product images to store
      */
-    private function processImage($entity_id, $image_filename, $image_url, $image_types, $image_file_size = null){
+    private function processImage($entity_id, $image_filename, $image_url, $image_types, $image_position, $image_file_size = null){
 
         $time_ini_process_image = microtime(1);
 
@@ -4904,16 +4965,20 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
             
         }
 
-        $position = $this->connection->fetchOne(
-            $this->connection->select()
-                ->from(
-                   [$galleryValueTable],
-                    [new Expr('MAX(`position`) + 1')]
-                )
-                ->where($this->tables_identifiers[$galleryValueTable] . ' = ?', $entity_id)
-        );
-        
-        if (!$position) $position = 1;
+        if (!$image_position){
+
+            $position = $this->connection->fetchOne(
+                $this->connection->select()
+                    ->from(
+                    [$galleryValueTable],
+                        [new Expr('MAX(`position`) + 1')]
+                    )
+                    ->where($this->tables_identifiers[$galleryValueTable] . ' = ?', $entity_id)
+            );
+            
+            if (!$position) $position = 1;
+
+        }
 
         $table_status = $this->connection->showTableStatus($galleryValueTable);
         $record_id = $table_status['Auto_increment'];
@@ -4923,7 +4988,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
             'store_id'                                      => 0,
             $this->tables_identifiers[$galleryValueTable]   => $entity_id,
             'label'                                         => null,
-            'position'                                      => $position,
+            'position'                                      => $image_position,
             'disabled'                                      => 0,
             'record_id'                                     => $record_id
         ];
