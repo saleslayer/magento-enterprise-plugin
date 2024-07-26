@@ -131,6 +131,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
     protected $product_field_special_from_date      = 'product_special_from_date';
     protected $product_field_special_to_date        = 'product_special_to_date';
     protected $product_field_image                  = 'product_image';
+    protected $product_field_image_roles            = 'product_image_roles';
     protected $product_field_sku                    = 'sku';
     protected $product_field_qty                    = 'qty';
     protected $product_field_inventory_backorders   = 'product_inventory_backorders';
@@ -159,6 +160,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
     protected $main_image_extension                 = '';
     protected $product_additional_fields            = [];
     protected $product_additional_fields_images     = [];
+    protected $product_image_attribute_codes        = [];
     protected $grouping_ref_field_linked            = 0;
     protected $existing_links_data                  = [];
     protected $item_image_type                      = 'product';
@@ -177,6 +179,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
     protected $format_field_inventory_min_sale_qty  = 'format_inventory_min_sale_qty';
     protected $format_field_inventory_max_sale_qty  = 'format_inventory_max_sale_qty';
     protected $format_field_image                   = 'format_image';
+    protected $format_field_image_roles             = 'format_image_roles';
     protected $format_field_tax_class_id            = 'format_tax_class_id';
     protected $format_field_country_of_manufacture  = 'format_country_of_manufacture';
     protected $format_field_visibility              = 'format_visibility';
@@ -1459,6 +1462,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
             $this->product_field_description_short,
             $this->product_field_price,
             $this->product_field_image,
+            $this->product_field_image_roles,
             'image_sizes',
             $this->product_field_sku,
             $this->product_field_qty,
@@ -1538,6 +1542,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
             'product_field_description_short',
             'product_field_price',
             'product_field_image',
+            'product_field_image_roles',
             'product_field_attribute_set_id',
             'product_field_meta_title',
             'product_field_meta_keywords',
@@ -1730,6 +1735,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
             $this->format_field_price,
             $this->format_field_quantity,
             $this->format_field_image,
+            $this->format_field_image_roles,
             'image_sizes',
             $this->format_field_tax_class_id,
             $this->format_field_country_of_manufacture,
@@ -4054,156 +4060,140 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
      */
     private function prepare_product_images_to_store_db($mg_item_id, $item_data, $type = 'product'){
 
-        $sl_product_images = [];
         if ($type == 'format'){
-
+            
             $this->slDebuger->debug(" > Storing product format images SL ID: ".$item_data[$this->format_field_id]);
             $item_field_image = $this->format_field_image;
+            $item_images_sizes = $this->format_images_sizes;
+            $item_image_roles = $this->format_field_image_roles;
             $this->item_image_type = 'format';
-
+            
         }else{
-
+            
             $this->slDebuger->debug(" > Storing product images SL ID: ".$item_data[$this->product_field_id]);
             $item_field_image = $this->product_field_image;            
+            $item_images_sizes = $this->product_images_sizes;
+            $item_image_roles = $this->product_field_image_roles;
             $this->item_image_type = 'product';
-
-        }
-
-        if (isset($item_data['data'][$item_field_image]) && !empty($item_data['data'][$item_field_image])){
             
-            $sl_product_images = $item_data['data'][$item_field_image];
-
         }
+        
+        $sl_product_images = [];
 
         $time_ini_load_sl_images = microtime(1);
+        if (isset($item_data['data'][$item_field_image]) && !empty($item_data['data'][$item_field_image])){
+            
+            $sl_product_images = $this->getSLProductImages($item_data['data'][$item_field_image], $item_images_sizes);
+
+        }
+        if ($this->sl_DEBBUG > 2) { $this->slDebuger->debug('# time_load_sl_images: ', 'timer', (microtime(1) - $time_ini_load_sl_images));
+        }
+
+        $time_load_additional_images = microtime(1);
+
+        $sl_product_additional_images = $this->getSLProductAdditionalImages($mg_item_id);
+        
+        if ($this->sl_DEBBUG > 2) { $this->slDebuger->debug('# time_load_additional_images: ', 'timer', (microtime(1) - $time_load_additional_images));
+        }
+
+        $sl_product_image_roles = [];
+
+        if (isset($item_data['data'][$item_image_roles]) && !empty($item_data['data'][$item_image_roles])) {
+
+            $sl_product_image_roles = $this->organizeImageRolesField($item_data['data'][$item_image_roles]);
+            $sl_product_image_roles = $this->cleanImageRolesField($sl_product_image_roles, $sl_product_images, $sl_product_additional_images);
+            
+        }
+
         $main_image_to_process = $final_images = $existing_images_to_delete = [];
         $images_position = 1;
 
-        if ($type == 'format'){
-
-            $item_images_sizes = $this->format_images_sizes;
-
-        }else{
-
-            $item_images_sizes = $this->product_images_sizes;
-
-        }
-
-        if (!empty($sl_product_images)){
+        if (!empty($sl_product_images)) {
         
-            $main_image_selected = false;
-
-            foreach ($sl_product_images as $images) {
+            $main_image_attributes = array_values($this->product_image_attribute_codes['internal']);
+        
+            foreach ($sl_product_images as $keySLPI => $sl_product_image) {
                 
-                foreach ($item_images_sizes as $img_format) {
+                $media_attribute = [];
+
+                $image_url = $sl_product_image['url'];
+                $image_filename = $sl_product_image['image_filename'];
                 
-                    if (!empty($images[$img_format])){
+                if (in_array($image_filename, $sl_product_image_roles)){
 
-                        $media_attribute = [];
-
-                        $image_url = $images[$img_format];
-                        
-                        $image_url_info = pathinfo($image_url);
-
-                        if (strpos($image_url, '%') !== false) {
-
-                            $image_url_filename = rawurldecode($image_url_info['filename']);
-
-                        }else{
-
-                            $image_url_filename = $image_url_info['filename'];
-
-                        }
-
-                        $image_filename = preg_replace('/[^a-z0-9_\\-\\.]+/i', '_', $image_url_filename).'.'.$image_url_info['extension'];
-                        
-                        if (!$main_image_selected && $img_format == $this->main_image_extension){
-
-                            $media_attribute = ['image', 'small_image', 'thumbnail', 'swatch_image'];
-
-                            $main_image_selected = true;
-                            $main_image_to_process = [
-                                'url' => $image_url,
-                                'media_attribute' => $media_attribute,
-                                'image_name' => $image_filename,
-                                'position' => $images_position
-                            ];
-                     
-                        }
-
-                        $final_images[$image_filename] = [
-                            'url' => $image_url,
-                            'media_attribute' => $media_attribute,
-                            'position' => $images_position
-                        ];
-
-                        $images_position++;
-
-                        break;
-
-                    }
-
+                    $media_attribute = array_keys($sl_product_image_roles, $image_filename);
+                    
                 }
 
-            }
+                if ($keySLPI === 'main_image') {
 
-        }
+                    foreach ($main_image_attributes as $main_image_attribute){
 
-        if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_load_sl_images: ', 'timer', (microtime(1) - $time_ini_load_sl_images));
-        
-        $time_load_additional_images = microtime(1);
+                        if (!isset($sl_product_image_roles[$main_image_attribute])){
 
-        if (isset($this->product_additional_fields_images[$mg_item_id]) && !empty($this->product_additional_fields_images[$mg_item_id])){
-
-            foreach ($this->product_additional_fields_images[$mg_item_id] as $field_name_value => $media){
-                
-                foreach ($media as $keyMedia => $media_image) {
-
-                    $media_info = pathinfo($media_image);
-
-                    if (strpos($media_image, '%') !== false) {
-
-                        $media_filename = rawurldecode($media_info['filename']);
-
-                    }else{
-
-                        $media_filename = $media_info['filename'];
+                            $media_attribute[] = $main_image_attribute;
+                    
+                        }
 
                     }
 
-                    $media_image_filename = preg_replace('/[^a-z0-9_\\-\\.]+/i', '_', $media_filename).'.'.$media_info['extension'];
-
-                    if ($keyMedia === array_key_first($media)) {
-
-                        $media_attribute = [$field_name_value];
-
-                    }else{
-
-                        $media_attribute = [];
-
-                    }
-
-                    $final_images[$media_image_filename] = [
-                        'url' => $media_image,
+                    $main_image_to_process = [
+                        'url' => $image_url,
                         'media_attribute' => $media_attribute,
+                        'image_name' => $image_filename,
                         'position' => $images_position
                     ];
-                    
-                    $images_position++;
 
                 }
 
-                unset($this->product_additional_fields_images[$mg_item_id][$field_name_value]);
-                if (empty($this->product_additional_fields_images[$mg_item_id])){
-                    unset($this->product_additional_fields_images[$mg_item_id]);
-                }
+                $final_images[$image_filename] = [
+                    'url' => $image_url,
+                    'media_attribute' => $media_attribute,
+                    'position' => $images_position
+                ];
+
+                $images_position++;
 
             }
 
         }
-     
-        if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_load_additional_images: ', 'timer', (microtime(1) - $time_load_additional_images));
 
+        if (!empty($sl_product_additional_images)) {
+
+            foreach ($sl_product_additional_images as $keySLPAI => $sl_product_additional_image){
+                
+                $media_image_url = $sl_product_additional_image['url'];
+                $media_image_filename = $sl_product_additional_image['media_image_filename'];
+                
+                if (!is_numeric($keySLPAI) && 
+                    !isset($sl_product_image_roles[$keySLPAI])) {
+
+                    $media_attribute = [$keySLPAI];
+
+                }else{
+
+                    $media_attribute = [];
+
+                }
+
+                if (in_array($media_image_filename, $sl_product_image_roles)){
+
+                    $media_attribute = array_unique(array_merge($media_attribute, array_keys($sl_product_image_roles, $media_image_filename)));
+                    
+                }
+
+                $final_images[$media_image_filename] = [
+                    'url' => $media_image_url,
+                    'media_attribute' => $media_attribute,
+                    'position' => $images_position
+                ];
+                
+                $images_position++;
+
+            }
+
+        }
+       
         $main_image_processed = false;
 
         $time_ini_check_existing = microtime(1);
@@ -4303,6 +4293,394 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         }
 
+    }
+
+    /**
+     * Function to load product image attribute codes and ids into variable
+     * @return void 
+     */
+    public function loadProductImageAttributes(){
+
+        if (!empty($this->product_image_attribute_codes)){
+
+            return false;
+
+        }
+
+        $image_attributes = $this->connection->fetchAll(
+            $this->connection->select()
+                ->from(
+                    $this->getTable('eav_attribute'),
+                    [
+                        \Magento\Eav\Api\Data\AttributeInterface::ATTRIBUTE_ID,
+                        \Magento\Eav\Api\Data\AttributeInterface::ATTRIBUTE_CODE,
+                        \Magento\Eav\Api\Data\AttributeInterface::IS_USER_DEFINED
+                    ]
+                )
+                ->where(\Magento\Eav\Api\Data\AttributeInterface::ENTITY_TYPE_ID . ' = ?', $this->product_entity_type_id)
+                ->where(\Magento\Eav\Api\Data\AttributeInterface::FRONTEND_INPUT . ' = ?', 'media_image')
+        );
+        
+        if (!empty($image_attributes)){
+
+            foreach ($image_attributes as $image_attribute){
+
+                if ($image_attribute['is_user_defined'] == 0){
+
+                    $index = 'internal';
+                    
+                }else{
+                    
+                    $index = 'additional';
+                }
+
+                $this->product_image_attribute_codes[$index][$image_attribute['attribute_id']] = $image_attribute['attribute_code'];
+
+            }
+
+        }
+
+    }
+
+    /**
+     * Function to organize image roles field
+     * @param string $field_value           Sales Layer field value
+     * @return array                        if valid, array with image roles
+     */
+    private function organizeImageRolesField($field_value){
+
+        if (!is_null($field_value) && $field_value !== '') $field_value = json_decode($field_value,1);
+        
+        $field_image_roles = [];
+        
+        if (is_array($field_value) && !empty($field_value)){
+    
+            foreach ($field_value as $field_row) {
+                
+                $image_roles = [];
+            
+                $first_column = (isset($field_row[0])) ? trim($field_row[0]) : '';
+                $second_column = (isset($field_row[1])) ? trim($field_row[1]) : '';
+                
+                if ($first_column == '' || $second_column == ''){
+                    
+                    continue;
+                
+                }
+                
+                $has_image_name = false;
+                
+                if ($this->isImageNameField($first_column)){
+                    
+                    $has_image_name = $first_column;
+                    
+                }else{
+                    
+                    $image_roles = $this->isImageRoleField($first_column);
+                        
+                }
+                
+                if (!$has_image_name && $this->isImageNameField($second_column)){
+                    
+                    $has_image_name = $second_column;
+                    
+                    
+                }else{
+                    
+                    $image_roles = $this->isImageRoleField($second_column);
+                    
+                }
+                
+                if (!$has_image_name){
+                
+                    continue;
+                
+                }else if (!empty($image_roles)){
+                    
+                    foreach ($image_roles as $image_role){
+    
+                        if (!isset($field_image_roles[$image_role])){
+                        
+                            $field_image_roles[$image_role] = $has_image_name;
+                            
+                        }
+                        
+                    }
+                    
+                }
+                
+            }
+    
+        }
+    
+        return $field_image_roles;
+    
+    }
+    
+    /**
+     * Function to check if a field value is an image
+     * @param string $file_name         field file name
+     * @return boolean                  true if it is an image, false otherwise
+     */
+    private function isImageNameField($file_name){
+        
+        $extensions_pattern = '/\.(jpg|jpeg|png|gif|tif|tiff|psd|webp)$/i';
+        
+        return preg_match($extensions_pattern, $file_name);
+        
+    }
+    
+    /**
+     * Function to check if a field value has roles
+     * @param string $file_roles        field file roles
+     * @return boolean                  true if it has roles, false otherwise
+     */
+    private function isImageRoleField($file_roles){
+        
+        $image_roles = [];
+        
+        if (strpos($file_roles,',') !== false){
+                            
+            $file_roles = explode(',', $file_roles);
+            
+        }
+        
+        if (!is_array($file_roles)) $file_roles = [$file_roles];
+        
+        if (!empty($file_roles)){
+    
+            $mg_image_main_roles = array_flip(array_values($this->product_image_attribute_codes['internal']));
+            $mg_image_additional_roles = array_flip(array_values($this->product_image_attribute_codes['additional']));
+            
+            foreach ($file_roles as $keyFR => $file_role) {
+            
+                $file_role_to_check = str_replace(' ', '_', strtolower(trim($file_role)));
+                
+                $file_role_to_unset = false;
+                    
+                if (isset($mg_image_main_roles[$file_role_to_check])){
+                    
+                    $image_roles[] = $file_role_to_check;
+                    unset($mg_image_main_roles[$file_role_to_check]);
+                    
+                    $file_role_to_unset = true;
+                    
+                }
+                
+                if (isset($mg_image_additional_roles[$file_role_to_check])){
+                    
+                    $image_roles[] = $file_role_to_check;
+                    unset($mg_image_additional_roles[$file_role_to_check]);
+                    
+                    $file_role_to_unset = true;
+                    
+                }
+                
+                if ($file_role_to_unset){
+                    
+                    unset($file_roles[$keyFR]);
+                    
+                }
+                
+            }
+            
+            if (!empty($file_roles) && !empty($mg_image_main_roles)){
+                
+                foreach ($file_roles as $keyFR => $file_role) {
+                    
+                    $file_role_to_check = str_replace(' ', '_', strtolower(trim($file_role)));
+                
+                    foreach (array_flip($mg_image_main_roles) as $keyMR => $mg_main_image_role){
+                        
+                        if (preg_match('~('.$file_role_to_check.')~', $mg_main_image_role)) {
+                    
+                            $image_roles[] = $mg_main_image_role;
+                            unset($mg_image_main_roles[$file_role_to_check]);
+                            unset($file_roles[$keyFR]);
+                            
+                        }
+                        
+                    }
+                        
+                }   
+                
+            }
+            
+        }
+        
+        return $image_roles;
+        
+    }
+
+    /**
+     * Function to get Sales Layer product images
+     * @param array $sl_field_images            field containing array of images
+     * @param array $item_images_sizes          image sizes
+     * @return array                            array of images to process
+     */
+    private function getSLProductImages($sl_field_images, $item_images_sizes){
+	
+        $sl_product_images = [];
+        
+        if (!empty($sl_field_images)) {
+            
+            foreach ($sl_field_images as $keySLFI => $images) {
+                
+                foreach ($item_images_sizes as $img_format) {
+                
+                    if (!empty($images[$img_format])) {
+    
+                        $image_url = $images[$img_format];                
+                        $image_url_info = pathinfo($image_url);
+    
+                        if (strpos($image_url, '%') !== false) {
+    
+                            $image_url_filename = rawurldecode($image_url_info['filename']);
+    
+                        }else{
+    
+                            $image_url_filename = $image_url_info['filename'];
+    
+                        }
+    
+                        $image_filename = preg_replace('/[^a-z0-9_\\-\\.]+/i', '_', $image_url_filename).'.'.$image_url_info['extension'];
+                        
+                        if ($keySLFI === array_key_first($sl_field_images) && $img_format == $this->main_image_extension){
+
+                            $sl_product_images['main_image'] = ['url' => $image_url, 'image_filename' => $image_filename];
+
+                        }else{
+
+                            $sl_product_images[] = ['url' => $image_url, 'image_filename' => $image_filename];
+
+                        }
+                        
+                        break;
+    
+                    }
+    
+                }
+    
+            }
+    
+        }
+        
+        return $sl_product_images;
+    
+    }
+
+    /**
+     * Function to get Sales Layer product additional images
+     * @param integer $mg_item_id            Magento item id
+     * @return array                         array of additional images to process
+     */
+    private function getSLProductAdditionalImages($mg_item_id){
+	
+        $sl_product_additional_images = [];
+        
+        if (isset($this->product_additional_fields_images[$mg_item_id]) && !empty($this->product_additional_fields_images[$mg_item_id])) {
+    
+            foreach ($this->product_additional_fields_images[$mg_item_id] as $field_name_value => $media){
+                
+                foreach ($media as $keyMedia => $media_image) {
+                    
+                    $media_info = pathinfo($media_image);
+    
+                    if (strpos($media_image, '%') !== false) {
+    
+                        $media_filename = rawurldecode($media_info['filename']);
+    
+                    }else{
+    
+                        $media_filename = $media_info['filename'];
+    
+                    }
+    
+                    $media_image_filename = preg_replace('/[^a-z0-9_\\-\\.]+/i', '_', $media_filename).'.'.$media_info['extension'];
+                    
+                    if (isset($sl_product_additional_images[$field_name_value])){
+                	
+                        $sl_product_additional_images[] = ['url' => $media_image, 'media_image_filename' => $media_image_filename];
+                        
+                    }else{
+                        
+                        $sl_product_additional_images[$field_name_value] = ['url' => $media_image, 'media_image_filename' => $media_image_filename];
+                        
+                    }
+                    
+                }
+    
+                unset($this->product_additional_fields_images[$mg_item_id][$field_name_value]);
+                if (empty($this->product_additional_fields_images[$mg_item_id])) {
+                    unset($this->product_additional_fields_images[$mg_item_id]);
+                }
+    
+            }
+    
+        }
+        
+        return $sl_product_additional_images;
+    
+    }
+
+    /**
+     * Function to clean image roles field from rows with unused images
+     * @param array $image_roles                        image roles
+     * @param array $sl_product_images                  Sales Layer product images
+     * @param array $sl_product_additional_images       Sales Layer product additional images
+     * @return array array                              image roles cleaned
+     * 
+     */
+    private function cleanImageRolesField($image_roles, $sl_product_images, $sl_product_additional_images){
+
+        if (!empty($image_roles)){
+            
+            foreach ($image_roles as $mg_image_role => $sl_image_filename){
+    
+                $image_role_used = false;
+                
+                if (!empty($sl_product_images)){
+                
+                    foreach ($sl_product_images as $sl_product_image){
+                        
+                        if ($sl_image_filename == $sl_product_image['image_filename']){
+                            
+                            $image_role_used = true;
+                            break;
+                            
+                        }
+                        
+                    }
+            
+                }
+                
+                if (!$image_role_used && !empty($sl_product_additional_images)){
+                
+                    foreach ($sl_product_additional_images as $sl_product_additional_image){
+                        
+                        if ($sl_image_filename == $sl_product_additional_image['media_image_filename']){
+                            
+                            $image_role_used = true;
+                            break;
+                            
+                        }
+                        
+                    }
+            
+                }
+                
+                if (!$image_role_used){
+                    
+                    unset($image_roles[$mg_image_role]);
+                    
+                }
+        
+            }
+        
+        }
+        
+        return $image_roles;
+    
     }
 
     /**
@@ -4757,7 +5135,10 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         if (!empty($existing_images)){
 
-            $media_attributes = array('image' => 0, 'small_image' => 0, 'thumbnail' => 0, 'swatch_image' => 0);
+            $media_attributes = array_map(function() {
+                return 0;
+            },  array_flip(array_values($this->product_image_attribute_codes['internal'])));
+
             $main_image_id = 0;
 
             foreach ($existing_images as $image_id => $existing_image){
@@ -5089,7 +5470,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
      */
     private function checkImageAttributes(){
         
-        $image_attributes = array('image', 'small_image', 'thumbnail');
+        $image_attributes = array_values($this->product_image_attribute_codes['internal']);
 
         foreach ($image_attributes as $image_attribute) {
             
@@ -8237,6 +8618,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         if (!$this->load_sl_attributes()){
             return false;
         }
+        $this->loadProductImageAttributes();
         $this->checkImageAttributes(); 
         $this->checkActiveAttributes();
         if (!$this->loadSaleslayerRootCategory()){
@@ -11702,6 +12084,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                 'product_description'               => 'format_description',
                 'product_description_short'         => 'format_description_short',
                 'product_image'                     => 'format_image',
+                'product_image_roles'               => 'format_image_roles',
                 'product_price'                     => 'format_price',
                 'product_special_price'             => 'format_special_price',
                 'product_special_from_date'         => 'format_special_from_date',
