@@ -4253,6 +4253,22 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
             }
 
             unset($final_images[$main_image_to_process['image_name']]);
+
+            if (!empty($existing_images_to_delete)){
+
+                $main_image_to_process_filename = '/'.substr($main_image_to_process['image_name'], 0, 1).'/'.substr($main_image_to_process['image_name'], 1, 1).'/'.$main_image_to_process['image_name'];
+                
+                foreach ($existing_images_to_delete as $keyEITD => $existing_image_to_delete){
+
+                    if ($main_image_to_process_filename == $existing_image_to_delete['filename']){
+
+                        unset($existing_images_to_delete[$keyEITD]);
+
+                    }
+
+                }
+
+            }
             
             if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('# time_save_main_image: ', 'timer', (microtime(1) - $time_ini_save_main_image));
 
@@ -4264,12 +4280,12 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
             if (!empty($final_images)){
 
-                $images_data['final_images'] = $final_images;   
+                $images_data['final_images'] = $final_images;
 
             }
 
             if (!empty($existing_images_to_delete)){
-                $images_data['existing_images_to_delete'] = $existing_images_to_delete;   
+                $images_data['existing_images_to_delete'] = $existing_images_to_delete;
             }
 
             try{
@@ -4530,7 +4546,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
                 
                     if (!empty($images[$img_format])) {
     
-                        $image_url = $images[$img_format];                
+                        $image_url = $images[$img_format];
                         $image_url_info = pathinfo($image_url);
     
                         if (strpos($image_url, '%') !== false) {
@@ -13287,6 +13303,41 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
             $multiselect_attribute = false;
 
             if ($attribute !== false) {
+
+                if ($attribute->getFrontendInput() == 'media_image') {
+               
+                    $entity_id = $entity->getEntityId();
+                    $attribute_code = $attribute->getAttributeCode();
+                    
+                    if (!isset($this->product_additional_fields_images[$entity_id][$attribute_code])) {
+
+                        if (null !== $this->mg_format_id) {
+
+                            $type = 'product_formats';
+
+                        }else{
+                            
+                            $type = 'products';
+
+                        }
+    
+                        if ($attrV !== ''){
+
+                            $media = $this->get_media_field_value($type, $attribute_code, $attrV);
+                            
+                            if ($media) {
+    
+                                $this->product_additional_fields_images[$entity_id][$attribute_code] = $media;
+    
+                            }
+                            
+                        }
+                    
+                    }
+                    
+                    continue;
+
+                }
 
                 if ($attribute->isScopeGlobal()) {
 
