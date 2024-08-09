@@ -184,7 +184,8 @@ class Products extends \Magento\Backend\Block\Widget\Form\Generic implements \Ma
                 'required' => false,
                 'values' => $attributes_multi,
                 'disabled' => false,
-                'class' => 'conn_field'
+                'class' => 'conn_field',
+                'note' => __('To select multiple attributes, select while holding ctrl key.'),
             ]
         );
 

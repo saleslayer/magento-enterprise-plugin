@@ -7,11 +7,17 @@
 - Added categories and products URL Key field to process.
 - Added categories position field to process.
 - Added multiple select fields to process.
+- Added automatic incremental position to images during their processing.
+- Added image roles field to process.
+- Added FAQ page.
+- Added note to configurable atributes set in product tab, in connector configuration.
 
 ### Changed
 
 - Fix for strip_tags with null values
 - SL Logs Helper class added.
+- Solved bug where additional images weren't beign processed.
+- Fix when updating an existing image with same name but different content.
 
 ## [2.7.1] - 2024-04-26
 

@@ -8,7 +8,8 @@
                     <resource id="Saleslayer_Synccatalog::tools" title="Tools" sortOrder="20" />
                     <resource id="Saleslayer_Synccatalog::showdebbug" title="View SL Logs" sortOrder="30" />
                     <resource id="Saleslayer_Synccatalog::save" title="Save" sortOrder="40" />
-                    <resource id="Saleslayer_Synccatalog::synccatalog_configuration_parameters" title="Configuration Parameters" sortOrder="40" />
+                    <resource id="Saleslayer_Synccatalog::synccatalog_configuration_parameters" title="Configuration Parameters" sortOrder="50" />
+                    <resource id="Saleslayer_Synccatalog::faq" title="FAQ" sortOrder="60" />
                 </resource>
             </resource>
         </resources>

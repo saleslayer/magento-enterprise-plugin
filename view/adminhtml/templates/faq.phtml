@@ -1,0 +1,91 @@
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">    
+</head>
+<body>
+    <div class="logo-container">
+        <img alt="logo sales layer" src="<?php echo $this->getViewFileUrl('Saleslayer_Synccatalog::images/logo.svg'); ?>"/>
+    </div>
+    <div class="faq-container">
+        <div class="faq-group">
+            <h2>Synchronization</h2>
+            <div class="faq-item">
+                <div class="faq-question">How to create a connector</div>
+                <div class="faq-answer">
+                    <p>In Sales Layer go to the Channel’s option in the left menu, then to the Channels marketplace tab, and scroll down until you find the Magento connector's box, as shown in the next image:</p>
+                    <p><img alt="marketplace magento" src="<?php echo $this->getViewFileUrl('Saleslayer_Synccatalog::images/sl_marketplace_magento.png'); ?>"/></p>
+                    <p>Press + create to start configuring the channel.</p>
+                    <p>In the Parameters tab, you will have to Assign new private key, with the option marked in the image.</p>
+                    <p><img alt="magento conn config" src="<?php echo $this->getViewFileUrl('Saleslayer_Synccatalog::images/magento_conn_config.png'); ?>"/></p>
+                    <p>After that it will appear on screen the Channel private key assigned.</p>
+                    <p>You will need the Connector ID code and this Channel private key to continue with your e-commerce configuration.</p>
+                    <p>To save the channel, click on“Continue and Save and Complete in the right corner of the screen. After configuring MG’s connector, you will be able to go back in SL and finish the channel’s configuration.</p>
+                </div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-question">How to do a first synchronization</div>
+                <div class="faq-answer">
+                    <p>Once MG store and connector have been configured, SL channel set, and fields mapped, you should test synchronization before leaving it automated, to validate the configuration. This should be done in a staging environment.</p>
+                    <p>Before starting, verify to have logs enabled in your MG store, Sales Layer menu <a href="<?= $this->getSLConfigurationParametersUrl(); ?>">Configuration Parameters</a>.</p>
+                    <p>To start, we suggest starting with a test synchronization with a few items, setting their status as visible (only these items), and adding a tag, that you have to add in the Products tab in Output data as well. This will narrow the scope of items. Remember to include categories and variants for the items selected, to avoid sync errors and make more complete tests.</p>
+                    <p>To test a synchronization it is recommended to use the Synchronize connector button in the MG connector configuration panel. This is a more controlled and fast manner than setting the auto synchronization.</p>
+                    <p>After the sync has ended, you will be able to verify results, in the <a href="<?= $this->getViewSLLogsUrl(); ?>">View SL Logs</a>. These messages will help you to adjust the configuration.</p>
+                    <p><img alt="connector logs" src="<?php echo $this->getViewFileUrl('Saleslayer_Synccatalog::images/connector_logs.png'); ?>"/></p>
+                    <p>In the file listing, if you find an error file, you'll need to correct the issues reported before the next synchronization.</p>
+                    <p>If no errors arise, you can increase the quantity if items gradually until all information is synchronized.</p>
+                    <p>Then, configure the connector in the production site and synchronize.</p>
+                </div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-question">My connector is stuck</div>
+                <div class="faq-answer">
+                    <p>When the connector has started its synchronization and stored the data, a recount of items will be shown in the grid view. While it has pending information to synchronize, each minute the grid will be reloaded to update this recount:</p>
+                    <p><img alt="synchronization counters" src="<?php echo $this->getViewFileUrl('Saleslayer_Synccatalog::images/synchronization_counters.png'); ?>"/></p>
+                    <p>In case an uncontrolled error has happened and thrown in the cron jobs, this error message will be displayed above the recount so it can be notified to SL in order to get help:</p>
+                    <p><img alt="synchronization error" src="<?php echo $this->getViewFileUrl('Saleslayer_Synccatalog::images/synchronization_error.png'); ?>"/></p>
+                    <p>If you have access granted, you can also check the table 'cron_schedule', where job_code column is 'Saleslayer_Synccatalog_Syncdatacron' and status_code column is 'error', then check the messages column value.</p>
+                </div>
+            </div>
+        </div>
+        <div class="faq-group">
+            <h2>Logs</h2>
+            <div class="faq-item">
+                <div class="faq-question">How to see synchronization logs</div>
+                <div class="faq-answer">In the plugin menu, <a href="<?= $this->getViewSLLogsUrl(); ?>">View SL Logs</a>, all logs will be displayed with their content, or either download SL Logs from <a href="<?= $this->getSLToolsUrl(); ?>">Tools</a>.</div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-question">How to download logs</div>
+                <div class="faq-answer">Download them from <a href="<?= $this->getSLToolsUrl(); ?>">Tools</a>.</div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-question">Where are logs stored</div>
+                <div class="faq-answer">They are stored inside the MG logs folder, in a folder named 'sl_logs'.</div>
+            </div>
+        </div>
+        <div class="faq-group">
+            <h2><a href="<?= $this->getSLToolsUrl(); ?>">Plugin Tools</a></h2>
+            <div class="faq-item">
+                <div class="faq-question">Download SL Logs</div>
+                <div class="faq-answer">Creates a zip with existing SL logs in the server and download it.</div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-question">Remove SL Logs</div>
+                <div class="faq-answer">Removes Sales Layer logs from the server.</div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-question">Remove SL Indexes</div>
+                <div class="faq-answer">Removes Sales Layer credentials indexes in attributes tables, which are created to optimise searches.</div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-question">Delete SL items pending to process</div>
+                <div class="faq-answer">Delete Sales Layer items pending to process stored in a plugin's table. This tool may be useful when identifying problems in the middle of a synchronization.</div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-question">Delete Unused Images.</div>
+                <div class="faq-answer">Remove images that are not linked to an item, and delete them locally.</div>
+            </div>
+        </div>
+        <div class="faq-group">
+            <h2><a href="https://support.saleslayer.com/category/magento">More information in our Support Center</a></h2>
+        </div>
+    </div>
+</body>

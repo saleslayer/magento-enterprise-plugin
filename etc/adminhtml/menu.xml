@@ -6,5 +6,6 @@
         <add id="Saleslayer_Synccatalog::synccatalog_tools" title="Tools" module="Saleslayer_Synccatalog" sortOrder="50" parent="Saleslayer_Synccatalog::synccatalog" action="synccatalog/index/tools/" resource="Saleslayer_Synccatalog::tools"/>
         <add id="Saleslayer_Synccatalog::synccatalog_showdebbug" title="View SL Logs" module="Saleslayer_Synccatalog" sortOrder="60" parent="Saleslayer_Synccatalog::synccatalog" action="synccatalog/index/showdebbug/" resource="Saleslayer_Synccatalog::showdebbug"/>
         <add id="Saleslayer_Synccatalog::synccatalog_configuration_parameters" title="Configuration Parameters" module="Saleslayer_Synccatalog" sortOrder="70" parent="Saleslayer_Synccatalog::synccatalog" action="adminhtml/system_config/edit/section/synccatalog" resource="Magento_Backend::store"/>
+        <add id="Saleslayer_Synccatalog::synccatalog_faq" title="FAQ" module="Saleslayer_Synccatalog" sortOrder="80" parent="Saleslayer_Synccatalog::synccatalog" action="synccatalog/index/faq/" resource="Saleslayer_Synccatalog::faq"/>
     </menu>
 </config>
