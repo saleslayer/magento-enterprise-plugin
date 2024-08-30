@@ -64,7 +64,12 @@
                     <comment>This will help to avoid duplicate names between Products and Product formats. We suggest to have it enabled.</comment>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
-                <field id="delete_sl_logs_since_days" translate="label comment" sortOrder="11" showInDefault="1" showInWebsite="1" showInStore="0">
+                <field id="all_analytics_data" translate="label comment" type="select" sortOrder="11" showInDefault="1" showInWebsite="1" showInStore="0">
+                    <label>Send all analytics data to Sales Layer</label>
+                    <comment>This will help to have more information about the connector's execution in order to be able to help in case of doubts. If not checked, only the minimum essential data will be sent.</comment>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                </field>
+                <field id="delete_sl_logs_since_days" translate="label comment" sortOrder="12" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>Delete SL logs from more than X days ago</label>
                     <comment>Please enter a value between at least 0 and 31. Empty or 0 will not delete SL logs.</comment>
                     <backend_model>Saleslayer\Synccatalog\Model\Config\DeleteSLLogsSinceDays\BackendModel</backend_model>

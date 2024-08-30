@@ -11,6 +11,7 @@
 - Added image roles field to process.
 - Added FAQ page.
 - Added note to configurable atributes set in product tab, in connector configuration.
+- Added Analytics process to send data to SL API.
 
 ### Changed
 

@@ -29,6 +29,7 @@ use Magento\Framework\App\DeploymentConfig as deploymentConfig;
 use Magento\Eav\Model\Config as eavConfig;
 use Magento\Framework\App\Cache\TypeListInterface as typeListInterface;
 use Magento\Framework\App\ProductMetadataInterface as productMetadata;
+use Magento\Framework\Module\Dir\Reader as reader;
 use Magento\CatalogUrlRewrite\Model\CategoryUrlRewriteGenerator;
 use Magento\Catalog\Model\Product\Attribute\Backend\Media\ImageEntryConverter;
 use Magento\CatalogUrlRewrite\Model\ProductUrlRewriteGenerator;
@@ -38,6 +39,8 @@ use Magento\Catalog\Model\Category\Attribute\Source\Layout as layoutSource;
 use Saleslayer\Synccatalog\Model\SalesLayerConn as SalesLayerConn;
 use Saleslayer\Synccatalog\Helper\Data as synccatalogDataHelper;
 use Saleslayer\Synccatalog\Helper\slDebuger as slDebuger;
+use Saleslayer\Synccatalog\Helper\slModule as slModule;
+use Saleslayer\Synccatalog\Helper\slAnalytics as slAnalytics;
 use Saleslayer\Synccatalog\Helper\Config as synccatalogConfigHelper;
 use \Zend_Db_Expr as Expr;
 
@@ -45,6 +48,8 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 {    
     protected $synccatalogDataHelper;
     protected $slDebuger;
+    protected $slModule;
+    protected $slAnalytics;
     protected $synccatalogConfigHelper;
     protected $categoryModel;
     protected $productModel;
@@ -63,6 +68,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
     protected $eavConfig;
     protected $typeListInterface;
     protected $productMetadata;
+    protected $reader;
     protected $countryOfManufacture;
     protected $layoutSource;
     protected $salesLayerConn;
@@ -82,6 +88,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
     protected $sync_data_hour_until = 0;
     protected $format_type_creation = 'simple';
     protected $add_sl_id_to_format_name = 1;
+    protected $all_analytics_data = 1;
     protected $delete_sl_logs_since_days = 0;
 
     protected $tablePrefix                          = null;
@@ -309,6 +316,8 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
     protected $attributeCodesByAttributeSetId       = [];
 
+    private $analyticsAPIItemCount = [];
+
     /**
      * Function __construct
      * @param context                             $context                             \Magento\Framework\Model\Context
@@ -316,6 +325,8 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
      * @param SalesLayerConn                      $salesLayerConn                      Saleslayer\Synccatalog\Model\SalesLayerConn
      * @param synccatalogDataHelper               $synccatalogDataHelper               Saleslayer\Synccatalog\Helper\Data
      * @param slDebuger                           $slDebuger                           Saleslayer\Synccatalog\Helper\slDebuger
+     * @param slModule                            $slModule                            Saleslayer\Synccatalog\Helper\slModule
+     * @param slAnalytics                         $slAnalytics                         Saleslayer\Synccatalog\Helper\slAnalytics
      * @param directoryListFilesystem             $directoryListFilesystem             \Magento\Framework\Filesystem\DirectoryList
      * @param categoryModel                       $categoryModel                       \Magento\Catalog\Model\Category
      * @param productModel                        $productModel                        \Magento\Catalog\Model\Product
@@ -334,6 +345,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
      * @param eavConfig                           $eavConfig                           \Magento\Eav\Model\Config
      * @param typeListInterface                   $typeListInterface                   \Magento\Framework\App\Cache\TypeListInterface
      * @param productMetadata                     $productMetadata                     \Magento\Framework\App\ProductMetadataInterface
+     * @param reader                              $reader                              \Magento\Framework\Module\Dir\Reader 
      * @param countryOfManufacture                $countryOfManufacture                \Magento\Catalog\Model\Product\Attribute\Source\Countryofmanufacture
      * @param layoutSource                        $layoutSource                        \Magento\Catalog\Model\Category\Attribute\Source\Layout
      * @param resource|null                       $resource                            \Magento\Framework\Model\ResourceModel\AbstractResource
@@ -348,6 +360,8 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         SalesLayerConn $salesLayerConn,
         synccatalogDataHelper $synccatalogDataHelper,
         slDebuger $slDebuger,
+        slModule $slModule,
+        slAnalytics $slAnalytics,
         synccatalogConfigHelper $synccatalogConfigHelper,
         directoryListFilesystem  $directoryListFilesystem,
         categoryModel $categoryModel,
@@ -367,6 +381,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         eavConfig $eavConfig,
         typeListInterface $typeListInterface,
         productMetadata $productMetadata,
+        reader $reader,
         countryOfManufacture $countryOfManufacture,
         layoutSource $layoutSource,
         productRepository $productRepository,
@@ -379,6 +394,8 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         $this->salesLayerConn                           = $salesLayerConn;
         $this->synccatalogDataHelper                    = $synccatalogDataHelper;
         $this->slDebuger                                = $slDebuger;
+        $this->slModule                                 = $slModule;
+        $this->slAnalytics                              = $slAnalytics;
         $this->synccatalogConfigHelper                  = $synccatalogConfigHelper;
         $this->directoryListFilesystem                  = $directoryListFilesystem;
         $this->categoryModel                            = $categoryModel;
@@ -399,6 +416,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         $this->eavConfig                                = $eavConfig;
         $this->typeListInterface                        = $typeListInterface;
         $this->productMetadata                          = $productMetadata;
+        $this->reader                                   = $reader;
         $this->countryOfManufacture                     = $countryOfManufacture;
         $this->layoutSource                             = $layoutSource;
         $this->connection                               = $this->resourceConnection->getConnection();
@@ -407,7 +425,6 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         $this->saleslayer_syncdata_flag_table           = $this->resourceConnection->getTableName($this->saleslayer_syncdata_flag_table);
         $this->catalog_category_product_table           = $this->resourceConnection->getTableName($this->catalog_category_product_table);
 
-        $this->moduleVersion = $this->connection->fetchAll("SELECT schema_version FROM `setup_module` WHERE (`module` = 'Saleslayer_Synccatalog') LIMIT 1;")[0]['schema_version'] ?? '';
     }
 
     /**
@@ -439,7 +456,39 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         $this->sync_data_hour_until = $this->synccatalogConfigHelper->getSyncDataHourUntil();
         $this->format_type_creation = $this->synccatalogConfigHelper->getFormatTypeCreation();
         $this->add_sl_id_to_format_name = $this->synccatalogConfigHelper->getAddSLIDToFormatName();
+        $this->all_analytics_data = $this->synccatalogConfigHelper->getAllAnalyticsData();
         $this->delete_sl_logs_since_days = $this->synccatalogConfigHelper->getDeleteSLLogsSinceDays();
+        $this->moduleVersion = $this->slModule->getModuleVersion();
+
+    }
+
+    /**
+     * Function to validate connector ID
+     * 
+     * @param string $connector_id connector ID
+     * @return bool validation result
+     */
+    private function validateConnectorID($connector_id){
+
+        if (null === $connector_id || $connector_id === '') {
+        
+            $this->slDebuger->debug('## Error. Invalid Sales Layer Connector ID.');
+            throw new \InvalidArgumentException('Invalid Sales Layer Connector ID.');
+            
+        }else{
+        
+            $conn_record = $this->load($connector_id, 'connector_id');
+
+            if (!$conn_record) {
+        
+                $this->slDebuger->debug('## Error. Sales Layer master data corrupted.');
+                throw new \InvalidArgumentException('Sales Layer master data corrupted.');
+        
+            }
+
+        }
+
+        return true;
 
     }
 
@@ -451,21 +500,9 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
      */
     private function get_conn_field($connector_id, $field_name) {
 
-        if (null === $connector_id || $connector_id === '') {
-        
-            $this->slDebuger->debug('## Error. Invalid Sales Layer Connector ID.');
-            throw new \InvalidArgumentException('Invalid Sales Layer Connector ID.');
-            
-        }else{
+        if ($this->validateConnectorID($connector_id)){
         
             $config_record = $this->load($connector_id, 'connector_id');
-
-            if (!$config_record) {
-        
-                $this->slDebuger->debug('## Error. Sales Layer master data corrupted.');
-                throw new \InvalidArgumentException('Sales Layer master data corrupted.');
-        
-            }
 
             $conn_data = $config_record->getData();
 
@@ -1140,6 +1177,169 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
     }
 
     /**
+     * Function to load analytics API item count
+     *
+     * @param array $responseData              response data to check
+     * @return void   
+     */
+    private function loadAnalyticsAPIItemCount($responseData)
+    {
+        
+        $counterTypes = ['deleted', 'modified'];
+
+        foreach ($responseData as $tableName => $tableInfo){
+            if (!isset($this->analyticsAPIItemCount[$tableName])){
+                $this->analyticsAPIItemCount[$tableName] = [];
+            }
+
+            foreach ($counterTypes as $counterType){
+                $counterKey = 'count_'.$counterType;
+                
+                if (isset($tableInfo[$counterKey])){
+                    if (!isset($this->analyticsAPIItemCount[$tableName][$counterType])){
+                        $this->analyticsAPIItemCount[$tableName][$counterType] = 0;
+                    }
+                    
+                    $this->analyticsAPIItemCount[$tableName][$counterType] += $tableInfo[$counterKey];
+                }
+            }
+        }
+    }
+
+    /**
+     * Function to get connector analytics data
+     * 
+     * @param string $connectorId connector ID
+     * @return array connector analytics data
+     */
+    private function getConnectorAnalyticsData($connectorId)
+    {
+
+        if (!$this->validateConnectorID($connectorId)){
+            return [];
+        } 
+            
+        $connRecord = $this->load($connectorId, 'connector_id');
+        $connectorData = $connRecord->getData();
+        if (empty($connectorData)){
+            return [];
+        }
+
+        $moduleDir = $this->reader->getModuleDir('', 'Saleslayer_Synccatalog');
+        $moduleName = basename($moduleDir);
+        
+        $analyticsData = [
+            'conn_code' => $connectorId,
+            'comp_id' => $connectorData['comp_id'],
+            'secret_key' => $connectorData['secret_key'],
+            'conn_type' => $this->sl_connector_type,
+            'last_update' => $connectorData['last_update'],
+            'api_item_count' => json_encode($this->analyticsAPIItemCount),
+            'plugin_version' => $moduleName.' - '.$this->moduleVersion,
+            'plugin_config' => [
+                'api_version' => $this->sl_API_version,
+                'pagination_n_items' => $this->sl_conn_pagination_n_items,
+                'sql_items_to_insert' => $this->sql_to_insert_limit,
+                'avoid_stock_update' => $connectorData['avoid_stock_update'],
+                'all_analytics_data' => $this->all_analytics_data
+                ]
+            ];
+            
+            if ($this->all_analytics_data == 1){
+
+                $storeViewsData = $this->getConnectorAnalyticsStoreViewsData($connectorData);
+                $formatConfigurableAttributesData = $this->getConnectorAnalyticsFormatConfigurableAttributesData($connectorData);
+
+                $analyticsData['ecommerce_version'] = $this->productMetadata->getEdition().' - '.$this->productMetadata->getVersion();
+                $analyticsData['plugin_config'] = array_merge(
+                    $analyticsData['plugin_config'], 
+                    [
+                        'debug_level' => $this->sl_DEBBUG,
+                        'store_view_ids' => $storeViewsData,
+                        'format_configurable_attributes' => $formatConfigurableAttributesData,
+                    ]
+                );
+        }
+
+        return $analyticsData;
+    }
+
+    /**
+     * Function to get connector analytics store views data
+     * 
+     * @param array $connectorData connector data
+     * @return $string store views data
+     */
+    private function getConnectorAnalyticsStoreViewsData(array $connectorData)
+    {
+
+        if (empty($connectorData['store_view_ids'])) {
+            return $connectorData['store_view_ids'];
+        }
+
+        $storeTable = $this->getTable('store');
+        if ($storeTable === null) {
+            return $connectorData['store_view_ids'];
+        }
+
+        $allStoresData = $this->connection->fetchAll(
+            $this->connection->select()
+                ->from($storeTable, ['store_id', 'name'])
+        );
+
+        if (empty($allStoresData)) {
+            return $connectorData['store_view_ids'];
+        }
+
+        $connectorStoreViewIds = json_decode($connectorData['store_view_ids'], true);
+        $storeViewsData = [];
+
+        foreach ($allStoresData as $storeData) {
+            if (in_array($storeData['store_id'], $connectorStoreViewIds)) {
+                $storeViewsData[$storeData['store_id']] = $storeData['name'];
+            }
+        }
+
+        return !empty($storeViewsData)
+            ? json_encode($storeViewsData)
+            : $connectorData['store_view_ids'];
+    }
+
+    /**
+     * Function to get connector analytics format configurable attributes data
+     * 
+     * @param array $connectorData connector data
+     * @return $string format configurable attributes data
+     */
+    private function getConnectorAnalyticsFormatConfigurableAttributesData(array $connectorData)
+    {
+
+        if (empty($connectorData['format_configurable_attributes'])) {
+            return $connectorData['format_configurable_attributes'];
+        }
+
+        $connectorFormatConfigurableAttributesIds = json_decode($connectorData['format_configurable_attributes'], true);
+
+        if (!is_array($connectorFormatConfigurableAttributesIds) || empty($connectorFormatConfigurableAttributesIds)){
+            return $connectorData['format_configurable_attributes'];
+        }
+
+        $formatConfigurableAttributesData = [];
+
+        foreach ($connectorFormatConfigurableAttributesIds as $connectorFormatConfigurableAttributeId){
+            $configurableAttribute = $this->getAttributeById($connectorFormatConfigurableAttributeId, $this->product_entity_type_id);
+
+            if (!empty($configurableAttribute) && isset($configurableAttribute[\Magento\Eav\Api\Data\AttributeInterface::ATTRIBUTE_CODE])) {
+                $formatConfigurableAttributesData[$connectorFormatConfigurableAttributeId] = strtolower($configurableAttribute[\Magento\Eav\Api\Data\AttributeInterface::ATTRIBUTE_CODE]);
+            }
+        }
+
+        return !empty($formatConfigurableAttributesData)
+            ? json_encode($formatConfigurableAttributesData)
+            : $connectorData['format_configurable_attributes'];
+    }
+
+    /**
      * Function to store connector's data to synchronize.
      * @param string $connector_id              Sales Layer connector id
      * @param  datetime $last_sync              Last connector synchronization datetime.
@@ -1159,7 +1359,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
             return "There are still ".$items_processing['count']." items processing, wait until is finished and synchronize again.";
         }
         
-        $this->slDebuger->debug("\r\n==== Store Sync Data INIT ====\r\n");
+        $this->slDebuger->debug("\r\n==== Store Sync Data INIT - Mod.ver: ".$this->moduleVersion." ====\r\n");
         
         $this->updateLastSync($last_sync, $connector_id);
 
@@ -1217,6 +1417,8 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
             $is_next_page = false;
             if ($slconn->have_next_page() && $slconn->get_next_page_info()) $is_next_page = true;
             
+            $this->loadAnalyticsAPIItemCount($pagination_response_data);
+
             if ($this->checkIfResponseDataIsEmpty($pagination_response_data)){
 
                 $info_processed = true;
@@ -1266,6 +1468,12 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         if ($info_processed && $this->format_as_products_schema) $this->cleanFormatAsProductsUnusedCategories();
         
+        $analyticsData = $this->getConnectorAnalyticsData($connector_id);
+
+        if ($this->slAnalytics->loadAnalyticsData($analyticsData)){
+            $this->slAnalytics->sendAnalyticsData();
+        }
+
         $this->slDebuger->debug('### time_store_sync_data: ', 'timer', (microtime(1) - $time_ini_data));
         $this->slDebuger->debug("\r\n==== Store Sync Data END ====\r\n");
 

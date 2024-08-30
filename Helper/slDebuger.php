@@ -46,8 +46,7 @@ class slDebuger extends \Magento\Framework\App\Helper\AbstractHelper
     protected function loadDebugerParameters()
     {
 
-        // $this->sl_DEBBUG = $this->synccatalogConfigHelper->getDebugerLevel();
-        $this->sl_DEBBUG = 5;
+        $this->sl_DEBBUG = $this->synccatalogConfigHelper->getDebugerLevel();
 
     }
 

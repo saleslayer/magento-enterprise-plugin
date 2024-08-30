@@ -17,6 +17,7 @@ class Config extends AbstractHelper
     const CONFIG_SYNCCATALOG_GENERAL_SYNC_DATA_HOUR_UNTIL = 'synccatalog/general/sync_data_hour_until';
     const CONFIG_SYNCCATALOG_GENERAL_FORMAT_TYPE_CREATION  = 'synccatalog/general/format_type_creation';
     const CONFIG_SYNCCATALOG_GENERAL_ADD_SL_ID_TO_FORMAT_NAME  = 'synccatalog/general/add_sl_id_to_format_name';
+    const CONFIG_SYNCCATALOG_GENERAL_ALL_ANALYTICS_DATA  = 'synccatalog/general/all_analytics_data';
     const CONFIG_SYNCCATALOG_GENERAL_DELETE_SL_LOGS_SINCE_DAYS = 'synccatalog/general/delete_sl_logs_since_days';
 
     /**
@@ -134,6 +135,18 @@ class Config extends AbstractHelper
     {
 
         return (int) $this->scopeConfig->getValue(self::CONFIG_SYNCCATALOG_GENERAL_ADD_SL_ID_TO_FORMAT_NAME);
+    
+    }
+
+    /**
+     * Retrieve all analytics data option
+     *
+     * @return int
+     */
+    public function getAllAnalyticsData()
+    {
+
+        return (int) $this->scopeConfig->getValue(self::CONFIG_SYNCCATALOG_GENERAL_ALL_ANALYTICS_DATA);
     
     }
 

@@ -31,11 +31,14 @@ use Magento\Framework\App\DeploymentConfig as deploymentConfig;
 use Magento\Eav\Model\Config as eavConfig;
 use Magento\Framework\App\Cache\TypeListInterface as typeListInterface;
 use Magento\Framework\App\ProductMetadataInterface as productMetadata;
+use Magento\Framework\Module\Dir\Reader as reader;
 use Magento\Catalog\Model\Product\Attribute\Source\Countryofmanufacture as countryOfManufacture;
 use Magento\Catalog\Model\Category\Attribute\Source\Layout as layoutSource;
 use Saleslayer\Synccatalog\Model\SalesLayerConn as SalesLayerConn;
 use Saleslayer\Synccatalog\Helper\Data as synccatalogDataHelper;
 use Saleslayer\Synccatalog\Helper\slDebuger as slDebuger;
+use Saleslayer\Synccatalog\Helper\slModule as slModule;
+use Saleslayer\Synccatalog\Helper\slAnalytics as slAnalytics;
 use Saleslayer\Synccatalog\Helper\Config as synccatalogConfigHelper;
 
 /**
@@ -57,6 +60,8 @@ class Autosynccron extends Synccatalog{
         SalesLayerConn $salesLayerConn,
         synccatalogDataHelper $synccatalogDataHelper,
         slDebuger $slDebuger,
+        slModule $slModule,
+        slAnalytics $slAnalytics,
         synccatalogConfigHelper $synccatalogConfigHelper,
         directoryListFilesystem $directoryListFilesystem,
         categoryModel $categoryModel,
@@ -76,6 +81,7 @@ class Autosynccron extends Synccatalog{
         eavConfig $eavConfig,
         typeListInterface $typeListInterface,
         productMetadata $productMetadata,
+        reader $reader,
         countryOfManufacture $countryOfManufacture,
         layoutSource $layoutSource,
         productRepository $productRepository,
@@ -88,6 +94,8 @@ class Autosynccron extends Synccatalog{
             $salesLayerConn, 
             $synccatalogDataHelper, 
             $slDebuger,
+            $slModule,
+            $slAnalytics,
             $synccatalogConfigHelper,
             $directoryListFilesystem,
             $categoryModel, 
@@ -107,6 +115,7 @@ class Autosynccron extends Synccatalog{
             $eavConfig,
             $typeListInterface,
             $productMetadata,
+            $reader,
             $countryOfManufacture,
             $layoutSource,
             $productRepository,
@@ -234,8 +243,7 @@ class Autosynccron extends Synccatalog{
         $this->loadConfigParameters();
         $this->load_magento_variables();
 
-        $this->slDebuger->debug("==== AUTOSync INIT ".date('Y-m-d H:i:s')." ====", 'autosync');
-        $this->slDebuger->debug("==== Synccatalog version: ". $this->moduleVersion ." ====", 'autosync');
+        $this->slDebuger->debug("==== AUTOSync INIT Mod.ver: ".$this->moduleVersion." - ".date('Y-m-d H:i:s')." ====", 'autosync');
         $this->slDebuger->debug("==== Magento version: ". $this->productMetadata->getVersion() . " - " . $this->productMetadata->getEdition() ." ====", 'autosync');
 
         $this->delete_sl_logs_since_days();

@@ -26,6 +26,7 @@ use Magento\Framework\App\Cache\TypeListInterface as typeListInterface;
 use Magento\Framework\App\Config\ScopeConfigInterface as scopeConfigInterface;
 use Magento\Framework\App\DeploymentConfig as deploymentConfig;
 use Magento\Framework\App\ProductMetadataInterface as productMetadata;
+use Magento\Framework\Module\Dir\Reader as reader;
 use Magento\Framework\App\ResourceConnection as resourceConnection;
 use Magento\Framework\Data\Collection\AbstractDb as resourceCollection;
 use Magento\Framework\Filesystem\DirectoryList  as directoryListFilesystem;
@@ -36,6 +37,8 @@ use Magento\Indexer\Model\Indexer as indexer;
 use Saleslayer\Synccatalog\Helper\Config as synccatalogConfigHelper;
 use Saleslayer\Synccatalog\Helper\Data as synccatalogDataHelper;
 use Saleslayer\Synccatalog\Helper\slDebuger as slDebuger;
+use Saleslayer\Synccatalog\Helper\slModule as slModule;
+use Saleslayer\Synccatalog\Helper\slAnalytics as slAnalytics;
 use Saleslayer\Synccatalog\Model\SalesLayerConn as SalesLayerConn;
 use Zend_Db_Expr as Expr;
 
@@ -71,6 +74,8 @@ class Syncdatacron extends Synccatalog
         SalesLayerConn $salesLayerConn,
         synccatalogDataHelper $synccatalogDataHelper,
         slDebuger $slDebuger,
+        slModule $slModule,
+        slAnalytics $slAnalytics,
         synccatalogConfigHelper $synccatalogConfigHelper,
         directoryListFilesystem $directoryListFilesystem,
         categoryModel $categoryModel,
@@ -90,6 +95,7 @@ class Syncdatacron extends Synccatalog
         eavConfig $eavConfig,
         typeListInterface $typeListInterface,
         productMetadata $productMetadata,
+        reader $reader,
         countryOfManufacture $countryOfManufacture,
         layoutSource $layoutSource,
         productRepository $productRepository,
@@ -103,6 +109,8 @@ class Syncdatacron extends Synccatalog
             $salesLayerConn, 
             $synccatalogDataHelper, 
             $slDebuger,
+            $slModule,
+            $slAnalytics,
             $synccatalogConfigHelper,
             $directoryListFilesystem,
             $categoryModel, 
@@ -122,6 +130,7 @@ class Syncdatacron extends Synccatalog
             $eavConfig,
             $typeListInterface,
             $productMetadata,
+            $reader,
             $countryOfManufacture,
             $layoutSource,
             $productRepository,
@@ -438,8 +447,7 @@ class Syncdatacron extends Synccatalog
 
         if ($this->clean_main_debug_file) file_put_contents($this->sl_logs_path.'_debbug_log_saleslayer_'.date('Y-m-d').'.dat', "");
 
-        $this->slDebuger->debug("==== Sync Data DB INIT ".date('Y-m-d H:i:s')." ====", 'syncdata');
-        $this->slDebuger->debug("==== Synccatalog version: ". $this->moduleVersion ." ====", 'syncdata');
+        $this->slDebuger->debug("==== Sync Data DB INIT Mod.ver: ".$this->moduleVersion." - ".date('Y-m-d H:i:s')." ====", 'syncdata');
         $this->slDebuger->debug("==== Magento version: ". $this->productMetadata->getVersion() . " - " . $this->productMetadata->getEdition() ." ====", 'syncdata');
 
         $this->clearExcededAttemps();

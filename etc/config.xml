@@ -14,7 +14,9 @@
                 <sync_data_hour_until>0</sync_data_hour_until>
                 <format_type_creation>simple</format_type_creation>
                 <add_sl_id_to_format_name>1</add_sl_id_to_format_name>
+                <all_analytics_data>1</all_analytics_data>
                 <delete_sl_logs_since_days>0</delete_sl_logs_since_days>
+                <analytics_public_key>LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0NCk1JSUNJakFOQmdrcWhraUc5dzBCQVFFRkFBT0NBZzhBTUlJQ0NnS0NBZ0VBdXlpd2RZdFdFZksrWmdzSkV4d0INCjM5QXVSKzZhYVNqZEVTWFhUbDN6Ty9GeFF0cnJZWlNEVzVqdTdCZ1lxOFpzWitBTWRsQWUvNmd3YkJQOXBWRFYNCnVEUzRDS3Z3Tmp4OEFYdno5SjRQMW8xVTJuSUJ2aVl4aUE2aW1hak5TTkdRVExLMVgreUFoMHA2cEpuT25QU1ANCkJsNVdFQkpIbGVaSTBZbzJPRS9jS2FGeEJoQTlWV0VYUS83K0VEOVVkMVhzQWZLdjcrQmVwTThkc05zZkVCb0gNCkhTVGZwWVIvTnh3M3VkZ29zSWkrcGFzdkpQN1JSMEdyT1FkOGNlUkhOblhJNjlqL0N0WDd3YXZESFl3N0pCZzkNCjE3TmlpVFhka1hGRk1wSzkrdEFJQlJZb0NRUU93L2JsOWY2UE1MazN2Q05ITzdES1VrUmZPc2pNVkdZSUJ0MEYNCnpmMEZDUURvMnZxODVHeVpRejNnbklWUVcxNjNmdW1ZMWo4ZDhIVzBnWUFUUmN5OTU5VmJlZFdNcTRZY1BuZjINCk9uOTMyeHVmRlArSm5lanZnUW5BdjBIM1RWMWxrbkt1N3lvNjhHcVlIbzBYdU1XT2FGaWdaUjFNUjRmMGVBZ3ENCllwcVdGN2VCUzJTYTBySkRRd3NLMWVxVTVjakpjWnE3VmdLbi9wNjFCam9hTWFHQVJycGFBQlM3ZGczRWptSnANCllIbUQ0MnM2V3JocmRBM0VZZXNuZ3NtdGg4MVZTNkxCcDdVUm1VUGpGRStuL0tMMFBHSHZVQ0NrY1pua2Y1TVANCmtNb1NkOXZWZmdiVjhSMmtpMDM4RFNNcGRyREorZHRHeU1FZEsrWGpnaTVZN0JnSkFuejZzYkJBWjRTWWVwTysNClFnQ1hvYUZIRllxY0dhMUJES3lqREUwQ0F3RUFBUT09DQotLS0tLUVORCBQVUJMSUMgS0VZLS0tLS0=</analytics_public_key>
             </general>
         </synccatalog>
     </default>
