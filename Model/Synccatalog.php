@@ -317,6 +317,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
     protected $attributeCodesByAttributeSetId       = [];
 
     private $analyticsAPIItemCount = [];
+    private $analyticsLastUpdate;
 
     /**
      * Function __construct
@@ -1145,6 +1146,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         $slconn->set_same_parent_variants_modifications(true);
 
         $last_date_update = $this->get_conn_field($connector_id, 'last_update') ?? '';
+        $this->analyticsLastUpdate = $last_date_update;
         
         $this->slDebuger->debug('Connecting with API... (last update: '.$last_date_update.') API Version: '.$this->sl_API_version.$debug_pagination_text);
 
@@ -1153,6 +1155,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         if ($this->test_sync_all){
         
             $slconn->get_info();
+            $this->analyticsLastUpdate = null;
         
         }else{
         
@@ -1233,7 +1236,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
             'comp_id' => $connectorData['comp_id'],
             'secret_key' => $connectorData['secret_key'],
             'conn_type' => $this->sl_connector_type,
-            'last_update' => $connectorData['last_update'],
+            'last_update' => $this->analyticsLastUpdate,
             'api_item_count' => json_encode($this->analyticsAPIItemCount),
             'plugin_version' => $moduleName.' - '.$this->moduleVersion,
             'plugin_config' => [

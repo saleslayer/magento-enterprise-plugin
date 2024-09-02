@@ -88,7 +88,7 @@ class slAnalytics extends AbstractHelper
         }
 
         foreach ($expectedKeys as $key) {
-            if (empty($data[$key])) {
+            if (!array_key_exists($key, $data)){
                 $this->slDebuger->debug('## Error. Analytics data incomplete. Missing index: '.print_r($key, true));
                 return false;
             }
