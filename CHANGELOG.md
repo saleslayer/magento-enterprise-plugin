@@ -1,6 +1,6 @@
 # Changelog
 
-## [Dev version]
+## [2.7.2] - 2024-09-03
 
 ### Added
 
