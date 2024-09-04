@@ -112,7 +112,7 @@ php bin/magento cache:clean
 |----------------|-------------------------------|---------|------------|
 | [2.7.0][2.7.0] |  Adobe Commerce 2.4.6-p3      | PHP 8.1 | Apache2.4  |
 | [2.7.1][2.7.1] |  Adobe Commerce 2.4.6-p3      | PHP 8.1 | Apache2.4  |
-| [2.7.2][2.7.2] |  Adobe Commerce 2.4.6-p3      | PHP 8.1 | Apache2.4  |
+| [2.7.2][2.7.2] |  Adobe Commerce 2.4.7         | PHP 8.2 | Apache2.4  |
 
 
 > **Warning**.
