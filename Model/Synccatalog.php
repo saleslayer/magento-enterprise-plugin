@@ -4676,8 +4676,15 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         
         if (!empty($file_roles)){
     
-            $mg_image_main_roles = array_flip(array_values($this->product_image_attribute_codes['internal']));
-            $mg_image_additional_roles = array_flip(array_values($this->product_image_attribute_codes['additional']));
+            $mg_image_main_roles = $mg_image_additional_roles = [];
+            
+            if (isset($this->product_image_attribute_codes['internal'])){
+                $mg_image_main_roles = array_flip(array_values($this->product_image_attribute_codes['internal']));
+            }
+            
+            if (isset($this->product_image_attribute_codes['additional'])){
+                $mg_image_additional_roles = array_flip(array_values($this->product_image_attribute_codes['additional']));
+            }
             
             foreach ($file_roles as $keyFR => $file_role) {
             
