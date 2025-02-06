@@ -14,6 +14,7 @@ use Magento\Catalog\Model\Product as productModel;
 use Magento\Catalog\Api\ProductRepositoryInterface as productRepository;
 use Magento\Catalog\Model\Product\Attribute\Source\Countryofmanufacture as countryOfManufacture;
 use \Magento\Catalog\Model\Category\Attribute\Source\Layout as layoutSource;
+use Magento\CatalogInventory\Api\StockRegistryInterface as stockRegistryInterface;
 use Magento\CatalogInventory\Model\Configuration as catalogInventoryConfiguration;
 use Magento\CatalogUrlRewrite\Model\CategoryUrlPathGenerator as categoryUrlPathGenerator;
 use Magento\CatalogUrlRewrite\Model\ProductUrlPathGenerator as productUrlPathGenerator;
@@ -98,6 +99,7 @@ class Syncdatacron extends Synccatalog
         reader $reader,
         countryOfManufacture $countryOfManufacture,
         layoutSource $layoutSource,
+        stockRegistryInterface $stockRegistryInterface,
         productRepository $productRepository,
         resource $resource = null,
         resourceCollection $resourceCollection = null,
@@ -133,6 +135,7 @@ class Syncdatacron extends Synccatalog
             $reader,
             $countryOfManufacture,
             $layoutSource,
+            $stockRegistryInterface,
             $productRepository,
             $resource,
             $resourceCollection,

@@ -34,6 +34,7 @@ use Magento\Framework\App\ProductMetadataInterface as productMetadata;
 use Magento\Framework\Module\Dir\Reader as reader;
 use Magento\Catalog\Model\Product\Attribute\Source\Countryofmanufacture as countryOfManufacture;
 use Magento\Catalog\Model\Category\Attribute\Source\Layout as layoutSource;
+use Magento\CatalogInventory\Api\StockRegistryInterface as stockRegistryInterface;
 use Saleslayer\Synccatalog\Model\SalesLayerConn as SalesLayerConn;
 use Saleslayer\Synccatalog\Helper\Data as synccatalogDataHelper;
 use Saleslayer\Synccatalog\Helper\slDebuger as slDebuger;
@@ -84,6 +85,7 @@ class Autosynccron extends Synccatalog{
         reader $reader,
         countryOfManufacture $countryOfManufacture,
         layoutSource $layoutSource,
+        stockRegistryInterface $stockRegistryInterface,
         productRepository $productRepository,
         resource $resource = null,
         resourceCollection $resourceCollection = null,
@@ -118,6 +120,7 @@ class Autosynccron extends Synccatalog{
             $reader,
             $countryOfManufacture,
             $layoutSource,
+            $stockRegistryInterface,
             $productRepository,
             $resource,
             $resourceCollection,
