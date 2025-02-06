@@ -2224,6 +2224,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         $this->cleanMGVars();
 
+        $this->slDebuger->debug('Category SL ID: '.print_r($category[$this->category_field_id],1));
         if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('Synchronizing stored category: '.print_r($category,1));
 
         $time_ini_check_category = microtime(1);
@@ -3178,6 +3179,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         $this->cleanMGVars();
 
+        $this->slDebuger->debug('Product SL ID: '.print_r($product[$this->product_field_id],1));
         if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('Synchronizing stored product: '.print_r($product,1));
 
         $time_ini_check_product = microtime(1);
@@ -6001,6 +6003,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         $this->cleanMGVars();
 
+        $this->slDebuger->debug('Product format SL ID: '.print_r($format[$this->format_field_id],1));
         if ($this->sl_DEBBUG > 2) $this->slDebuger->debug('Synchronizing stored product format: '.print_r($format,1));
 
         $time_ini_format_process = microtime(1);
