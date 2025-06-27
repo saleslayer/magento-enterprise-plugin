@@ -2,13 +2,13 @@
   "name": "saleslayer/magento-enterprise-plugin",
   "description": "Adobe commerce extension for Sales Layer PIM",
   "type": "magento2-module",
-  "version": "2.7.3",
+  "version": "2.7.x-dev",
   "license": [
     "GPL-3.0-or-later"
   ],
   "require": {
-    "php": ">=7.3 <8.4",
-    "magento/product-enterprise-edition": ">=2.4.4 <2.4.8"
+    "php": ">=8.1 <8.4",
+    "magento/product-enterprise-edition": ">=2.4.4 <2.4.9"
   },
   "autoload": {
     "files": [ "registration.php" ],

@@ -1,16 +1,26 @@
 # Changelog
 
+## [2.7.4] - 2025-06-27
+
+### Changed
+
+- Compatibility with MG version 2.4.8-p1 (PHP 8.3).
+
+### Tested
+
+- Tested on Magento 2.4.8-p1 / PHP 8.3.16
+
 ## [2.7.3] - 2025-02-07
 
 ### Changed
 
-- Fix if image roles are not defined.
+- Fix if image roles are not defined
 - Stock update function modificated.
-- Compatibility with MG version 2.4.7-p3 (PHP 8.3).
+- Compatibility with MG version 2.4.7-p3
 
 ### Tested
 
-- Tested on Magento 2.4.7-p3 / PHP 8.3.16 
+- Tested on Magento 2.4.7-p3 / PHP 8.3.16
 
 ## [2.7.2] - 2024-09-03
 
