@@ -82,7 +82,7 @@ class slDebuger extends \Magento\Framework\App\Helper\AbstractHelper
      * @param  int    $seconds seconds for timer debbug
      * @return void
      */
-    public function debug($msg, $type = '', $seconds = null)
+    public function debug($msg, $type = '', ?float $seconds = null)
     {
         
         if ($this->sl_DEBBUG > 0) {

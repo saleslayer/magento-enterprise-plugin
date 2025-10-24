@@ -24,6 +24,8 @@ use Magento\Eav\Model\Entity\Attribute as attribute;
 use Magento\Eav\Model\Entity\Attribute\Set as attribute_set;
 use Magento\Eav\Model\ResourceModel\Entity\Attribute\Option\Collection as collectionOption;
 use Magento\Framework\App\Cache\TypeListInterface as typeListInterface;
+use Magento\Framework\App\CacheInterface;
+use Magento\PageCache\Model\Cache\Type as FullPageCache;
 use Magento\Framework\App\Config\ScopeConfigInterface as scopeConfigInterface;
 use Magento\Framework\App\DeploymentConfig as deploymentConfig;
 use Magento\Framework\App\ProductMetadataInterface as productMetadata;
@@ -66,6 +68,20 @@ class Syncdatacron extends Synccatalog
     protected       $multiconn_table_data_loaded        = false;
 
     /**
+     * Cache interface for cleaning cache by tags
+     *
+     * @var CacheInterface
+     */
+    protected $cacheInterface;
+
+    /**
+     * Full Page Cache type for Varnish/Fastly integration
+     *
+     * @var FullPageCache
+     */
+    protected $fullPageCache;
+
+    /**
      * Sales Layer Syncdata constructor.
      * @return void
      */
@@ -95,14 +111,16 @@ class Syncdatacron extends Synccatalog
         deploymentConfig $deploymentConfig,
         eavConfig $eavConfig,
         typeListInterface $typeListInterface,
+        CacheInterface $cacheInterface,
+        FullPageCache $fullPageCache,
         productMetadata $productMetadata,
         reader $reader,
         countryOfManufacture $countryOfManufacture,
         layoutSource $layoutSource,
         stockRegistryInterface $stockRegistryInterface,
         productRepository $productRepository,
-        resource $resource = null,
-        resourceCollection $resourceCollection = null,
+        ?resource $resource = null,
+        ?resourceCollection $resourceCollection = null,
         array $data = []
     ) {
         parent::__construct(
@@ -131,6 +149,8 @@ class Syncdatacron extends Synccatalog
             $deploymentConfig,
             $eavConfig,
             $typeListInterface,
+            $cacheInterface,
+            $fullPageCache,
             $productMetadata,
             $reader,
             $countryOfManufacture,
@@ -142,6 +162,8 @@ class Syncdatacron extends Synccatalog
             $data
         );
 
+        $this->cacheInterface = $cacheInterface;
+        $this->fullPageCache = $fullPageCache;
     }
 
     /**
@@ -503,23 +525,35 @@ class Syncdatacron extends Synccatalog
     private function updateAllTableItems(){
 
         $indexes = array('category', 'product', 'product_format', 'product_links', 'product__images');
-        
-        $old_index = reset($indexes);
 
+        $old_index = reset($indexes);
         $this->cats_to_process = $this->cats_corrected = false;
+
+        // Array to store processed IDs to clean their cache
+        $processed_entity_ids = [
+            'products' => [],
+            'categories' => []
+        ];
 
         foreach ($indexes as $index) {
 
-            if(!$this->updateItems($index)){
+            if(!$this->updateItems($index, $processed_entity_ids)){
                 break;
             }
-             
+
         }
 
-        if (!empty($this->processed_items)){
-
-            $this->clean_cache();
-
+        // Only cleaning cache if there are specific entities succesfully processed
+        if (!empty($processed_entity_ids['products']) || !empty($processed_entity_ids['categories'])) {
+            $this->slDebuger->debug('Cleaning cache for specific entities: '.count($processed_entity_ids['products']).' products, '.count($processed_entity_ids['categories']).' categories', 'syncdata');
+            $this->clean_cache($processed_entity_ids);
+        } else {
+            // If there are processed items but no specific IDs couldn't be collected, cache won't be clean
+            if (!empty($this->processed_items)) {
+                $this->slDebuger->debug('Items were processed but no specific entity IDs collected. Skipping cache clean to avoid unnecessary full cache flush.', 'syncdata');
+            } else {
+                $this->slDebuger->debug('No items processed, no cache cleaning needed.', 'syncdata');
+            }
         }
 
         if ($this->updated_product_formats){
@@ -532,10 +566,11 @@ class Syncdatacron extends Synccatalog
 
     /**
      * Function to update items
-     * @param  string $index            type of item to process
+     * @param  string $index type of item to process
+     * @param  array &$processed_entity_ids reference to array for collecting processed entity IDs
      * @return boolean                  result of update
      */
-    private function updateItems($index){
+    private function updateItems($index, &$processed_entity_ids = []){
         
         do{
 
@@ -588,7 +623,7 @@ class Syncdatacron extends Synccatalog
 
                 }
              
-                $this->updateItem($item_to_update);
+                $this->updateItem($item_to_update, $processed_entity_ids);
 
                 if ($this->test_one_item !== false) $this->end_process = true;
                 if ($this->end_process){
@@ -726,30 +761,56 @@ class Syncdatacron extends Synccatalog
     }
 
     /**
-     * Function to clean Magento cache
+     * Function to clean Magento cache by entity tags
+     *
+     * @param array $entity_ids Array with entity IDs grouped by type
+     *                          Example: ['products' => [1,2,3], 'categories' => [4,5]]
      * @return void
      */
-    public function clean_cache(){
-
+    public function clean_cache($entity_ids = [])
+    {
         $time_ini_clean_all_caches = microtime(1);
 
-        $types = [
-            \Magento\Framework\App\Cache\Type\Block::TYPE_IDENTIFIER,
-            \Magento\PageCache\Model\Cache\Type::TYPE_IDENTIFIER,
-            \Magento\Eav\Model\Cache\Type::TYPE_IDENTIFIER,
-        ];
+        // Clean only by specific entity tags.
+        $tags = [];
 
-        foreach ($types as $type) {
-
-            $time_ini_clean_cache = microtime(1);
-            $this->typeListInterface->cleanType($type);
-            if ($this->sl_DEBBUG > 1) $this->slDebuger->debug('### time_clean_cache: ', 'timer', (microtime(1) - $time_ini_clean_cache));
-
+        // Generate tags for products
+        if (!empty($entity_ids['products'])) {
+            foreach ($entity_ids['products'] as $product_id) {
+                $tags[] = \Magento\Catalog\Model\Product::CACHE_TAG . '_' . $product_id;
+            }
+            $this->slDebuger->debug('Added cache tags for '.count($entity_ids['products']).' products.', 'syncdata');
         }
 
-        $this->slDebuger->debug('Cache cleaned for: '.print_r($types,1));
-        $this->slDebuger->debug('#### time_clean_all_caches: ', 'timer', (microtime(1) - $time_ini_clean_all_caches));
+        // Generate tags for categories
+        if (!empty($entity_ids['categories'])) {
+            foreach ($entity_ids['categories'] as $category_id) {
+                $tags[] = \Magento\Catalog\Model\Category::CACHE_TAG . '_' . $category_id;
+            }
+            $this->slDebuger->debug('Added cache tags for '.count($entity_ids['categories']).' categories.', 'syncdata');
+        }
 
+        if (!empty($tags)) {
+            // Clean internal cache (Redis/File) by tags
+            $time_ini_clean_cache = microtime(1);
+            $this->cacheInterface->clean($tags);
+            if ($this->sl_DEBBUG > 1) {
+                $this->slDebuger->debug('### time_clean_internal_cache_by_tags: ', 'timer', (microtime(1) - $time_ini_clean_cache));
+            }
+            $this->slDebuger->debug('Internal cache cleaned for '.count($tags).' entity tags: '.implode(', ', array_slice($tags, 0, 10)).(count($tags) > 10 ? '...' : ''), 'syncdata');
+
+            // Clean Full Page Cache (Varnish/Fastly) by tags
+            $time_ini_clean_fpc = microtime(1);
+            $this->fullPageCache->clean('matchingAnyTag', $tags);
+            if ($this->sl_DEBBUG > 1) {
+                $this->slDebuger->debug('### time_clean_full_page_cache_by_tags: ', 'timer', (microtime(1) - $time_ini_clean_fpc));
+            }
+            $this->slDebuger->debug('Full Page Cache (Varnish/Fastly) cleaned for '.count($tags).' entity tags.', 'syncdata');
+        } else {
+            $this->slDebuger->debug('No valid entity IDs provided for cache cleaning.', 'syncdata');
+        }
+
+        $this->slDebuger->debug('#### time_clean_all_caches: ', 'timer', (microtime(1) - $time_ini_clean_all_caches));
     }
 
     /**
@@ -798,10 +859,11 @@ class Syncdatacron extends Synccatalog
 
     /**
      * Function to update item depending on type.
-     * @param  $item_to_update          item date to update in Magento
+     * @param  $item_to_update item date to update in Magento
+     * @param  array &$processed_entity_ids reference to array for collecting processed entity IDs
      * @return void
      */
-    private function updateItem($item_to_update){
+    private function updateItem($item_to_update, &$processed_entity_ids = []){
          
         $sync_tries = $item_to_update['sync_tries'];
         
@@ -864,6 +926,27 @@ class Syncdatacron extends Synccatalog
 
         
         if ($result_update != 'item_not_updated'){
+
+            // Collect Magento entity_id from successfully processed entity for specific cache clearing
+            // Only categories and parent products (formats/links/images are automatically cleared with the parent product)
+            if (!empty($processed_entity_ids)) {
+                switch ($item_to_update['item_type']) {
+                    case 'category':
+                        // Use mg_category_id (Magento entity_id) instead of item_data['id'] (Sales Layer ID)
+                        if (!empty($this->mg_category_id) && !in_array($this->mg_category_id, $processed_entity_ids['categories'])) {
+                            $processed_entity_ids['categories'][] = $this->mg_category_id;
+                            $this->slDebuger->debug('Added category entity_id '.$this->mg_category_id.' to cache cleaning list', 'syncdata');
+                        }
+                        break;
+                    case 'product':
+                        // Use mg_product_id (Magento entity_id) instead of item_data['id'] (Sales Layer ID)
+                        if (!empty($this->mg_product_id) && !in_array($this->mg_product_id, $processed_entity_ids['products'])) {
+                            $processed_entity_ids['products'][] = $this->mg_product_id;
+                            $this->slDebuger->debug('Added product entity_id '.$this->mg_product_id.' to cache cleaning list', 'syncdata');
+                        }
+                        break;
+                }
+            }
 
             $this->sql_items_delete[] = $item_to_update['id'];
             $this->check_sql_items_delete(true);

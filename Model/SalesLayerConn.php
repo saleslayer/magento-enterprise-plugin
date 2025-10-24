@@ -102,7 +102,7 @@ class SalesLayerConn
      * @param string $url       Url to SalesLayer API connection
      * @param bool   $forceuft8 Set PHP system default charset to utf-8
      */
-    public function __construct($codeConn = null, $secretKey = null, $SSL = null, $url = null, $forceuft8 = true)
+    public function __construct(?string $codeConn = null, ?string $secretKey = null, ?bool $SSL = null, ?string $url = null, $forceuft8 = true)
     {
         if ($this->has_system_requirements()) {
             if (true == $forceuft8) {
@@ -191,7 +191,7 @@ class SalesLayerConn
      * @param string $codeConn Connector Code Identificator
      * @param string $secret   Secret Key for secure petitions
      */
-    public function set_identification($codeConn, $secretKey = null)
+    public function set_identification($codeConn, ?string $secretKey = null)
     {
         $this->__codeConn  = $codeConn;
         $this->__secretKey = $secretKey;
@@ -236,7 +236,7 @@ class SalesLayerConn
      * @param string $key    SSL client key
      * @param string $CACert SSL CA cert (only required if you are having problems with your system CA cert)
      */
-    public function set_SSL_credentials($cert = null, $key = null, $CACert = null)
+    public function set_SSL_credentials(?string $cert = null, ?string $key = null, ?string $CACert = null)
     {
         $this->SSL_Cert   = $cert;
         $this->SSL_Key    = $key;
@@ -315,7 +315,7 @@ class SalesLayerConn
      *
      * @return array info or false (if error)
      */
-    public function get_info($last_update = null, $params = null, $connector_type = null, $add_reference_files = false)
+    public function get_info($last_update = null, ?array $params = null, ?string $connector_type = null, $add_reference_files = false)
     {
         if ($this->hasConnector()) {
 
@@ -1116,7 +1116,7 @@ class SalesLayerConn
      *
      * @return array
      */
-    public function get_response_table_information($table = null)
+    public function get_response_table_information(?string $table = null)
     {
         return (null === $table) ? $this->response_tables_info : $this->response_tables_info[$table];
     }
@@ -1126,7 +1126,7 @@ class SalesLayerConn
      *
      * @return array
      */
-    public function get_response_table_data($table = null)
+    public function get_response_table_data(?string $table = null)
     {
         return (null === $table) ? $this->response_tables_data : $this->response_tables_data[$table];
     }
@@ -1136,7 +1136,7 @@ class SalesLayerConn
      *
      * @return array
      */
-    public function get_response_table_deleted_ids($table = null)
+    public function get_response_table_deleted_ids(?string $table = null)
     {
         return (null === $table) ? $this->response_table_deleted_ids
 							       :
@@ -1148,7 +1148,7 @@ class SalesLayerConn
      *
      * @return array
      */
-	public function get_response_table_modified_ids($table = null)
+	public function get_response_table_modified_ids(?string $table = null)
     {
         return (null === $table ? $this->response_table_modified_ids
 	           :
@@ -1160,7 +1160,7 @@ class SalesLayerConn
      *
      * @return array
      */
-    public function get_response_table_modified_data($table = null)
+    public function get_response_table_modified_data(?string $table = null)
     {
         if (null === $table) {
             if (isset($this->response_tables_data)) {
@@ -1240,7 +1240,7 @@ class SalesLayerConn
      * @return array
      *
      */
-    public function get_response_table_joins($table = null)
+    public function get_response_table_joins(?string $table = null)
     {
         if (null !== $this->response_tables_info and is_array($this->response_tables_info)) {
             if (null === $table) {
@@ -1375,7 +1375,7 @@ class SalesLayerConn
      *
      * @return array
      */
-    public function get_response_field_titles($table = null)
+    public function get_response_field_titles(?string $table = null)
     {
         $titles = [];
 
@@ -1433,7 +1433,7 @@ class SalesLayerConn
      *
      * @return array
      */
-    public function get_response_language_field_titles($language, $table = null)
+    public function get_response_language_field_titles($language, ?string $table = null)
     {
         $titles = [];
 
@@ -1491,7 +1491,7 @@ class SalesLayerConn
      * @return array
      */
 
-    public function get_headings ($language, $table = null) {
+    public function get_headings ($language, ?string $table = null) {
 
         $headings         = [];
         $default_language = $this->data_returned['schema']['default_language'];

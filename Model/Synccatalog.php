@@ -28,6 +28,8 @@ use Magento\CatalogInventory\Model\Configuration as catalogInventoryConfiguratio
 use Magento\Framework\App\DeploymentConfig as deploymentConfig;
 use Magento\Eav\Model\Config as eavConfig;
 use Magento\Framework\App\Cache\TypeListInterface as typeListInterface;
+use Magento\Framework\App\CacheInterface;
+use Magento\PageCache\Model\Cache\Type as FullPageCache;
 use Magento\Framework\App\ProductMetadataInterface as productMetadata;
 use Magento\Framework\Module\Dir\Reader as reader;
 use Magento\CatalogUrlRewrite\Model\CategoryUrlRewriteGenerator;
@@ -384,14 +386,16 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         deploymentConfig $deploymentConfig,
         eavConfig $eavConfig,
         typeListInterface $typeListInterface,
+        CacheInterface $cacheInterface,
+        FullPageCache $fullPageCache,
         productMetadata $productMetadata,
         reader $reader,
         countryOfManufacture $countryOfManufacture,
         layoutSource $layoutSource,
         stockRegistryInterface $stockRegistryInterface,
         productRepository $productRepository,
-        resource $resource = null,
-        resourceCollection $resourceCollection = null,
+        ?resource $resource = null,
+        ?resourceCollection $resourceCollection = null,
         array $data = []
     ) {
         parent::__construct($context, $registry, $resource, $resourceCollection, $data);
@@ -420,6 +424,8 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         $this->deploymentConfig                         = $deploymentConfig;
         $this->eavConfig                                = $eavConfig;
         $this->typeListInterface                        = $typeListInterface;
+        $this->cacheInterface                           = $cacheInterface;
+        $this->fullPageCache                            = $fullPageCache;
         $this->productMetadata                          = $productMetadata;
         $this->reader                                   = $reader;
         $this->countryOfManufacture                     = $countryOfManufacture;
@@ -981,8 +987,8 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
         $this->slDebuger->debug('Process login...');
 
-        $this->loadSaleslayerRootCategory();
         $this->load_magento_variables();
+        $this->loadSaleslayerRootCategory();
 
         $slconn = $this->connect_saleslayer($connector_id, $secretKey);
 
@@ -1029,7 +1035,8 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
      * @param timestamp $last_update           last update from the connector
      * @return void
      */
-    private function updateConn($connector_id, $slconn, $last_update = null){
+    private function updateConn($connector_id, $slconn, ?string $last_update = null)
+    {
 
         if ($this->sl_DEBBUG > 1) $this->slDebuger->debug("Updating connector...");
         if ($this->sl_DEBBUG > 1) $this->slDebuger->debug("Last update...".$last_update);
@@ -1353,7 +1360,8 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
      * @param  datetime $last_sync              Last connector synchronization datetime.
      * @return array $arrayReturn               array with stored synchronization data
      */
-    public function store_sync_data ($connector_id, $last_sync = null) {
+    public function store_sync_data($connector_id, ?string $last_sync = null)
+    {
         
         $time_ini_data = microtime(1);
 
@@ -3354,7 +3362,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
      * @param string $sl_sku                    product sku
      * @return boolean                          result of product creation
      */
-    private function create_product_db($product_id, $sl_sku = null) {
+    private function create_product_db($product_id, ?string $sl_sku = null) {
 
         $time_ini_create_product = microtime(1);
 
@@ -5467,7 +5475,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
      * @param int $image_file_size              image file size, if null, we check it
      * @return string                           product images to store
      */
-    private function processImage($entity_id, $image_filename, $image_url, $image_types, $image_position, $image_file_size = null){
+    private function processImage($entity_id, $image_filename, $image_url, $image_types, $image_position, ?int $image_file_size = null){
 
         $time_ini_process_image = microtime(1);
 
@@ -6206,7 +6214,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
      * @param string $sl_sku                    product format sku
      * @return boolean                          result of product format creation
      */
-    private function create_format_db($product_id, $format_id, $sl_sku = null) {
+    private function create_format_db($product_id, $format_id, ?string $sl_sku = null) {
 
         $product_table = $this->getTable('catalog_product_entity');
         $table_status = $this->connection->showTableStatus($product_table);
@@ -7452,9 +7460,10 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
      * @param int $store_view_id                store view id to search 
      * @return int $format_id                   Magento product format id
      */
-    private function find_saleslayer_format_id_db($saleslayer_id = null, $saleslayer_format_id = 0, $store_view_id = 0) {
+    private function find_saleslayer_format_id_db(?int $saleslayer_id = null, $saleslayer_format_id = 0, $store_view_id = 0)
+    {
 
-        if ($saleslayer_format_id == 0) return null;
+        if ($saleslayer_format_id == 0) { return null; }
 
         $product_table = $this->getTable('catalog_product_entity');
         $product_saleslayer_id_table = $this->getTable('catalog_product_entity_' . $this->product_saleslayer_id_attribute_backend_type);
@@ -13480,7 +13489,8 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
      * @param  int $item_id                 item id to reindex
      * @return void
      */
-    private function manageIndexes($indexLists, $item_id = null){
+    private function manageIndexes($indexLists, ?int $item_id = null)
+    {
 
         $time_ini_index_all = microtime(1);
 

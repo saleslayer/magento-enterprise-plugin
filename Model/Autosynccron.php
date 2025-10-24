@@ -30,6 +30,8 @@ use Magento\CatalogInventory\Model\Configuration as catalogInventoryConfiguratio
 use Magento\Framework\App\DeploymentConfig as deploymentConfig;
 use Magento\Eav\Model\Config as eavConfig;
 use Magento\Framework\App\Cache\TypeListInterface as typeListInterface;
+use Magento\Framework\App\CacheInterface;
+use Magento\PageCache\Model\Cache\Type as FullPageCache;
 use Magento\Framework\App\ProductMetadataInterface as productMetadata;
 use Magento\Framework\Module\Dir\Reader as reader;
 use Magento\Catalog\Model\Product\Attribute\Source\Countryofmanufacture as countryOfManufacture;
@@ -81,14 +83,16 @@ class Autosynccron extends Synccatalog{
         deploymentConfig $deploymentConfig,
         eavConfig $eavConfig,
         typeListInterface $typeListInterface,
+        CacheInterface $cacheInterface,
+        FullPageCache $fullPageCache,
         productMetadata $productMetadata,
         reader $reader,
         countryOfManufacture $countryOfManufacture,
         layoutSource $layoutSource,
         stockRegistryInterface $stockRegistryInterface,
         productRepository $productRepository,
-        resource $resource = null,
-        resourceCollection $resourceCollection = null,
+        ?resource $resource = null,
+        ?resourceCollection $resourceCollection = null,
         array $data = []
     ) {
         parent::__construct($context,
@@ -116,6 +120,8 @@ class Autosynccron extends Synccatalog{
             $deploymentConfig,
             $eavConfig,
             $typeListInterface,
+            $cacheInterface,
+            $fullPageCache,
             $productMetadata,
             $reader,
             $countryOfManufacture,
