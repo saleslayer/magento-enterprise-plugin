@@ -11021,7 +11021,7 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
      */
     private function sl_get_file_size($url){
 
-        if (strpos($url, 'http') !== false){
+        if (filter_var($url, FILTER_VALIDATE_URL)) {
 
             try{
 
