@@ -10243,13 +10243,13 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
     private function getTable($tableName){
         
         $tablePrefix = $this->getTablePrefix();
-        $tableNameReturn = $this->_connection->getTableName($tableName);
+        $tableNameReturn = $this->connection->getTableName($tableName);
 
         if ($tablePrefix && strpos($tableNameReturn, $tablePrefix) !== 0) {
             $tableNameReturn = $tablePrefix . $tableNameReturn;
         }
 
-        if ($this->_connection->isTableExists($tableNameReturn)){
+        if ($this->connection->isTableExists($tableNameReturn)){
             if (!isset($this->tables_identifiers[$tableNameReturn])){
                 $this->tables_identifiers[$tableNameReturn] = $this->getColumnIdentifier($tableNameReturn);
             }
