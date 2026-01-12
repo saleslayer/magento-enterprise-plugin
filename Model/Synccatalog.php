@@ -717,6 +717,11 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
     private function getWebsiteStoreviewRelations(array $website_ids = []): array
     {
+
+        $storeTable = $this->getTable('store');
+        $storeGroupTable = $this->getTable('store_group');
+        $storeWebsiteTable = $this->getTable('store_website');
+
         $statement = "SELECT
         store.website_id AS website_id,
         store_website.code AS website_code,
@@ -726,10 +731,10 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
         store.store_id AS storeview_id,
         store.code AS storeview_code,
         store.name AS storeview_name
-        FROM store
-        INNER JOIN store_group
+        FROM ".$storeTable." as store
+        INNER JOIN ".$storeGroupTable." as store_group
         ON store.group_id = store_group.group_id
-        INNER JOIN store_website
+        INNER JOIN ".$storeWebsiteTable." as store_website
         ON store.website_id = store_website.website_id";
 
         if (! empty($website_ids)) {
@@ -741,12 +746,15 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
 
     private function getWebsitesIdsByStoreIds(array $storeIds = []): array
     {
+        $storeTable = $this->getTable('store');
+        $storeWebsiteTable = $this->getTable('store_website');
+
         $statement = "SELECT
         store.website_id AS website_id,
         store_website.code AS website_code,
         store_website.name AS website_name
-        FROM store
-        INNER JOIN store_website
+        FROM ".$storeTable." AS store
+        INNER JOIN ".$storeWebsiteTable." AS store_website
         ON store.website_id = store_website.website_id";
 
         if (! empty($storeIds)) {
