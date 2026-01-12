@@ -10242,32 +10242,22 @@ class Synccatalog extends \Magento\Framework\Model\AbstractModel
      */
     private function getTable($tableName){
         
-        $tableNameReturn = $this->connection->getTableName($tableName);
+        $tablePrefix = $this->getTablePrefix();
+        $tableNameReturn = $this->_connection->getTableName($tableName);
 
-        if ($this->connection->isTableExists($tableNameReturn)){
+        if ($tablePrefix && strpos($tableNameReturn, $tablePrefix) !== 0) {
+            $tableNameReturn = $tablePrefix . $tableNameReturn;
+        }
 
-            $tablePrefix = $this->getTablePrefix();
-
-            if ($tablePrefix && strpos($tableNameReturn, $tablePrefix) !== 0) {
-
-                $tableNameReturn = $tablePrefix . $tableNameReturn;
-
-            }
-
+        if ($this->_connection->isTableExists($tableNameReturn)){
             if (!isset($this->tables_identifiers[$tableNameReturn])){
-
                 $this->tables_identifiers[$tableNameReturn] = $this->getColumnIdentifier($tableNameReturn);
-
             }
-
             return $tableNameReturn;
-
         }
 
         if (!in_array($tableName, $this->mg_tables_23)){
-
             $this->slDebuger->debug('## Error. The table '.$tableName.' does not exist.');
-
         }
 
         return null;

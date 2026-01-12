@@ -286,20 +286,15 @@ class Categories extends \Magento\Backend\Block\Widget\Form\Generic implements \
      */
     private function getTable($tableName){
         
-        $tableNameReturn = $this->connection->getTableName($tableName);
+        $tablePrefix = $this->getTablePrefix();
+        $tableNameReturn = $this->_connection->getTableName($tableName);
 
-        if ($this->connection->isTableExists($tableNameReturn)){
+        if ($tablePrefix && strpos($tableNameReturn, $tablePrefix) !== 0) {
+            $tableNameReturn = $tablePrefix . $tableNameReturn;
+        }
 
-            $tablePrefix = $this->getTablePrefix();
-
-            if ($tablePrefix && strpos($tableNameReturn, $tablePrefix) !== 0) {
-
-                $tableNameReturn = $tablePrefix . $tableNameReturn;
-
-            }
-
+        if ($this->_connection->isTableExists($tableNameReturn)){
             return $tableNameReturn;
-
         }
 
         return null;

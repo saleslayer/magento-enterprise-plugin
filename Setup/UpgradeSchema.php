@@ -6,10 +6,25 @@ use Magento\Framework\DB\Ddl\Table;
 use Magento\Framework\Setup\UpgradeSchemaInterface;
 use Magento\Framework\Setup\ModuleContextInterface;
 use Magento\Framework\Setup\SchemaSetupInterface;
+use Magento\Framework\Filesystem\DirectoryList;
 
 class UpgradeSchema implements UpgradeSchemaInterface
 {
-    
+    /**
+     * @var DirectoryList
+     */
+    private $directoryList;
+
+    /**
+     * Constructor
+     *
+     * @param DirectoryList $directoryList
+     */
+    public function __construct(DirectoryList $directoryList)
+    {
+        $this->directoryList = $directoryList;
+    }
+
     public function upgrade(SchemaSetupInterface $setup, ModuleContextInterface $context)
     {
         $installer = $setup;
@@ -287,12 +302,17 @@ class UpgradeSchema implements UpgradeSchemaInterface
 
                     try{
 
-                        $sql_create_idx = "CREATE INDEX SLYR_CREDENTIALS ON ".$attribute_table." (attribute_id, store_id, value(50));";
+                        $tableNameWithPrefix = $installer->getTable($attribute_table);
+                        $sql_create_idx = "CREATE INDEX SLYR_CREDENTIALS ON ".$tableNameWithPrefix." (attribute_id, store_id, value(50));";
                         $setup->getConnection()->query($sql_create_idx);
                     
                     }catch(\Exception $e){
 
-                        file_put_contents(BP.'/var/log/sl_logs/_upgrade_eschema_error_'.date('Y-m-d').'.dat', 'Error creating index: '.$e->getMessage()."\r\n", FILE_APPEND);
+                        $sl_logs_path = $this->directoryList->getPath('log').'/sl_logs/';
+                        if (!file_exists($sl_logs_path)) {
+                            mkdir($sl_logs_path, 0777, true);
+                        }
+                        file_put_contents($sl_logs_path.'_upgrade_eschema_error_'.date('Y-m-d').'.dat', 'Error creating index: '.$e->getMessage()."\r\n", FILE_APPEND);
 
                     }
 

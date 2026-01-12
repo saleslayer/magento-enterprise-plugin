@@ -246,20 +246,15 @@ class Grid extends \Magento\Backend\Block\Widget\Grid\Extended
      */
     private function getTable($tableName){
         
+        $tablePrefix = $this->getTablePrefix();
         $tableNameReturn = $this->_connection->getTableName($tableName);
 
+        if ($tablePrefix && strpos($tableNameReturn, $tablePrefix) !== 0) {
+            $tableNameReturn = $tablePrefix . $tableNameReturn;
+        }
+
         if ($this->_connection->isTableExists($tableNameReturn)){
-
-            $tablePrefix = $this->getTablePrefix();
-
-            if ($tablePrefix && strpos($tableNameReturn, $tablePrefix) !== 0) {
-
-                $tableNameReturn = $tablePrefix . $tableNameReturn;
-
-            }
-
             return $tableNameReturn;
-
         }
 
         return null;
